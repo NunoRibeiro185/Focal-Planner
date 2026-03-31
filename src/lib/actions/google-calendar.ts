@@ -295,11 +295,13 @@ export async function selectGoogleCalendar(
   if (token) {
     try {
       const futureBookings = await getFutureBookings();
-      const events = futureBookings.map((b) => ({
-        event: bookingToCalendarEvent(b),
-        localId: b.id,
-        startTime: b.start_time,
-      }));
+      const events = futureBookings
+        .filter((b) => b.event_date != null)
+        .map((b) => ({
+          event: bookingToCalendarEvent(b),
+          localId: b.id,
+          startTime: b.start_time,
+        }));
 
       const results = await bulkPushEvents(
         token.access_token,

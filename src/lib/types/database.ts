@@ -17,7 +17,9 @@ export type LeadSource =
   | "weddingwire"
   | "google"
   | "referral"
-  | "other";
+  | "other"
+  | "inquiry_form";
+
 
 export type DeliverableKey =
   | "edited_photos"
@@ -35,7 +37,18 @@ export interface Photographer {
   full_name: string | null;
   default_currency: string;
   created_at: string;
+  slug: string | null;
+  inquiry_form_enabled: boolean;
+  inquiry_show_packages: boolean;
+  inquiry_show_prices: boolean;
+  inquiry_show_phone: boolean;
+  inquiry_show_secondary_name: boolean;
+  inquiry_show_event_date: boolean;
+  inquiry_show_venue: boolean;
+  inquiry_show_location: boolean;
+  inquiry_show_notes: boolean;
 }
+
 
 export interface PackageTemplate {
   id: string;
@@ -64,17 +77,19 @@ export interface PackageVersion {
   created_at: string;
 }
 
+export type SecondShooterInviteStatus = "pending" | "accepted";
+
 export interface Booking {
   id: string;
   photographer_id: string;
-  package_version_id: string;
+  package_version_id: string | null;
   client_name_primary: string;
   client_name_secondary: string | null;
   client_email: string | null;
   client_phone: string | null;
   venue_name: string | null;
   venue_address: string | null;
-  event_date: string;
+  event_date: string | null;
   start_time: string | null;
   duration_hours: number | null;
   notes: string | null;
@@ -88,6 +103,25 @@ export interface Booking {
   payment_due_date: string | null;
   google_event_id: string | null;
   lead_source: LeadSource | null;
+  location: string | null;
+  // Second shooter collaboration
+  second_shooter_id: string | null;
+  second_shooter_email: string | null;
+  second_shooter_fee: number | null;
+  second_shooter_password_hash: string | null;
+  second_shooter_instructions: string | null;
+  second_shooter_invite_token: string | null;
+  second_shooter_invite_status: SecondShooterInviteStatus | null;
+  second_shooter_show_client_contact: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SecondShooterNote {
+  id: string;
+  booking_id: string;
+  photographer_id: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -163,7 +197,7 @@ export interface PackageVersionCustomField {
 
 export interface BookingTask {
   id: string;
-  booking_id: string;
+  booking_id: string | null;
   photographer_id: string;
   template_id: string | null;
   title: string;
@@ -194,7 +228,7 @@ export interface PackageTemplateWithVersionAndCustomFields
 }
 
 export interface BookingWithVersion extends Booking {
-  package_version: PackageVersion;
+  package_version: PackageVersion | null;
 }
 
 export interface BookingWithExtras extends Booking {
@@ -323,11 +357,31 @@ export interface Database {
       google_calendar_tokens: { Row: GoogleCalendarToken };
       editing_stage_templates: { Row: EditingStageTemplate };
       booking_editing_stages: { Row: BookingEditingStage };
+      second_shooter_notes: { Row: SecondShooterNote };
     };
     Enums: {
       booking_status: BookingStatus;
       deliverable_key: DeliverableKey;
       lead_source: LeadSource;
+    };
+
+    Functions: {
+      submit_inquiry_public: {
+        Args: {
+          p_slug: string;
+          p_client_name_primary: string;
+          p_client_email: string;
+          p_client_name_secondary?: string | null;
+          p_client_phone?: string | null;
+          p_event_date?: string | null;
+          p_venue_name?: string | null;
+          p_venue_address?: string | null;
+          p_location?: string | null;
+          p_package_template_id?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
     };
   };
 }

@@ -72,6 +72,8 @@ export function QuickBookingDialog({
             client_name_secondary: null,
             client_email: null,
             client_phone: null,
+            lead_source: null,
+            location: null,
             notes: null,
             price_override: null,
             hours_override: null,

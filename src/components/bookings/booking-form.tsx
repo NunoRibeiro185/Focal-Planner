@@ -95,6 +95,7 @@ export function BookingForm({
       client_phone: null,
       lead_source: null,
       event_date: "",
+      location: null,
       notes: null,
       price_override: null,
       hours_override: null,
@@ -266,13 +267,23 @@ export function BookingForm({
         <p className="text-sm font-medium">Itinerary</p>
       </div>
 
-      {/* Event date */}
-      <div className="space-y-1.5 max-w-xs">
-        <Label htmlFor="event_date">Event date *</Label>
-        <Input id="event_date" type="date" {...register("event_date")} />
-        {errors.event_date && (
-          <p className="text-sm text-destructive">{errors.event_date.message}</p>
-        )}
+      {/* Event date + location */}
+      <div className="grid grid-cols-2 gap-4 max-w-lg">
+        <div className="space-y-1.5">
+          <Label htmlFor="event_date">Event date *</Label>
+          <Input id="event_date" type="date" {...register("event_date")} />
+          {errors.event_date && (
+            <p className="text-sm text-destructive">{errors.event_date.message}</p>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="location">Location</Label>
+          <Input
+            id="location"
+            placeholder="e.g. Porto, Portugal"
+            {...register("location")}
+          />
+        </div>
       </div>
 
       {/* Stops */}

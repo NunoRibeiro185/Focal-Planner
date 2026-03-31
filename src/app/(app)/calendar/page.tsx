@@ -25,7 +25,7 @@ export default async function CalendarPage() {
   ]);
 
   return (
-    <div className="flex flex-col h-full px-18 py-20">
+    <div className="flex flex-col h-full px-4 py-4 md:px-18 md:py-20">
       <CalendarShell
         prefetchedEvents={prefetchedEvents}
         prefetchStart={prefetchStart}

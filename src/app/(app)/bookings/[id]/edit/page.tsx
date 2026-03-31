@@ -24,16 +24,17 @@ export default async function EditBookingPage({
   const { booking, bookingExtras, itineraryStops } = data;
   const v = booking.package_version;
 
-  const originalPackageTemplateId = v.package_template_id;
+  const originalPackageTemplateId = v?.package_template_id ?? null;
 
   const defaultValues: Partial<BookingFormValues> = {
-    package_template_id: originalPackageTemplateId,
+    package_template_id: originalPackageTemplateId ?? undefined,
     client_name_primary: booking.client_name_primary,
     client_name_secondary: booking.client_name_secondary,
     client_email: booking.client_email,
     client_phone: booking.client_phone,
     lead_source: booking.lead_source ?? null,
-    event_date: booking.event_date,
+    event_date: booking.event_date ?? undefined,
+    location: booking.location ?? null,
     notes: booking.notes,
     price_override: booking.price_override,
     hours_override: booking.hours_override,
@@ -58,7 +59,7 @@ export default async function EditBookingPage({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold mb-2">Edit Booking</h1>
         <p className="text-muted-foreground text-sm mb-6">
@@ -82,7 +83,7 @@ export default async function EditBookingPage({
           bookingId={id}
           extras={bookingExtras}
           catalogExtras={catalogExtras}
-          currency={v.currency}
+          currency={v?.currency ?? "EUR"}
         />
       </div>
     </div>

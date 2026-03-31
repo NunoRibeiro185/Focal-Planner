@@ -13,7 +13,14 @@ export interface EditingBenchItem {
 }
 
 export interface CommandCenterTask extends BookingTask {
-  booking_client: string;
+  /** The client name(s) for the associated booking, or null for general tasks. */
+  booking_client: string | null;
+}
+
+export interface BookingOption {
+  id: string;
+  /** Display label shown in the booking assignment dropdown. */
+  label: string;
 }
 
 /** The next upcoming non-cancelled, non-done booking with its incomplete tasks */
@@ -105,15 +112,16 @@ export async function getCommandCenterTasks(): Promise<{
 
   if (error) throw error;
 
-  const toTask = (t: any): CommandCenterTask => ({
-    ...t,
-    booking_client: [
+  const toTask = (t: any): CommandCenterTask => {
+    const parts = [
       t.booking?.client_name_primary,
       t.booking?.client_name_secondary,
-    ]
-      .filter(Boolean)
-      .join(" & "),
-  });
+    ].filter(Boolean);
+    return {
+      ...t,
+      booking_client: parts.length > 0 ? parts.join(" & ") : null,
+    };
+  };
 
   const thisWeek: CommandCenterTask[] = [];
   const upcoming: CommandCenterTask[] = [];
@@ -130,8 +138,8 @@ export async function getCommandCenterTasks(): Promise<{
   return { thisWeek, upcoming };
 }
 
-/** All bookings with status "inquiry" */
-export async function getOpenInquiries(): Promise<Booking[]> {
+/** Bookings in inquiry status — new leads from the public form. */
+export async function getInquiryBookings(): Promise<Booking[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -162,6 +170,37 @@ export async function getEditingStageTemplates(): Promise<EditingStageTemplate[]
   if (error) throw error;
 
   return (data ?? []) as EditingStageTemplate[];
+}
+
+/**
+ * Returns a minimal list of active (non-cancelled, non-done) bookings
+ * for use in the task assignment dropdown on the Command Center.
+ */
+export async function getActiveBookingsForTaskAssignment(): Promise<BookingOption[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id, client_name_primary, client_name_secondary, event_date")
+    .neq("status", "cancelled")
+    .neq("status", "done")
+    .order("event_date", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((b: any) => {
+    const names = [b.client_name_primary, b.client_name_secondary]
+      .filter(Boolean)
+      .join(" & ");
+    const date = b.event_date
+      ? new Date(b.event_date).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "Date TBD";
+    return { id: b.id, label: `${names} · ${date}` };
+  });
 }
 
 /** Editing stages for a specific booking */

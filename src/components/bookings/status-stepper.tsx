@@ -87,65 +87,77 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
         </DialogContent>
       </Dialog>
 
-    <div className="flex items-center gap-0">
-      {STATUS_STEPS.map((step, index) => {
-        const isCompleted = index <= currentIndex;
-        const isCurrent = index === currentIndex;
-        const isClickable =
-          !isLocked && getStepperTargetStatus(activeStatus, index) !== null;
+    <div>
+      <div className="flex items-center gap-0">
+        {STATUS_STEPS.map((step, index) => {
+          const isCompleted = index <= currentIndex;
+          const isCurrent = index === currentIndex;
+          const isClickable =
+            !isLocked && getStepperTargetStatus(activeStatus, index) !== null;
 
-        return (
-          <div key={step} className="flex items-center flex-1 last:flex-none">
-            {/* Step */}
-            <button
-              onClick={() => handleStepClick(index)}
-              disabled={!isClickable || isPending}
-              className={cn(
-                "flex flex-col items-center gap-1.5 group",
-                isClickable && "cursor-pointer",
-                !isClickable && "cursor-default"
+          return (
+            <div key={step} className="flex items-center flex-1 last:flex-none">
+              {/* Step */}
+              <button
+                onClick={() => handleStepClick(index)}
+                disabled={!isClickable || isPending}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 group",
+                  isClickable && "cursor-pointer",
+                  !isClickable && "cursor-default"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium transition-colors",
+                    isCompleted
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "bg-background border-muted-foreground/30 text-muted-foreground",
+                    isClickable && isCompleted &&
+                      "group-hover:bg-primary/80 group-hover:border-primary/80",
+                    isClickable && !isCompleted &&
+                      "group-hover:border-primary group-hover:text-primary"
+                  )}
+                >
+                  {isCompleted ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <span>{index + 1}</span>
+                  )}
+                </div>
+                {/* Labels: hidden on mobile, visible on sm+ */}
+                <span
+                  className={cn(
+                    "hidden sm:block text-xs whitespace-nowrap",
+                    isCurrent ? "text-foreground font-medium" : "text-muted-foreground"
+                  )}
+                >
+                  {BOOKING_STATUS_LABELS[step]}
+                </span>
+              </button>
+
+              {/* Connector line */}
+              {index < STATUS_STEPS.length - 1 && (
+                <div
+                  className={cn(
+                    "h-0.5 flex-1 mx-2 transition-colors",
+                    "sm:mb-5",
+                    isCompleted ? "bg-primary" : "bg-border"
+                  )}
+                />
               )}
-            >
-              <div
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium transition-colors",
-                  isCompleted
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : "bg-background border-muted-foreground/30 text-muted-foreground",
-                  isClickable && isCompleted &&
-                    "group-hover:bg-primary/80 group-hover:border-primary/80",
-                  isClickable && !isCompleted &&
-                    "group-hover:border-primary group-hover:text-primary"
-                )}
-              >
-                {isCompleted ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <span>{index + 1}</span>
-                )}
-              </div>
-              <span
-                className={cn(
-                  "text-xs whitespace-nowrap",
-                  isCurrent ? "text-foreground font-medium" : "text-muted-foreground"
-                )}
-              >
-                {BOOKING_STATUS_LABELS[step]}
-              </span>
-            </button>
+            </div>
+          );
+        })}
+      </div>
 
-            {/* Connector line */}
-            {index < STATUS_STEPS.length - 1 && (
-              <div
-                className={cn(
-                  "h-0.5 flex-1 mx-2 mb-5 transition-colors",
-                  isCompleted ? "bg-primary" : "bg-border"
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
+      {/* Current step label — mobile only */}
+      <p className="sm:hidden mt-2 text-sm font-medium text-center">
+        {BOOKING_STATUS_LABELS[activeStatus]}
+        <span className="text-muted-foreground font-normal">
+          {" "}· step {currentIndex + 1} of {STATUS_STEPS.length}
+        </span>
+      </p>
     </div>
     </>
   );

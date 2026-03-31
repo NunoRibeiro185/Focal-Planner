@@ -18,8 +18,10 @@ export function bookingToCalendarEvent(b: BookingListItem): CalendarEvent {
     kind: "booking",
     id: b.id,
     title: b.client_name_primary,
-    start: b.event_date,
-    end: b.event_date,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    start: b.event_date!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    end: b.event_date!,
     allDay: !b.start_time,
     color: BOOKING_STATUS_COLORS[b.status],
     status: b.status,
@@ -63,7 +65,7 @@ export async function getCalendarEvents(
   ]);
 
   const events: CalendarEvent[] = [
-    ...bookings.map(bookingToCalendarEvent),
+    ...bookings.filter((b) => b.event_date != null).map(bookingToCalendarEvent),
     ...personalEvents.map(personalEventToCalendarEvent),
   ];
 
@@ -80,7 +82,7 @@ export async function getFutureCalendarEvents(): Promise<CalendarEvent[]> {
   ]);
 
   const events: CalendarEvent[] = [
-    ...bookings.map(bookingToCalendarEvent),
+    ...bookings.filter((b) => b.event_date != null).map(bookingToCalendarEvent),
     ...personalEvents.map(personalEventToCalendarEvent),
   ];
 

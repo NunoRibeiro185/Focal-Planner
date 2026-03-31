@@ -32,21 +32,24 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Redirect unauthenticated users away from protected routes
-  const isAuthRoute = pathname.startsWith("/login");
-  const isProtectedRoute =
-    !isAuthRoute && !pathname.startsWith("/_next") && pathname !== "/";
+  // Paths that never require authentication
+  const isPublicPath =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/inquiry/") ||
+    pathname.startsWith("/second-shooter/");
 
-  if (isProtectedRoute && !user) {
+  // Redirect unauthenticated users to login
+  if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // Redirect authenticated users away from the login page
-  if (isAuthRoute && user) {
+  if (user && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/bookings";
     return NextResponse.redirect(url);
   }
 

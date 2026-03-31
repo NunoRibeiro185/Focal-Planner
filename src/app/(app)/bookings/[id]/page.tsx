@@ -1,23 +1,63 @@
 import { notFound } from "next/navigation";
 import { getBookingById } from "@/lib/queries/bookings";
 import { getExtras } from "@/lib/queries/extras";
+import { getPackageTemplates } from "@/lib/queries/packages";
 import { getBookingEditingStages, getEditingStageTemplates } from "@/lib/queries/command-center";
+import { getCalendarEventsForAvailabilityPanel } from "@/lib/queries/availability-calendar";
+import { getSecondShooterView, getSecondShooterNotes } from "@/lib/queries/second-shooter";
+import { resolveBookingLayout, getAllPanels } from "@/lib/utils/booking-layout";
+import type { PanelSlot } from "@/lib/utils/booking-layout";
+import type {
+  BookingWithVersion,
+  BookingTask,
+  BookingExtra,
+  BookingDeliverableProgress,
+  BookingItineraryStop,
+  PaymentLogEntry,
+  BookingEditingStage,
+  EditingStageTemplate,
+  CalendarEvent,
+  PackageTemplateWithVersion,
+} from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
+import { StatusStepper } from "@/components/bookings/status-stepper";
 import { PaymentPanel } from "@/components/bookings/payment-panel";
 import { DeliverablesPanel } from "@/components/bookings/deliverables-panel";
 import { TasksPanel } from "@/components/bookings/tasks-panel";
-import { ExtrasPanel } from "@/components/bookings/extras-panel";
-import { StatusStepper } from "@/components/bookings/status-stepper";
+import { PackageExtrasCard } from "@/components/bookings/extras-panel";
 import { EditingPipelinePanel } from "@/components/bookings/editing-pipeline-panel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils/currency";
-import { resolveBookingLayout } from "@/lib/utils/booking-layout";
+import { AvailabilityCalendarPanel } from "@/components/bookings/availability-calendar-panel";
+import { SecondShooterPanel } from "@/components/bookings/second-shooter-panel";
+import { SecondShooterBookingView } from "@/components/bookings/second-shooter-booking-view";
+import {
+  ClientInfoCard,
+  ItineraryCard,
+  NotesCard,
+} from "@/components/bookings/booking-detail-cards";
 import { format } from "date-fns";
-import { MapPin, Calendar, Clock, Mail, Phone } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { MapPin, Calendar, Clock } from "lucide-react";
+
+// ─── Section renderer ─────────────────────────────────────────────────────────
+
+const GRID_COLS_CLASS: Record<number, string> = {
+  2: "grid gap-6 grid-cols-1 lg:grid-cols-2",
+  3: "grid gap-4 grid-cols-1 md:grid-cols-3",
+  4: "grid gap-4 grid-cols-1 md:grid-cols-4",
+  5: "grid gap-4 grid-cols-1 md:grid-cols-5",
+  6: "grid gap-4 grid-cols-1 md:grid-cols-6",
+};
+
+const COL_SPAN_CLASS: Record<number, string> = {
+  1: "",
+  2: "col-span-2",
+  3: "col-span-3",
+  4: "col-span-4",
+  5: "col-span-5",
+  6: "col-span-6",
+};
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function BookingDetailPage({
   params,
@@ -25,24 +65,166 @@ export default async function BookingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, catalogExtras, editingStages, stageTemplates] = await Promise.all([
+
+  // Get current user to detect second-shooter vs primary-photographer view
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [data, catalogExtras, editingStages, stageTemplates, packageTemplates] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
     getExtras(),
     getBookingEditingStages(id),
     getEditingStageTemplates(),
+    getPackageTemplates(),
   ]);
-  const { booking, tasks, deliverableProgress, itineraryStops, payments, bookingExtras, amountPaid, grandTotal, balance, overdue } = data;
+
+  const {
+    booking,
+    tasks,
+    deliverableProgress,
+    itineraryStops,
+    payments,
+    bookingExtras,
+    amountPaid,
+    grandTotal,
+    balance,
+    overdue,
+  } = data;
   const v = booking.package_version;
 
+  // If the current user is the accepted second shooter, show the dedicated view
+  const isSecondShooter = booking.second_shooter_id === user?.id;
+  if (isSecondShooter) {
+    const [ssView, ssNotes] = await Promise.all([
+      getSecondShooterView(id),
+      getSecondShooterNotes(id),
+    ]);
+    if (!ssView) notFound();
+    return (
+      <SecondShooterBookingView
+        view={ssView}
+        tasks={tasks}
+        privateNotes={ssNotes}
+        bookingId={id}
+      />
+    );
+  }
+
   const layout = resolveBookingLayout(booking.status);
-  const panels = new Set(layout.panels);
+  const panelSet = new Set(getAllPanels(layout));
+
+  // Fetch calendar events only when the layout includes the panel
+  const calendarEvents: CalendarEvent[] =
+    panelSet.has("availability_calendar") && booking.event_date
+      ? await getCalendarEventsForAvailabilityPanel(booking.event_date)
+      : [];
+
+  // Cast package templates to the shape the component expects
+  const pkgTemplates = packageTemplates as unknown as PackageTemplateWithVersion[];
+
+  // ── Panel renderer ─────────────────────────────────────────────────────────
+
+  function renderPanel(slot: PanelSlot): React.ReactNode {
+    const { panel, forceShow } = slot;
+
+    switch (panel) {
+      case "client_info":
+        return <ClientInfoCard key={panel} booking={booking} bookingId={id} />;
+
+      case "availability_calendar":
+        return (
+          <AvailabilityCalendarPanel
+            key={panel}
+            eventDate={booking.event_date}
+            location={booking.location}
+            events={calendarEvents}
+            bookingId={id}
+          />
+        );
+
+      case "package_extras":
+        return (
+          <PackageExtrasCard
+            key={panel}
+            booking={booking}
+            bookingId={id}
+            extras={bookingExtras}
+            catalogExtras={catalogExtras}
+            packageTemplates={pkgTemplates}
+          />
+        );
+
+      case "itinerary":
+        return (
+          <ItineraryCard
+            key={panel}
+            itineraryStops={itineraryStops}
+            bookingId={id}
+          />
+        );
+
+      case "notes":
+        if (!forceShow && !booking.notes) return null;
+        return <NotesCard key={panel} notes={booking.notes} bookingId={id} />;
+
+      case "payment":
+        if (!v) return null;
+        return (
+          <PaymentPanel
+            key={panel}
+            booking={booking}
+            payments={payments}
+            amountPaid={amountPaid}
+            balance={balance}
+            overdue={overdue}
+            grandTotal={grandTotal}
+            currency={v.currency}
+          />
+        );
+
+      case "tasks":
+        return <TasksPanel key={panel} tasks={tasks} bookingId={id} />;
+
+      case "deliverables":
+        if (deliverableProgress.length === 0) return null;
+        return (
+          <DeliverablesPanel
+            key={panel}
+            deliverableProgress={deliverableProgress}
+            bookingId={id}
+          />
+        );
+
+      case "editing_pipeline":
+        return (
+          <EditingPipelinePanel
+            key={panel}
+            stages={editingStages}
+            bookingId={id}
+            hasTemplates={stageTemplates.length > 0}
+          />
+        );
+
+      case "second_shooter":
+        return (
+          <SecondShooterPanel
+            key={panel}
+            booking={booking}
+            bookingId={id}
+          />
+        );
+
+      default:
+        return null;
+    }
+  }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-      {/* Header */}
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-5xl font-[family-name:var(--font-heading)] leading-tight tracking-wide">
+          <h1 className="text-3xl sm:text-5xl font-[family-name:var(--font-heading)] leading-tight tracking-wide">
             {booking.client_name_primary}
             {booking.client_name_secondary && ` & ${booking.client_name_secondary}`}
           </h1>
@@ -56,7 +238,9 @@ export default async function BookingDetailPage({
             )}
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
-              {format(new Date(booking.event_date), "EEEE, d MMMM yyyy")}
+              {booking.event_date
+                ? format(new Date(booking.event_date), "EEEE, d MMMM yyyy")
+                : "Date TBD"}
             </span>
             {booking.start_time && (
               <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -66,187 +250,39 @@ export default async function BookingDetailPage({
             )}
           </div>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/bookings/${id}/edit`}>Edit</Link>
-        </Button>
       </div>
 
-      {/* Status stepper */}
+      {/* ── Status stepper ── */}
       {booking.status !== "cancelled" && (
         <StatusStepper bookingId={id} currentStatus={booking.status} />
       )}
 
-      {/* ── Editing Pipeline (editing layout only, top position) ── */}
-      {panels.has("editing_pipeline") && (
-        <EditingPipelinePanel
-          stages={editingStages}
-          bookingId={id}
-          hasTemplates={stageTemplates.length > 0}
-        />
-      )}
+      {/* ── Layout sections ── */}
+      {layout.sections.map((section, sectionIndex) => {
+        const rendered = section.slots
+          .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))
+          .filter((item): item is { node: React.ReactElement; weight: number } => item.node !== null);
 
-      {/* ── Info grid (shown in default layout) ── */}
-      {(panels.has("package") || panels.has("schedule") || panels.has("itinerary")) && (
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Client — always shown */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Client
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="font-medium">{booking.client_name_primary}</p>
-              {booking.client_name_secondary && (
-                <p className="text-muted-foreground">{booking.client_name_secondary}</p>
-              )}
-              {booking.client_email && (
-                <a
-                  href={`mailto:${booking.client_email}`}
-                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  {booking.client_email}
-                </a>
-              )}
-              {booking.client_phone && (
-                <a
-                  href={`tel:${booking.client_phone}`}
-                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  {booking.client_phone}
-                </a>
-              )}
-            </CardContent>
-          </Card>
+        if (rendered.length === 0) return null;
 
-          {/* Itinerary */}
-          {panels.has("itinerary") && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                  Itinerary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm">
-                {itineraryStops.length > 0 ? (
-                  <div className="space-y-3">
-                    {itineraryStops.map((stop, i) => (
-                      <div key={stop.id} className={i > 0 ? "pt-3 border-t" : ""}>
-                        <div className="flex items-start gap-2">
-                          {stop.start_time && (
-                            <span className="tabular-nums text-muted-foreground text-xs pt-0.5 w-10 shrink-0">
-                              {stop.start_time.slice(0, 5)}
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{stop.name}</p>
-                            {stop.address && (
-                              <a
-                                href={`https://maps.google.com/?q=${encodeURIComponent(stop.address)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-start gap-1 text-muted-foreground hover:text-foreground mt-0.5"
-                              >
-                                <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span className="text-xs">{stop.address}</span>
-                              </a>
-                            )}
-                            {stop.notes && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{stop.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No itinerary set</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+        if (rendered.length === 1) {
+          return <div key={sectionIndex}>{rendered[0].node}</div>;
+        }
 
-          {/* Package snapshot */}
-          {panels.has("package") && (
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    Package
-                  </CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    v{v.version_number}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p className="font-bold text-base">
-                  {formatCurrency(booking.total_price, v.currency)}
-                </p>
-                {booking.price_override && booking.price_override !== 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Base {formatCurrency(v.base_price, v.currency)}{" "}
-                    {booking.price_override > 0 ? "+" : ""}
-                    {formatCurrency(booking.price_override, v.currency)} adjustment
-                  </p>
-                )}
-                <p className="text-muted-foreground">{v.hours_of_coverage}h coverage</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+        const totalWeight = rendered.reduce((sum, item) => sum + item.weight, 0);
+        const gridClass = GRID_COLS_CLASS[totalWeight] ?? `grid gap-4 grid-cols-1 md:grid-cols-${totalWeight}`;
 
-      {/* Notes */}
-      {booking.notes && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{booking.notes}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Separator />
-
-      {/* Detail panels */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {panels.has("payment") && (
-          <PaymentPanel
-            booking={booking}
-            payments={payments}
-            amountPaid={amountPaid}
-            balance={balance}
-            overdue={overdue}
-            grandTotal={grandTotal}
-            currency={v.currency}
-          />
-        )}
-        {panels.has("deliverables") && (
-          <DeliverablesPanel deliverableProgress={deliverableProgress} bookingId={id} />
-        )}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {panels.has("extras") && (
-          <ExtrasPanel
-            bookingId={id}
-            extras={bookingExtras}
-            catalogExtras={catalogExtras}
-            currency={v.currency}
-          />
-        )}
-
-        {panels.has("tasks") && (
-          <TasksPanel tasks={tasks} bookingId={id} />
-        )}
-      </div>
+        return (
+          <div key={sectionIndex} className={gridClass}>
+            {rendered.map(({ node, weight }) => {
+              const spanClass = COL_SPAN_CLASS[weight] ?? `col-span-${weight}`;
+              return weight === 1
+                ? node
+                : <div key={(node as React.ReactElement).key} className={spanClass}>{node}</div>;
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }

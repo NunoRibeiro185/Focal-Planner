@@ -14,7 +14,11 @@ export async function getBookingYears(): Promise<number[]> {
   if (error) throw error;
 
   const years = [
-    ...new Set((data ?? []).map((b) => new Date(b.event_date).getFullYear())),
+    ...new Set(
+      (data ?? [])
+        .filter((b) => b.event_date != null)
+        .map((b) => new Date(b.event_date!).getFullYear())
+    ),
   ].sort((a, b) => b - a);
 
   return years;

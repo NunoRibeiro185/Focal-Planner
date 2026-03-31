@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { GripVertical, Trash2, Plus, Check } from "lucide-react";
+import { GripVertical, Trash2, Plus, Check, Pencil, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import {
   addBookingEditingStage,
   deleteBookingEditingStage,
   reorderBookingEditingStage,
+  updateBookingEditingStage,
 } from "@/lib/actions/editing-stages";
 import type { BookingEditingStage } from "@/lib/types";
 import {
@@ -44,12 +45,14 @@ function SortableStageRow({
   isPending,
   onToggle,
   onDelete,
+  onUpdate,
 }: {
   stage: BookingEditingStage;
   bookingId: string;
   isPending: boolean;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, title: string) => void;
 }) {
   const {
     attributes,
@@ -60,6 +63,9 @@ function SortableStageRow({
     isDragging,
   } = useSortable({ id: stage.id });
 
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(stage.title);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -68,11 +74,22 @@ function SortableStageRow({
 
   const isComplete = stage.completed_at !== null;
 
+  function handleSave() {
+    if (!draftTitle.trim()) return;
+    onUpdate(stage.id, draftTitle.trim());
+    setEditing(false);
+  }
+
+  function handleCancel() {
+    setDraftTitle(stage.title);
+    setEditing(false);
+  }
+
   return (
     <li
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 rounded-md border px-3 py-2.5 bg-background"
+      className="flex items-center gap-2 rounded-md border px-3 py-2.5 bg-background group"
     >
       <button
         {...attributes}
@@ -88,7 +105,7 @@ function SortableStageRow({
       <button
         type="button"
         onClick={() => onToggle(stage.id, !isComplete)}
-        disabled={isPending}
+        disabled={isPending || editing}
         className={cn(
           "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
           isComplete
@@ -100,24 +117,58 @@ function SortableStageRow({
         {isComplete && <Check className="h-3 w-3" />}
       </button>
 
-      <span
-        className={cn(
-          "flex-1 text-sm",
-          isComplete && "line-through text-muted-foreground"
-        )}
-      >
-        {stage.title}
-      </span>
+      {editing ? (
+        <div className="flex-1 flex items-center gap-1">
+          <Input
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            className="h-7 text-sm"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") handleCancel();
+            }}
+          />
+          <button onClick={handleSave} disabled={isPending} className="text-primary hover:text-primary/80 shrink-0">
+            <Check className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground shrink-0">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <>
+          <span
+            className={cn(
+              "flex-1 text-sm",
+              isComplete && "line-through text-muted-foreground"
+            )}
+          >
+            {stage.title}
+          </span>
 
-      <button
-        type="button"
-        onClick={() => onDelete(stage.id)}
-        disabled={isPending}
-        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 shrink-0"
-        aria-label={`Delete ${stage.title}`}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+          <div className="flex items-center gap-1 invisible group-hover:visible shrink-0">
+            <button
+              type="button"
+              onClick={() => { setDraftTitle(stage.title); setEditing(true); }}
+              disabled={isPending}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={`Edit ${stage.title}`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(stage.id)}
+              disabled={isPending}
+              className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+              aria-label={`Delete ${stage.title}`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </>
+      )}
     </li>
   );
 }
@@ -174,6 +225,13 @@ export function EditingPipelinePanel({
       await addBookingEditingStage(bookingId, newTitle.trim());
       setNewTitle("");
       setShowAdd(false);
+    });
+  }
+
+  function handleUpdate(stageId: string, title: string) {
+    setStages((prev) => prev.map((s) => s.id === stageId ? { ...s, title } : s));
+    startTransition(async () => {
+      await updateBookingEditingStage(stageId, title, bookingId);
     });
   }
 
@@ -251,6 +309,7 @@ export function EditingPipelinePanel({
                     isPending={isPending}
                     onToggle={handleToggle}
                     onDelete={handleDelete}
+                    onUpdate={handleUpdate}
                   />
                 ))}
               </ul>

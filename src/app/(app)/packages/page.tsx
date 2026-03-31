@@ -38,7 +38,7 @@ export default async function PackagesPage({
     (photographer.data as { default_currency: string } | null)?.default_currency ?? "EUR";
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="max-w-6xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Packages</h1>

@@ -10,13 +10,17 @@ export default async function NewBookingPage() {
     getExtras(),
   ]);
 
-  async function handleCreate(values: BookingFormValues, extras: BookingExtraValues[], itinerary: ItineraryStopInput[]) {
+  async function handleCreate(
+    values: BookingFormValues,
+    extras: BookingExtraValues[],
+    itinerary: ItineraryStopInput[]
+  ) {
     "use server";
     await createBooking(values, extras, itinerary);
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="max-w-6xl mx-auto px-6 py-8">
       <h1 className="text-2xl font-bold mb-6">New Booking</h1>
       <BookingForm
         packages={packages}

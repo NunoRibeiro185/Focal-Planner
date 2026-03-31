@@ -14,6 +14,8 @@ export interface BookingListItem extends BookingWithVersion {
   amount_paid: number;
   balance: number;
   overdue: boolean;
+  package_name: string | null;
+  is_second_shooter: boolean;
 }
 
 /**
@@ -21,6 +23,64 @@ export interface BookingListItem extends BookingWithVersion {
  * Includes the package version snapshot and computed payment totals.
  */
 export async function getBookings(): Promise<BookingListItem[]> {
+  const supabase = await createClient();
+
+  const [bookingsResult, { data: { user } }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select(
+        `
+        *,
+        package_version:package_versions(*),
+        payment_log_entries(amount)
+        `
+      )
+      .order("event_date", { ascending: true }),
+    supabase.auth.getUser(),
+  ]);
+
+  const { data: bookings, error } = bookingsResult;
+  if (error) throw error;
+
+  const rows = bookings ?? [];
+
+  // Fetch template names in a single query
+  const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
+  const templateMap = new Map<string, string>();
+  if (templateIds.length > 0) {
+    const { data: templates } = await supabase
+      .from("package_templates")
+      .select("id, name")
+      .in("id", templateIds);
+    templates?.forEach((t: any) => templateMap.set(t.id, t.name));
+  }
+
+  return rows.map((b: any) => {
+    const amountPaid = computeAmountPaid(
+      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
+    );
+    const balance = computeBalance(b.total_price, amountPaid);
+    return {
+      ...b,
+      package_version: b.package_version,
+      package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
+      amount_paid: amountPaid,
+      balance,
+      overdue: isOverdue(b.payment_due_date, balance),
+      is_second_shooter: b.second_shooter_id === user?.id,
+    };
+  });
+}
+
+/**
+ * Returns ALL bookings (including cancelled) whose event_date falls within
+ * [start, end] (inclusive). Used by the availability calendar panel to show
+ * a complete picture of schedule pressure on a given date.
+ */
+export async function getAllBookingsByDateRange(
+  start: string,
+  end: string
+): Promise<BookingListItem[]> {
   const supabase = await createClient();
 
   const { data: bookings, error } = await supabase
@@ -32,11 +92,25 @@ export async function getBookings(): Promise<BookingListItem[]> {
       payment_log_entries(amount)
       `
     )
+    .gte("event_date", start)
+    .lte("event_date", end)
     .order("event_date", { ascending: true });
 
   if (error) throw error;
 
-  return (bookings ?? []).map((b: any) => {
+  const rows = bookings ?? [];
+
+  const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
+  const templateMap = new Map<string, string>();
+  if (templateIds.length > 0) {
+    const { data: templates } = await supabase
+      .from("package_templates")
+      .select("id, name")
+      .in("id", templateIds);
+    templates?.forEach((t: any) => templateMap.set(t.id, t.name));
+  }
+
+  return rows.map((b: any) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -44,9 +118,11 @@ export async function getBookings(): Promise<BookingListItem[]> {
     return {
       ...b,
       package_version: b.package_version,
+      package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
+      is_second_shooter: false,
     };
   });
 }
@@ -88,6 +164,7 @@ export async function getBookingsByDateRange(
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
+      is_second_shooter: false,
     };
   });
 }
@@ -126,6 +203,7 @@ export async function getFutureBookings(): Promise<BookingListItem[]> {
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
+      is_second_shooter: false,
     };
   });
 }

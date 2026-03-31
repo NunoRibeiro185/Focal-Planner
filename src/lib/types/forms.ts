@@ -37,6 +37,7 @@ export const LEAD_SOURCE_OPTIONS = [
   { value: "weddingwire", label: "WeddingWire / WUN" },
   { value: "google", label: "Google" },
   { value: "referral", label: "Referral" },
+  { value: "inquiry_form", label: "Inquiry Form" },
   { value: "other", label: "Other" },
 ] as const;
 
@@ -47,9 +48,10 @@ export const bookingFormSchema = z.object({
   client_email: z.string().email("Invalid email").or(z.literal("")).nullable(),
   client_phone: z.string().nullable(),
   lead_source: z
-    .enum(["instagram", "facebook", "weddingwire", "google", "referral", "other"])
+    .enum(["instagram", "facebook", "weddingwire", "google", "referral", "other", "inquiry_form"])
     .nullable(),
   event_date: z.string().min(1, "Event date is required"),
+  location: z.string().nullable(),
   notes: z.string().nullable(),
   price_override: z.coerce.number().nullable(),
   hours_override: z.coerce.number().nullable(),
@@ -108,8 +110,54 @@ export const customFieldDefinitionSchema = z.object({
 
 export type CustomFieldDefinitionValues = z.infer<typeof customFieldDefinitionSchema>;
 
+// ─── Inline booking edits ─────────────────────────────────────
+
+export const clientInfoSchema = z.object({
+  client_name_primary: z.string().min(1, "Primary name is required"),
+  client_name_secondary: z.string().nullable(),
+  client_email: z.string().email("Invalid email").or(z.literal("")).nullable(),
+  client_phone: z.string().nullable(),
+  lead_source: z
+    .enum(["instagram", "facebook", "weddingwire", "google", "referral", "other", "inquiry_form"])
+    .nullable(),
+  location: z.string().nullable(),
+});
+
+export type ClientInfoValues = z.infer<typeof clientInfoSchema>;
+
+export const bookingDateTimeSchema = z.object({
+  event_date: z.string().min(1, "Date is required"),
+  start_time: z.string().nullable(),
+});
+
+export type BookingDateTimeValues = z.infer<typeof bookingDateTimeSchema>;
+
+export const bookingPricingSchema = z.object({
+  price_override: z.coerce.number().nullable(),
+  hours_override: z.coerce.number().positive().nullable(),
+});
+
+export type BookingPricingValues = z.infer<typeof bookingPricingSchema>;
+
+export const bookingDepositSchema = z.object({
+  deposit_amount: z.coerce.number().min(0).nullable(),
+  payment_due_date: z.string().nullable(),
+});
+
+export type BookingDepositValues = z.infer<typeof bookingDepositSchema>;
+
 // ─── Itinerary ────────────────────────────────────────────────
 
+export const itineraryStopSchema = z.object({
+  name: z.string().min(1, "Stop name is required"),
+  address: z.string().nullable(),
+  start_time: z.string().nullable(),
+  notes: z.string().nullable(),
+});
+
+export type ItineraryStopValues = z.infer<typeof itineraryStopSchema>;
+
+/** Legacy interface kept for backward-compat with the create/edit booking form. */
 export interface ItineraryStopInput {
   name: string;
   address: string;
@@ -154,3 +202,60 @@ export const settingsSchema = z.object({
 });
 
 export type SettingsValues = z.infer<typeof settingsSchema>;
+
+// ─── Inquiry form (public-facing) ────────────────────────────
+
+export const inquiryFormSchema = z.object({
+  client_name_primary:   z.string().min(1, "Name is required"),
+  client_email:          z.string().email("Invalid email address"),
+  client_phone:          z.string().nullable(),
+  client_name_secondary: z.string().nullable(),
+  event_date:            z.string().nullable(),
+  venue_name:            z.string().nullable(),
+  venue_address:         z.string().nullable(),
+  location:              z.string().nullable(),
+  package_template_id:   z.string().uuid().nullable(),
+  notes:                 z.string().nullable(),
+  turnstile_token:       z.string().min(1, "Please complete the CAPTCHA"),
+});
+
+export type InquiryFormValues = z.infer<typeof inquiryFormSchema>;
+
+// ─── Second shooter panel ────────────────────────────────────
+
+export const secondShooterPanelSchema = z.object({
+  second_shooter_email: z.string().email("Invalid email").or(z.literal("")).nullable(),
+  second_shooter_fee: z.coerce.number().min(0, "Fee must be 0 or more").nullable(),
+  second_shooter_instructions: z.string().nullable(),
+  second_shooter_show_client_contact: z.boolean(),
+});
+
+export type SecondShooterPanelValues = z.infer<typeof secondShooterPanelSchema>;
+
+export const secondShooterPasswordSchema = z.object({
+  password: z.string().min(4, "Password must be at least 4 characters"),
+});
+
+export type SecondShooterPasswordValues = z.infer<typeof secondShooterPasswordSchema>;
+
+// ─── Inquiry settings (photographer settings panel) ──────────
+
+export const inquirySettingsSchema = z.object({
+  slug: z
+    .string()
+    .min(3, "Minimum 3 characters")
+    .max(50, "Maximum 50 characters")
+    .regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens")
+    .or(z.literal("")),
+  inquiry_form_enabled:        z.boolean(),
+  inquiry_show_packages:       z.boolean(),
+  inquiry_show_prices:         z.boolean(),
+  inquiry_show_phone:          z.boolean(),
+  inquiry_show_secondary_name: z.boolean(),
+  inquiry_show_event_date:     z.boolean(),
+  inquiry_show_venue:          z.boolean(),
+  inquiry_show_location:       z.boolean(),
+  inquiry_show_notes:          z.boolean(),
+});
+
+export type InquirySettingsValues = z.infer<typeof inquirySettingsSchema>;

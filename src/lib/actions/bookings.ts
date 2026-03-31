@@ -3,7 +3,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { bookingFormSchema, type BookingFormValues, type BookingExtraValues, type ItineraryStopInput } from "@/lib/types/forms";
+import {
+  bookingFormSchema,
+  clientInfoSchema,
+  bookingDateTimeSchema,
+  bookingPricingSchema,
+  bookingDepositSchema,
+  type BookingFormValues,
+  type BookingExtraValues,
+  type ItineraryStopInput,
+  type ClientInfoValues,
+  type BookingDateTimeValues,
+  type BookingPricingValues,
+  type BookingDepositValues,
+} from "@/lib/types/forms";
 import { canTransition, isBackwardTransition, isForwardStepperTransition, isTerminalStatus } from "@/lib/utils/booking-status";
 import { getEnabledDeliverables } from "@/lib/utils/deliverables";
 import { buildBookingStagesFromTemplates } from "@/lib/utils/editing-workflow";
@@ -146,7 +159,7 @@ export async function createBooking(
       p_venue_name: firstStop?.name ?? null,
       p_venue_address: firstStop?.address ?? null,
       p_event_date: data.event_date,
-      p_start_time: firstStop?.start_time ?? null,
+      p_start_time: firstStop?.start_time || null,
       p_duration_hours: null,
       p_notes: data.notes ?? null,
       p_price_override: data.price_override ?? null,
@@ -165,11 +178,14 @@ export async function createBooking(
 
   const bid = bookingId as string;
 
-  // Set lead_source (not in the RPC signature — update separately)
-  if (data.lead_source) {
+  // Update fields not included in the atomic RPC signature
+  if (data.lead_source || data.location) {
     await supabase
       .from("bookings")
-      .update({ lead_source: data.lead_source })
+      .update({
+        lead_source: data.lead_source ?? null,
+        location: data.location ?? null,
+      })
       .eq("id", bid)
       .eq("photographer_id", user.id);
   }
@@ -212,7 +228,7 @@ export async function createBooking(
 export async function updateBookingFull(
   bookingId: string,
   values: BookingFormValues,
-  originalPackageTemplateId: string,
+  originalPackageTemplateId: string | null,
   itinerary: ItineraryStopInput[] = []
 ) {
   const parsed = bookingFormSchema.safeParse(values);
@@ -271,10 +287,11 @@ export async function updateBookingFull(
       client_email: data.client_email ?? null,
       client_phone: data.client_phone ?? null,
       lead_source: data.lead_source ?? null,
+      location: data.location ?? null,
       venue_name: firstStop?.name ?? null,
       venue_address: firstStop?.address ?? null,
       event_date: data.event_date,
-      start_time: firstStop?.start_time ?? null,
+      start_time: firstStop?.start_time || null,
       duration_hours: null,
       notes: data.notes ?? null,
       deposit_amount: data.deposit_amount ?? null,
@@ -398,6 +415,27 @@ export async function removeBookingFromGoogleCalendar(bookingId: string) {
 }
 
 /**
+ * Updates only the notes field of a booking.
+ */
+export async function updateBookingNotes(bookingId: string, notes: string | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ notes: notes || null })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
  * Quick-updates the date and start time of a booking from the calendar popover.
  */
 export async function updateBookingQuick(
@@ -424,6 +462,166 @@ export async function updateBookingQuick(
   syncBookingToGoogle(bookingId, "update").catch((e) =>
     console.error("[GoogleSync] updateBookingQuick:", e)
   );
+}
+
+/**
+ * Updates client-facing info fields inline (names, contact, lead source, location).
+ */
+export async function updateBookingCoreFields(
+  bookingId: string,
+  values: ClientInfoValues
+) {
+  const parsed = clientInfoSchema.safeParse(values);
+  if (!parsed.success) throw new Error("Invalid client info data");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      client_name_primary: parsed.data.client_name_primary,
+      client_name_secondary: parsed.data.client_name_secondary ?? null,
+      client_email: parsed.data.client_email || null,
+      client_phone: parsed.data.client_phone ?? null,
+      lead_source: parsed.data.lead_source ?? null,
+      location: parsed.data.location ?? null,
+    })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Reassigns a booking to a different package template (uses the template's
+ * current version). Re-seeds deliverable progress for the new version.
+ */
+export async function updateBookingPackage(
+  bookingId: string,
+  packageTemplateId: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("price_override, total_price")
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id)
+    .single();
+
+  const { data: template, error: templateError } = await supabase
+    .from("package_templates")
+    .select("current_version_id, package_versions!fk_current_version(base_price)")
+    .eq("id", packageTemplateId)
+    .eq("photographer_id", user.id)
+    .single();
+
+  if (templateError || !template?.current_version_id) {
+    throw new Error("Package not found or has no version");
+  }
+
+  const newVersion = (template as any).package_versions;
+  const priceOverride = booking?.price_override ?? 0;
+  const newTotalPrice = newVersion.base_price + priceOverride;
+
+  const { error: rpcError } = await supabase.rpc("reassign_booking_package", {
+    p_booking_id: bookingId,
+    p_photographer_id: user.id,
+    p_new_package_version_id: template.current_version_id,
+    p_new_total_price: newTotalPrice,
+  });
+
+  if (rpcError) throw rpcError;
+
+  await supabase
+    .from("booking_deliverable_progress")
+    .delete()
+    .eq("booking_id", bookingId)
+    .eq("photographer_id", user.id);
+
+  await seedDeliverableProgress(supabase, bookingId, template.current_version_id, user.id);
+
+  revalidatePath(`/bookings/${bookingId}`);
+
+  syncBookingToGoogle(bookingId, "update").catch((e) =>
+    console.error("[GoogleSync] updateBookingPackage:", e)
+  );
+}
+
+/**
+ * Updates price and hours overrides, recalculating total_price from the
+ * package base price + new price_override.
+ */
+export async function updateBookingPricing(
+  bookingId: string,
+  values: BookingPricingValues
+) {
+  const parsed = bookingPricingSchema.safeParse(values);
+  if (!parsed.success) throw new Error("Invalid pricing data");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  // Fetch current base price to recalculate total
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("package_version_id, package_versions!bookings_package_version_id_fkey(base_price)")
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id)
+    .single();
+
+  const basePrice = (booking as any)?.package_versions?.base_price ?? 0;
+  const priceOverride = parsed.data.price_override ?? 0;
+  const newTotalPrice = basePrice + priceOverride;
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      price_override: parsed.data.price_override,
+      hours_override: parsed.data.hours_override,
+      total_price: newTotalPrice,
+    })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Updates deposit amount and payment due date.
+ */
+export async function updateBookingDeposit(
+  bookingId: string,
+  values: BookingDepositValues
+) {
+  const parsed = bookingDepositSchema.safeParse(values);
+  if (!parsed.success) throw new Error("Invalid deposit data");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      deposit_amount: parsed.data.deposit_amount,
+      payment_due_date: parsed.data.payment_due_date ?? null,
+    })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
 }
 
 /**

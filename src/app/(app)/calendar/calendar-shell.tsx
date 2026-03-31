@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { format, addMonths, subMonths, parseISO, isWithinInterval } from "date-fns";
+import { format, addMonths, subMonths, parseISO, setMonth, setYear } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarDays, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MonthGrid } from "@/components/calendar/month-grid";
 import { AgendaView } from "@/components/calendar/agenda-view";
 import { NewEventPicker } from "@/components/calendar/new-event-picker";
@@ -12,6 +13,8 @@ import { PersonalEventDialog } from "@/components/calendar/personal-event-dialog
 import { fetchCalendarEvents } from "@/lib/actions/calendar";
 import { getMonthDateRange } from "@/components/calendar/calendar-event-utils";
 import type { CalendarEvent, PersonalEvent, PackageTemplateWithVersion } from "@/lib/types";
+
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 type View = "month" | "agenda";
 
@@ -59,6 +62,31 @@ export function CalendarShell({
   const [cacheEnd, setCacheEnd] = useState(prefetchEnd);
 
   const [, startTransition] = useTransition();
+
+  // Month/year jump picker
+  const [jumpPickerOpen, setJumpPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(currentMonth.getFullYear());
+
+  const jumpToMonth = useCallback((year: number, month: number) => {
+    const target = setMonth(setYear(currentMonth, year), month);
+    setCurrentMonth(target);
+    setJumpPickerOpen(false);
+
+    const { start, end } = getMonthDateRange(year, month);
+    const needsFetch = start < cacheStart || end > cacheEnd;
+    if (!needsFetch) return;
+
+    startTransition(async () => {
+      const newEvents = await fetchCalendarEvents(start, end);
+      setCachedEvents((prev) => {
+        const ids = new Set(prev.map((e) => e.id));
+        const fresh = newEvents.filter((e) => !ids.has(e.id));
+        return [...prev, ...fresh];
+      });
+      if (start < cacheStart) setCacheStart(start);
+      if (end > cacheEnd) setCacheEnd(end);
+    });
+  }, [currentMonth, cacheStart, cacheEnd]);
 
   // Dialog state
   const [clickedDate, setClickedDate] = useState<Date | null>(null);
@@ -137,8 +165,8 @@ export function CalendarShell({
   return (
     <div className="flex flex-col h-full gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 min-w-0">
           {view === "month" && (
             <>
               <Button
@@ -149,9 +177,43 @@ export function CalendarShell({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-semibold w-40 text-center">
-                {format(currentMonth, "MMMM yyyy")}
-              </h2>
+              <Popover open={jumpPickerOpen} onOpenChange={(o) => {
+                setJumpPickerOpen(o);
+                if (o) setPickerYear(currentMonth.getFullYear());
+              }}>
+                <PopoverTrigger asChild>
+                  <button className="text-base sm:text-lg font-semibold text-center whitespace-nowrap px-1 rounded hover:bg-accent transition-colors cursor-pointer">
+                    {format(currentMonth, "MMMM yyyy")}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3" align="center">
+                  {/* Year navigation */}
+                  <div className="flex items-center justify-between mb-3">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPickerYear(y => y - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="font-semibold text-sm">{pickerYear}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPickerYear(y => y + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {/* Month grid */}
+                  <div className="grid grid-cols-3 gap-1">
+                    {MONTH_NAMES.map((name, idx) => {
+                      const isActive = pickerYear === currentMonth.getFullYear() && idx === currentMonth.getMonth();
+                      return (
+                        <button
+                          key={name}
+                          onClick={() => jumpToMonth(pickerYear, idx)}
+                          className={`rounded py-1.5 text-sm transition-colors hover:bg-accent ${isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Button
                 variant="ghost"
                 size="icon"
@@ -163,35 +225,37 @@ export function CalendarShell({
             </>
           )}
           {view === "agenda" && (
-            <h2 className="text-lg font-semibold">Upcoming</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Upcoming</h2>
           )}
         </div>
 
         {/* View toggle */}
-        <div className="flex items-center gap-1 rounded-md border p-1">
+        <div className="flex items-center gap-1 rounded-md border p-1 shrink-0">
           <Button
             variant={view === "month" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setView("month")}
-            className="gap-1.5"
+            className="gap-1.5 px-2 sm:px-3"
           >
             <CalendarDays className="h-4 w-4" />
-            Month
+            <span className="hidden sm:inline">Month</span>
           </Button>
           <Button
             variant={view === "agenda" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setView("agenda")}
-            className="gap-1.5"
+            className="gap-1.5 px-2 sm:px-3"
           >
             <List className="h-4 w-4" />
-            Agenda
+            <span className="hidden sm:inline">Agenda</span>
           </Button>
         </div>
       </div>
 
       {/* Calendar body */}
-      <div className="flex flex-col flex-1 min-h-0 rounded-lg border overflow-hidden">
+      <div className="flex flex-col min-h-0 rounded-lg border overflow-hidden
+        h-[min(calc(100dvh-180px),560px)]
+        md:flex-1 md:h-auto">
         {view === "month" ? (
           <MonthGrid
             events={visibleEvents}

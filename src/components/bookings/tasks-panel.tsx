@@ -8,6 +8,7 @@ import {
   toggleBookingTask,
   deleteBookingTask,
   reorderBookingTask,
+  updateBookingTask,
 } from "@/lib/actions/tasks";
 import { taskSchema, type TaskValues } from "@/lib/types/forms";
 import type { BookingTask } from "@/lib/types";
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
-import { Trash2, Plus, GripVertical, Clock } from "lucide-react";
+import { Trash2, Plus, GripVertical, Clock, Pencil, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DndContext,
@@ -85,6 +86,12 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
     });
   }
 
+  function handleUpdate(taskId: string, values: TaskValues) {
+    startTransition(async () => {
+      await updateBookingTask(taskId, values, bookingId);
+    });
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -137,6 +144,7 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
                 task={task}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
+                onUpdate={handleUpdate}
                 disabled={isPending}
               />
             ))}
@@ -154,6 +162,7 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
                 task={task}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
+                onUpdate={handleUpdate}
                 disabled={isPending}
               />
             ))}
@@ -208,11 +217,60 @@ interface TaskRowProps {
   task: BookingTask;
   onToggle: (id: string, done: boolean) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, values: TaskValues) => void;
   disabled: boolean;
   dragHandle?: React.ReactNode;
 }
 
-function TaskRow({ task, onToggle, onDelete, disabled, dragHandle }: TaskRowProps) {
+function TaskRow({ task, onToggle, onDelete, onUpdate, disabled, dragHandle }: TaskRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(task.title);
+  const [draftDueDate, setDraftDueDate] = useState(task.due_date ?? "");
+
+  function handleSave() {
+    if (!draftTitle.trim()) return;
+    onUpdate(task.id, { title: draftTitle.trim(), due_date: draftDueDate || null });
+    setEditing(false);
+  }
+
+  function handleCancel() {
+    setDraftTitle(task.title);
+    setDraftDueDate(task.due_date ?? "");
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 rounded px-1 py-1">
+        {dragHandle}
+        <div className="flex-1 flex items-center gap-2">
+          <Input
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            className="h-7 text-sm flex-1"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") handleCancel();
+            }}
+          />
+          <Input
+            type="date"
+            value={draftDueDate}
+            onChange={(e) => setDraftDueDate(e.target.value)}
+            className="h-7 text-xs w-32"
+          />
+          <button onClick={handleSave} disabled={disabled} className="text-primary hover:text-primary/80">
+            <Check className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -237,19 +295,29 @@ function TaskRow({ task, onToggle, onDelete, disabled, dragHandle }: TaskRowProp
           {format(new Date(task.due_date), "d MMM")}
         </span>
       )}
-      <button
-        onClick={() => onDelete(task.id)}
-        disabled={disabled}
-        className="invisible group-hover:visible text-muted-foreground hover:text-destructive transition-colors"
-        aria-label="Delete task"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      <div className="invisible group-hover:visible flex items-center gap-1">
+        <button
+          onClick={() => setEditing(true)}
+          disabled={disabled}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Edit task"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => onDelete(task.id)}
+          disabled={disabled}
+          className="text-muted-foreground hover:text-destructive transition-colors"
+          aria-label="Delete task"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
 
-interface SortableTaskRowProps extends Omit<TaskRowProps, "dragHandle"> {}
+type SortableTaskRowProps = Omit<TaskRowProps, "dragHandle">;
 
 function SortableTaskRow(props: SortableTaskRowProps) {
   const {

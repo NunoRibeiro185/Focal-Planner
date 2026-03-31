@@ -8,6 +8,7 @@ import {
   markDepositPaid,
   deletePaymentEntry,
 } from "@/lib/actions/payments";
+import { updateBookingDeposit } from "@/lib/actions/bookings";
 import { paymentEntrySchema, type PaymentEntryValues } from "@/lib/types/forms";
 import { formatCurrency, isOverdue } from "@/lib/utils/currency";
 import type { Booking, PaymentLogEntry } from "@/lib/types";
@@ -18,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
-import { Trash2, Plus, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Trash2, Plus, AlertCircle, CheckCircle2, Pencil, Check, X } from "lucide-react";
 
 interface PaymentPanelProps {
   booking: Booking;
@@ -40,6 +41,11 @@ export function PaymentPanel({
   currency,
 }: PaymentPanelProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingDeposit, setEditingDeposit] = useState(false);
+  const [draftDeposit, setDraftDeposit] = useState(
+    booking.deposit_amount != null ? String(booking.deposit_amount) : ""
+  );
+  const [draftDueDate, setDraftDueDate] = useState(booking.payment_due_date ?? "");
   const [isPending, startTransition] = useTransition();
   const {
     register,
@@ -79,6 +85,16 @@ export function PaymentPanel({
     });
   }
 
+  function handleSaveDeposit() {
+    startTransition(async () => {
+      await updateBookingDeposit(booking.id, {
+        deposit_amount: draftDeposit !== "" ? Number(draftDeposit) : null,
+        payment_due_date: draftDueDate || null,
+      });
+      setEditingDeposit(false);
+    });
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -96,57 +112,112 @@ export function PaymentPanel({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-md bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground mb-1">Total</p>
-            <p className="font-bold tabular-nums">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-md bg-muted/50 px-2 py-2">
+            <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+            <p className="text-sm font-bold tabular-nums truncate">
               {formatCurrency(grandTotal, currency)}
             </p>
           </div>
-          <div className="rounded-md bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground mb-1">Paid</p>
-            <p className="font-bold tabular-nums text-green-700">
+          <div className="rounded-md bg-muted/50 px-2 py-2">
+            <p className="text-xs text-muted-foreground mb-0.5">Paid</p>
+            <p className="text-sm font-bold tabular-nums text-green-700 truncate">
               {formatCurrency(amountPaid, currency)}
             </p>
           </div>
-          <div className={`rounded-md p-3 ${overdue ? "bg-destructive/10" : "bg-muted/50"}`}>
-            <p className="text-xs text-muted-foreground mb-1">Balance</p>
-            <p className={`font-bold tabular-nums ${overdue ? "text-destructive" : ""}`}>
+          <div className={`rounded-md px-2 py-2 ${overdue ? "bg-destructive/10" : "bg-muted/50"}`}>
+            <p className="text-xs text-muted-foreground mb-0.5">Balance</p>
+            <p className={`text-sm font-bold tabular-nums truncate ${overdue ? "text-destructive" : ""}`}>
               {formatCurrency(balance, currency)}
             </p>
           </div>
         </div>
 
-        {/* Deposit */}
-        {booking.deposit_amount && booking.deposit_amount > 0 && (
-          <div className="flex items-center justify-between text-sm py-1">
-            <span className="text-muted-foreground">
-              Deposit ({formatCurrency(booking.deposit_amount, currency)})
-            </span>
-            {booking.deposit_paid ? (
-              <span className="flex items-center gap-1 text-green-700">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Paid {booking.deposit_paid_date
-                  ? format(new Date(booking.deposit_paid_date), "d MMM yyyy")
-                  : ""}
-              </span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMarkDeposit}
-                disabled={isPending}
-              >
-                Mark paid
+        {/* Deposit & due date */}
+        {editingDeposit ? (
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Deposit amount</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={draftDeposit}
+                  onChange={(e) => setDraftDeposit(e.target.value)}
+                  placeholder="0.00"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Balance due date</Label>
+                <Input
+                  type="date"
+                  value={draftDueDate}
+                  onChange={(e) => setDraftDueDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveDeposit} disabled={isPending}>
+                <Check className="h-3.5 w-3.5" /> Save
               </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditingDeposit(false)} disabled={isPending}>
+                <X className="h-3.5 w-3.5" /> Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {booking.deposit_amount && booking.deposit_amount > 0 ? (
+              <div className="flex items-center justify-between text-sm py-1">
+                <span className="text-muted-foreground">
+                  Deposit ({formatCurrency(booking.deposit_amount, currency)})
+                </span>
+                <div className="flex items-center gap-2">
+                  {booking.deposit_paid ? (
+                    <span className="flex items-center gap-1 text-green-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Paid {booking.deposit_paid_date
+                        ? format(new Date(booking.deposit_paid_date), "d MMM yyyy")
+                        : ""}
+                    </span>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={handleMarkDeposit} disabled={isPending}>
+                      Mark paid
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setDraftDeposit(booking.deposit_amount != null ? String(booking.deposit_amount) : "");
+                      setDraftDueDate(booking.payment_due_date ?? "");
+                      setEditingDeposit(true);
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Edit deposit"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setDraftDeposit("");
+                  setDraftDueDate("");
+                  setEditingDeposit(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" /> Set deposit &amp; due date
+              </button>
+            )}
+            {booking.payment_due_date && !editingDeposit && (
+              <p className="text-xs text-muted-foreground">
+                Balance due: {format(new Date(booking.payment_due_date), "d MMMM yyyy")}
+              </p>
             )}
           </div>
-        )}
-
-        {booking.payment_due_date && (
-          <p className="text-xs text-muted-foreground">
-            Balance due: {format(new Date(booking.payment_due_date), "d MMMM yyyy")}
-          </p>
         )}
 
         <Separator />

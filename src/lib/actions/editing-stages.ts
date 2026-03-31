@@ -151,6 +151,30 @@ export async function deleteBookingEditingStage(
   revalidatePath(`/bookings/${bookingId}`);
 }
 
+export async function updateBookingEditingStage(
+  stageId: string,
+  title: string,
+  bookingId: string
+) {
+  if (!title.trim()) throw new Error("Title is required");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("booking_editing_stages")
+    .update({ title: title.trim() })
+    .eq("id", stageId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
 export async function reorderBookingEditingStage(
   stageId: string,
   newSortOrder: number,
