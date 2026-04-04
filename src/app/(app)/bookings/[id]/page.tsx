@@ -144,6 +144,7 @@ export default async function BookingDetailPage({
             location={booking.location}
             events={calendarEvents}
             bookingId={id}
+            bookingStatus={booking.status}
           />
         );
 

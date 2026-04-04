@@ -2,6 +2,7 @@
 
 import { format, isSameMonth, isSameDay, parseISO } from "date-fns";
 import { useRef } from "react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getMonthGrid,
@@ -12,6 +13,22 @@ import {
 import { BookingPreviewPopover } from "./booking-preview-popover";
 import { PersonalEventPreviewPopover } from "./personal-event-preview-popover";
 import type { CalendarEvent } from "@/lib/types";
+
+/**
+ * Returns true when `event` is an inquiry that shares its date with at least
+ * one non-inquiry, non-cancelled booking.
+ */
+function hasBookingConflict(event: CalendarEvent, allEvents: CalendarEvent[]): boolean {
+  if (event.kind !== "booking" || event.status !== "inquiry") return false;
+  return allEvents.some(
+    (e) =>
+      e.kind === "booking" &&
+      e.id !== event.id &&
+      e.start === event.start &&
+      e.status !== "inquiry" &&
+      e.status !== "cancelled"
+  );
+}
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const LANE_HEIGHT_PX = 22;
@@ -184,12 +201,12 @@ function WeekRow({
               <div className="px-0.5 space-y-0.5 pb-1">
                 {visible.map((event) =>
                   event.kind === "booking" ? (
-                    <BookingPreviewPopover key={event.id} event={event} onSaved={onEventSaved} onWillClose={handleWillClose}>
+                    <BookingPreviewPopover key={event.id} event={event} onSaved={onEventSaved} onWillClose={handleWillClose} hasConflict={hasBookingConflict(event, allEvents)}>
                       <button
                         onClick={(e) => e.stopPropagation()}
                         className="w-full text-left"
                       >
-                        <EventChip event={event} />
+                        <EventChip event={event} hasConflict={hasBookingConflict(event, allEvents)} />
                       </button>
                     </BookingPreviewPopover>
                   ) : (
@@ -238,9 +255,9 @@ function WeekRow({
               }}
             >
               {span.event.kind === "booking" ? (
-                <BookingPreviewPopover event={span.event} onSaved={onEventSaved} onWillClose={handleWillClose}>
+                <BookingPreviewPopover event={span.event} onSaved={onEventSaved} onWillClose={handleWillClose} hasConflict={hasBookingConflict(span.event, allEvents)}>
                   <button className="w-full h-full block">
-                    <SpanBar span={span} />
+                    <SpanBar span={span} hasConflict={hasBookingConflict(span.event, allEvents)} />
                   </button>
                 </BookingPreviewPopover>
               ) : (
@@ -264,7 +281,7 @@ function WeekRow({
   );
 }
 
-function SpanBar({ span }: { span: SpanLayout }) {
+function SpanBar({ span, hasConflict }: { span: SpanLayout; hasConflict?: boolean }) {
   return (
     <div
       className={cn(
@@ -274,18 +291,22 @@ function SpanBar({ span }: { span: SpanLayout }) {
       )}
       style={{ backgroundColor: span.event.color }}
     >
+      {hasConflict && span.isStart && (
+        <AlertTriangle className="h-3 w-3 shrink-0 mr-1 text-yellow-300" />
+      )}
       <span className="truncate">{span.isStart ? span.event.title : ""}</span>
     </div>
   );
 }
 
-function EventChip({ event }: { event: CalendarEvent }) {
+function EventChip({ event, hasConflict }: { event: CalendarEvent; hasConflict?: boolean }) {
   const time = formatEventTime(event);
   return (
     <div
       className="flex items-center gap-1 rounded px-1 py-0.5 text-white text-xs truncate"
       style={{ backgroundColor: event.color }}
     >
+      {hasConflict && <AlertTriangle className="h-3 w-3 shrink-0 text-yellow-300" />}
       {time && <span className="shrink-0 opacity-80">{time}</span>}
       <span className="truncate">{event.title}</span>
     </div>

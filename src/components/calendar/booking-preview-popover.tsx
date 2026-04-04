@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ interface BookingPreviewPopoverProps {
   event: Extract<CalendarEvent, { kind: "booking" }>;
   onSaved?: () => void;
   onWillClose?: () => void;
+  hasConflict?: boolean;
   children: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ export function BookingPreviewPopover({
   event,
   onSaved,
   onWillClose,
+  hasConflict,
   children,
 }: BookingPreviewPopoverProps) {
   const [status, setStatus] = useState<BookingStatus>(event.status);
@@ -78,6 +80,14 @@ export function BookingPreviewPopover({
       >
         {/* Client name */}
         <p className="font-semibold text-sm leading-tight">{event.clientName}</p>
+
+        {/* Conflict warning */}
+        {hasConflict && (
+          <div className="flex items-center gap-1.5 rounded-md bg-yellow-50 border border-yellow-200 px-2 py-1.5 text-yellow-800 text-xs">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Inquiry conflicts with a confirmed booking on this date
+          </div>
+        )}
 
         {/* Status / color */}
         <div className="space-y-1.5">

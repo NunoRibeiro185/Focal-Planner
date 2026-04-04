@@ -14,8 +14,9 @@ import {
 import { parseISO, format, isSameDay, isSameMonth } from "date-fns";
 import type { CalendarEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { MapPin, Clock, Camera, Pencil, Check, X, CalendarPlus } from "lucide-react";
+import { MapPin, Clock, Camera, Pencil, Check, X, CalendarPlus, AlertTriangle } from "lucide-react";
 import { updateBookingQuick } from "@/lib/actions/bookings";
+import type { BookingStatus } from "@/lib/types";
 
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
 
@@ -25,6 +26,7 @@ interface AvailabilityCalendarPanelProps {
   events: CalendarEvent[];
   /** The booking's own ID — excluded from event dots to avoid self-reference. */
   bookingId: string;
+  bookingStatus: BookingStatus;
 }
 
 export function AvailabilityCalendarPanel({
@@ -32,6 +34,7 @@ export function AvailabilityCalendarPanel({
   location,
   events,
   bookingId,
+  bookingStatus,
 }: AvailabilityCalendarPanelProps) {
   const [hoveredDay, setHoveredDay] = useState<Date | null>(null);
   const [editingDateTime, setEditingDateTime] = useState(false);
@@ -127,6 +130,16 @@ export function AvailabilityCalendarPanel({
   );
   const grouped = groupEventsByDate(filteredEvents);
 
+  const hasConflict =
+    bookingStatus === "inquiry" &&
+    filteredEvents.some(
+      (e) =>
+        e.kind === "booking" &&
+        e.start === eventDate &&
+        e.status !== "inquiry" &&
+        e.status !== "cancelled"
+    );
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -152,6 +165,12 @@ export function AvailabilityCalendarPanel({
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         </div>
+        {hasConflict && (
+          <div className="flex items-center gap-1.5 rounded-md bg-yellow-50 border border-yellow-200 px-2 py-1.5 text-yellow-800 text-xs mt-1">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Conflicts with a confirmed booking on this date
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {/* Weekday headers */}

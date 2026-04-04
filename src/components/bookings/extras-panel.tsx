@@ -591,7 +591,7 @@ export function PackageExtrasCard({
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="tabular-nums font-medium">
-                    {formatCurrency(booking.total_price - extrasSubtotal, currency)}
+                    {formatCurrency(booking.total_price, currency)}
                   </span>
                   <button
                     onClick={() => {
@@ -646,7 +646,7 @@ export function PackageExtrasCard({
             {/* Grand total */}
             <div className="flex justify-between items-center pt-2 border-t text-sm font-semibold">
               <span>Total</span>
-              <span className="tabular-nums">{formatCurrency(booking.total_price, currency)}</span>
+              <span className="tabular-nums">{formatCurrency(booking.total_price + extrasSubtotal, currency)}</span>
             </div>
 
             {/* Add extra form */}
