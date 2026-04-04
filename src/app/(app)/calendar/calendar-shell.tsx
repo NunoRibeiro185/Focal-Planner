@@ -182,7 +182,7 @@ export function CalendarShell({
                 if (o) setPickerYear(currentMonth.getFullYear());
               }}>
                 <PopoverTrigger asChild>
-                  <button className="text-base sm:text-lg font-semibold text-center whitespace-nowrap px-1 rounded hover:bg-accent transition-colors cursor-pointer">
+                  <button className="text-base sm:text-lg font-semibold text-center whitespace-nowrap px-1 rounded hover:bg-accent transition-colors cursor-pointer w-36 sm:w-44">
                     {format(currentMonth, "MMMM yyyy")}
                   </button>
                 </PopoverTrigger>

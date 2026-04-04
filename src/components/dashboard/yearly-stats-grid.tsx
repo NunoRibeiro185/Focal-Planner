@@ -16,6 +16,8 @@ export function YearlyStatsGrid({ stats }: YearlyStatsGridProps) {
     bookedCount,
     conversionRate,
     currency,
+    totalExpenses,
+    netProfit,
   } = stats;
 
   return (
@@ -24,8 +26,8 @@ export function YearlyStatsGrid({ stats }: YearlyStatsGridProps) {
         label="Projected Revenue"
         value={formatCurrency(projectedRevenue, currency)}
       />
-      <StatCell label="Net Profit" comingSoon />
-      <StatCell label="Total Expenses" comingSoon />
+      <StatCell label="Net Profit" value={formatCurrency(netProfit, currency)} />
+      <StatCell label="Total Expenses" value={formatCurrency(totalExpenses, currency)} />
       <StatCell
         label="Avg. Booking Value"
         value={formatCurrency(avgBookingValue, currency)}

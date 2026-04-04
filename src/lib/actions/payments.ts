@@ -95,6 +95,8 @@ export async function markDepositPaid(bookingId: string, paidDate: string) {
 
 /**
  * Deletes a payment log entry.
+ * If the entry was the deposit payment (note === "Deposit"), also resets
+ * the booking's deposit_paid flag so the user can re-mark it.
  */
 export async function deletePaymentEntry(entryId: string, bookingId: string) {
   const supabase = await createClient();
@@ -103,6 +105,14 @@ export async function deletePaymentEntry(entryId: string, bookingId: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthenticated");
 
+  // Fetch first so we know whether this was the deposit entry
+  const { data: entry } = await supabase
+    .from("payment_log_entries")
+    .select("note")
+    .eq("id", entryId)
+    .eq("photographer_id", user.id)
+    .single();
+
   const { error } = await supabase
     .from("payment_log_entries")
     .delete()
@@ -110,6 +120,27 @@ export async function deletePaymentEntry(entryId: string, bookingId: string) {
     .eq("photographer_id", user.id);
 
   if (error) throw error;
+
+  // If this was the deposit log entry, clear the deposit_paid flag
+  if (entry?.note === "Deposit") {
+    await supabase
+      .from("bookings")
+      .update({ deposit_paid: false, deposit_paid_date: null })
+      .eq("id", bookingId)
+      .eq("photographer_id", user.id);
+  }
+
+  // If this was an expense-reimbursement log entry, reset the expense's reimbursed flag
+  if (entry?.note?.startsWith("Expense reimbursed: ")) {
+    const description = entry.note.slice("Expense reimbursed: ".length);
+    await supabase
+      .from("expenses")
+      .update({ reimbursed: false })
+      .eq("booking_id", bookingId)
+      .eq("photographer_id", user.id)
+      .eq("description", description)
+      .eq("reimbursed", true);
+  }
 
   revalidatePath(`/bookings/${bookingId}`);
 }

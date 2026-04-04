@@ -29,6 +29,18 @@ export type DeliverableKey =
   | "short_clips"
   | "second_shooter";
 
+export type ExpenseCategory =
+  | "equipment"
+  | "travel"
+  | "accommodation"
+  | "food"
+  | "software_tools"
+  | "film"
+  | "second_shooter"
+  | "other";
+
+export type ExpensePaidBy = "photographer" | "client";
+
 // ─── Row types ───────────────────────────────────────────────
 
 export interface Photographer {
@@ -235,6 +247,23 @@ export interface BookingWithExtras extends Booking {
   extras: BookingExtra[];
 }
 
+export interface Expense {
+  id: string;
+  photographer_id: string;
+  booking_id: string | null;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  currency: string;
+  expense_date: string;
+  vat_percentage: number | null;
+  paid_by: ExpensePaidBy;
+  reimbursed: boolean;
+  auto_generated: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface BookingItineraryStop {
   id: string;
   booking_id: string;
@@ -358,11 +387,14 @@ export interface Database {
       editing_stage_templates: { Row: EditingStageTemplate };
       booking_editing_stages: { Row: BookingEditingStage };
       second_shooter_notes: { Row: SecondShooterNote };
+      expenses: { Row: Expense };
     };
     Enums: {
       booking_status: BookingStatus;
       deliverable_key: DeliverableKey;
       lead_source: LeadSource;
+      expense_category: ExpenseCategory;
+      expense_paid_by: ExpensePaidBy;
     };
 
     Functions: {

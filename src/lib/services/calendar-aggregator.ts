@@ -6,14 +6,14 @@
  * UI components are fully agnostic to the underlying data sources.
  */
 
-import { getBookingsByDateRange, getFutureBookings, type BookingListItem } from "@/lib/queries/bookings";
+import { getCalendarBookings, getFutureCalendarBookings, type CalendarBookingItem } from "@/lib/queries/bookings";
 import { getPersonalEvents, getFuturePersonalEvents } from "@/lib/queries/personal-events";
 import type { CalendarEvent, PersonalEvent } from "@/lib/types";
 import { BOOKING_STATUS_COLORS } from "@/lib/utils/booking-status";
 
 // ─── Mappers ─────────────────────────────────────────────────
 
-export function bookingToCalendarEvent(b: BookingListItem): CalendarEvent {
+export function bookingToCalendarEvent(b: CalendarBookingItem): CalendarEvent {
   return {
     kind: "booking",
     id: b.id,
@@ -60,7 +60,7 @@ export async function getCalendarEvents(
   end: string
 ): Promise<CalendarEvent[]> {
   const [bookings, personalEvents] = await Promise.all([
-    getBookingsByDateRange(start, end),
+    getCalendarBookings(start, end),
     getPersonalEvents(start, end),
   ]);
 
@@ -77,7 +77,7 @@ export async function getCalendarEvents(
  */
 export async function getFutureCalendarEvents(): Promise<CalendarEvent[]> {
   const [bookings, personalEvents] = await Promise.all([
-    getFutureBookings(),
+    getFutureCalendarBookings(),
     getFuturePersonalEvents(),
   ]);
 

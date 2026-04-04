@@ -221,6 +221,34 @@ export const inquiryFormSchema = z.object({
 
 export type InquiryFormValues = z.infer<typeof inquiryFormSchema>;
 
+// ─── Expenses ────────────────────────────────────────────────
+
+export const EXPENSE_CATEGORY_OPTIONS = [
+  { value: "equipment", label: "Equipment" },
+  { value: "travel", label: "Travel" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "food", label: "Food" },
+  { value: "software_tools", label: "Software / Tools" },
+  { value: "film", label: "Film" },
+  { value: "other", label: "Other" },
+] as const;
+
+export const expenseFormSchema = z.object({
+  category: z.enum([
+    "equipment", "travel", "accommodation", "food",
+    "software_tools", "film", "second_shooter", "other",
+  ]),
+  description: z.string().min(1, "Description is required"),
+  amount: z.coerce.number().positive("Amount must be positive"),
+  expense_date: z.string().min(1, "Date is required"),
+  vat_percentage: z.coerce.number().min(0).max(100).nullable(),
+  paid_by: z.enum(["photographer", "client"]),
+  // null = general expense
+  booking_id: z.string().uuid().nullable(),
+});
+
+export type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
+
 // ─── Second shooter panel ────────────────────────────────────
 
 export const secondShooterPanelSchema = z.object({

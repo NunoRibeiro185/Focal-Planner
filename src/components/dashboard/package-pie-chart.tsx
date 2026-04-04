@@ -13,11 +13,11 @@ import type { PackageSlice } from "@/lib/utils/analytics";
 
 // Palette cycles through these colours for pie slices
 const COLOURS = [
-  "hsl(var(--chart-1, 221 83% 53%))",
-  "hsl(var(--chart-2, 142 71% 45%))",
-  "hsl(var(--chart-3, 38 92% 50%))",
-  "hsl(var(--chart-4, 0 72% 51%))",
-  "hsl(var(--chart-5, 262 83% 58%))",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 interface PackagePieChartProps {

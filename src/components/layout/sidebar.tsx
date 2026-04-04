@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Camera,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -19,9 +20,10 @@ import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
   { href: "/command-center", label: "Command Center", shortLabel: "Home", icon: Command },
-  { href: "/insights", label: "Insights", shortLabel: "Insights", icon: BarChart2 },
   { href: "/calendar", label: "Calendar", shortLabel: "Calendar", icon: CalendarDays },
   { href: "/bookings", label: "Bookings", shortLabel: "Bookings", icon: CalendarCheck },
+  { href: "/insights", label: "Insights", shortLabel: "Insights", icon: BarChart2 },
+  { href: "/expenses", label: "Expenses", shortLabel: "Expenses", icon: Receipt },
   { href: "/packages", label: "Packages", shortLabel: "Packages", icon: Package },
   { href: "/settings", label: "Settings", shortLabel: "Settings", icon: Settings },
 ];

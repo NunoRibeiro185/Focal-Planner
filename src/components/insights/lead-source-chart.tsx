@@ -13,11 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LeadSourceSlice } from "@/lib/utils/analytics";
 
 const COLOURS = [
-  "hsl(var(--chart-1, 221 83% 53%))",
-  "hsl(var(--chart-2, 142 71% 45%))",
-  "hsl(var(--chart-3, 38 92% 50%))",
-  "hsl(var(--chart-4, 0 72% 51%))",
-  "hsl(var(--chart-5, 262 83% 58%))",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 const SOURCE_LABELS: Record<string, string> = {

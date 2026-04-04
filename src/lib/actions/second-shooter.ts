@@ -13,6 +13,10 @@ import {
 import { secondShooterPanelSchema, secondShooterPasswordSchema } from "@/lib/types/forms";
 import type { SecondShooterPanelValues } from "@/lib/types/forms";
 import { sendSecondShooterInvite } from "@/lib/services/resend";
+import {
+  upsertSecondShooterExpense,
+  deleteSecondShooterExpense,
+} from "@/lib/actions/expenses";
 
 const SESSION_COOKIE = "ss_session";
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -46,6 +50,25 @@ export async function saveSecondShooterSettings(
     .eq("photographer_id", user.id);
 
   if (error) throw error;
+
+  // Sync the auto-generated 2nd shooter expense
+  const fee = parsed.data.second_shooter_fee;
+  if (fee && fee > 0) {
+    const { data: photographer } = await supabase
+      .from("photographers")
+      .select("default_currency")
+      .eq("id", user.id)
+      .single();
+    await upsertSecondShooterExpense(
+      bookingId,
+      user.id,
+      fee,
+      (photographer as { default_currency: string } | null)?.default_currency ?? "EUR"
+    );
+  } else {
+    await deleteSecondShooterExpense(bookingId, user.id);
+  }
+
   revalidatePath(`/bookings/${bookingId}`);
 }
 
@@ -212,6 +235,10 @@ export async function removeSecondShooter(bookingId: string): Promise<void> {
     .eq("photographer_id", user.id);
 
   if (error) throw error;
+
+  // Remove the auto-generated 2nd shooter expense
+  await deleteSecondShooterExpense(bookingId, user.id);
+
   revalidatePath(`/bookings/${bookingId}`);
 }
 

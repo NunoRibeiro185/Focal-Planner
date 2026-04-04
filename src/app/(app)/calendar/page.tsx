@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getCalendarEvents, getFutureCalendarEvents } from "@/lib/services/calendar-aggregator";
 import { getPackageTemplates } from "@/lib/queries/packages";
-import { format, subMonths, addMonths } from "date-fns";
+import { format, subMonths, addMonths, endOfMonth } from "date-fns";
 import { CalendarShell } from "./calendar-shell";
 
 export default async function CalendarPage() {
@@ -16,7 +16,7 @@ export default async function CalendarPage() {
 
   // Prefetch 1 month back + 5 months ahead so navigation is instant
   const prefetchStart = format(subMonths(today, 1), "yyyy-MM-01");
-  const prefetchEnd = format(addMonths(today, 5), "yyyy-MM-31");
+  const prefetchEnd = format(endOfMonth(addMonths(today, 5)), "yyyy-MM-dd");
 
   const [prefetchedEvents, futureEvents, packages] = await Promise.all([
     getCalendarEvents(prefetchStart, prefetchEnd),

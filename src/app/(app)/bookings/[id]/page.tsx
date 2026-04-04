@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getBookingById } from "@/lib/queries/bookings";
 import { getExtras } from "@/lib/queries/extras";
 import { getPackageTemplates } from "@/lib/queries/packages";
-import { getBookingEditingStages, getEditingStageTemplates } from "@/lib/queries/command-center";
+import { getEditingStageTemplates } from "@/lib/queries/command-center";
 import { getCalendarEventsForAvailabilityPanel } from "@/lib/queries/availability-calendar";
 import { getSecondShooterView, getSecondShooterNotes } from "@/lib/queries/second-shooter";
 import { resolveBookingLayout, getAllPanels } from "@/lib/utils/booking-layout";
@@ -70,12 +70,12 @@ export default async function BookingDetailPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [data, catalogExtras, editingStages, stageTemplates, packageTemplates] = await Promise.all([
+  const [data, catalogExtras, stageTemplates, packageTemplates, photographerResult] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
     getExtras(),
-    getBookingEditingStages(id),
     getEditingStageTemplates(),
     getPackageTemplates(),
+    supabase.from("photographers").select("default_currency").eq("id", user!.id).single(),
   ]);
 
   const {
@@ -83,13 +83,18 @@ export default async function BookingDetailPage({
     tasks,
     deliverableProgress,
     itineraryStops,
+    editingStages,
     payments,
     bookingExtras,
+    bookingExpenses,
     amountPaid,
     grandTotal,
     balance,
     overdue,
   } = data;
+
+  const defaultCurrency =
+    (photographerResult.data as { default_currency: string } | null)?.default_currency ?? "EUR";
   const v = booking.package_version;
 
   // If the current user is the accepted second shooter, show the dedicated view
@@ -174,11 +179,13 @@ export default async function BookingDetailPage({
             key={panel}
             booking={booking}
             payments={payments}
+            bookingExpenses={bookingExpenses}
             amountPaid={amountPaid}
             balance={balance}
             overdue={overdue}
             grandTotal={grandTotal}
             currency={v.currency}
+            defaultCurrency={defaultCurrency}
           />
         );
 

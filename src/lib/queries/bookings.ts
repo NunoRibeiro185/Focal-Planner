@@ -5,7 +5,9 @@ import type {
   BookingExtra,
   BookingDeliverableProgress,
   BookingItineraryStop,
+  BookingEditingStage,
   PaymentLogEntry,
+  Expense,
 } from "@/lib/types";
 import { computeAmountPaid, computeBalance, isOverdue } from "@/lib/utils/currency";
 import { computeGrandTotal } from "@/lib/utils/extras";
@@ -209,61 +211,137 @@ export async function getFutureBookings(): Promise<BookingListItem[]> {
 }
 
 /**
+ * Minimal booking shape needed to render a calendar event.
+ * Intentionally narrow — no payment data, no full wildcard select.
+ */
+export interface CalendarBookingItem {
+  id: string;
+  client_name_primary: string;
+  event_date: string | null;
+  start_time: string | null;
+  status: string;
+  venue_name: string | null;
+  total_price: number;
+  package_version: { hours_of_coverage: number | null; currency: string } | null;
+}
+
+/**
+ * Lean calendar query: only the 7 columns bookingToCalendarEvent actually reads.
+ * No payment_log_entries, no wildcard select — used by the calendar aggregator.
+ */
+export async function getCalendarBookings(
+  start: string,
+  end: string
+): Promise<CalendarBookingItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(
+      `id, client_name_primary, event_date, start_time, status, venue_name, total_price,
+       package_version:package_versions(hours_of_coverage, currency)`
+    )
+    .gte("event_date", start)
+    .lte("event_date", end)
+    .neq("status", "cancelled")
+    .order("event_date", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as CalendarBookingItem[];
+}
+
+/**
+ * Same lean query for the agenda view (future bookings only).
+ */
+export async function getFutureCalendarBookings(): Promise<CalendarBookingItem[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(
+      `id, client_name_primary, event_date, start_time, status, venue_name, total_price,
+       package_version:package_versions(hours_of_coverage, currency)`
+    )
+    .gte("event_date", today)
+    .neq("status", "cancelled")
+    .order("event_date", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as CalendarBookingItem[];
+}
+
+/**
  * Returns a single booking with all related data.
+ *
+ * Uses a single nested PostgREST select instead of 7 parallel queries —
+ * one HTTP round-trip vs seven, which substantially cuts re-render time
+ * after server actions.
  */
 export async function getBookingById(id: string) {
   const supabase = await createClient();
 
-  const [bookingResult, tasksResult, deliverableProgressResult, paymentsResult, extrasResult, itineraryResult] =
-    await Promise.all([
-      supabase
-        .from("bookings")
-        .select(`*, package_version:package_versions(*)`)
-        .eq("id", id)
-        .single(),
-      supabase
-        .from("booking_tasks")
-        .select("*")
-        .eq("booking_id", id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("booking_deliverable_progress")
-        .select("*")
-        .eq("booking_id", id)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("payment_log_entries")
-        .select("*")
-        .eq("booking_id", id)
-        .order("paid_date", { ascending: true }),
-      supabase
-        .from("booking_extras")
-        .select("*")
-        .eq("booking_id", id)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("booking_itinerary_stops")
-        .select("*")
-        .eq("booking_id", id)
-        .order("sort_order", { ascending: true }),
-    ]);
+  const { data: raw, error } = await supabase
+    .from("bookings")
+    .select(
+      `*,
+       package_version:package_versions(*),
+       booking_tasks(*),
+       booking_deliverable_progress(*),
+       payment_log_entries(*),
+       booking_extras(*),
+       booking_itinerary_stops(*),
+       booking_editing_stages(*),
+       expenses(*)`
+    )
+    .eq("id", id)
+    .single();
 
-  if (bookingResult.error) throw bookingResult.error;
+  if (error) throw error;
 
-  const booking = bookingResult.data as BookingWithVersion;
-  const payments = (paymentsResult.data ?? []) as PaymentLogEntry[];
-  const bookingExtras = (extrasResult.data ?? []) as BookingExtra[];
+  const {
+    booking_tasks: rawTasks,
+    booking_deliverable_progress: rawDeliverables,
+    payment_log_entries: rawPayments,
+    booking_extras: rawExtras,
+    booking_itinerary_stops: rawItinerary,
+    booking_editing_stages: rawEditingStages,
+    expenses: rawExpenses,
+    ...bookingData
+  } = raw as any;
+
+  const booking = bookingData as BookingWithVersion;
+
+  // Sort client-side — data volumes are small and nested PostgREST selects
+  // don't support per-relation ordering via the JS client.
+  const tasks = ((rawTasks ?? []) as BookingTask[])
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const deliverableProgress = ((rawDeliverables ?? []) as BookingDeliverableProgress[])
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const payments = ((rawPayments ?? []) as PaymentLogEntry[])
+    .sort((a, b) => a.paid_date.localeCompare(b.paid_date));
+  const bookingExtras = ((rawExtras ?? []) as BookingExtra[])
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const itineraryStops = ((rawItinerary ?? []) as BookingItineraryStop[])
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const editingStages = ((rawEditingStages ?? []) as BookingEditingStage[])
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const bookingExpenses = ((rawExpenses ?? []) as Expense[])
+    .sort((a, b) => b.expense_date.localeCompare(a.expense_date));
+
   const amountPaid = computeAmountPaid(payments.map((p) => p.amount));
-  const grandTotal = computeGrandTotal(booking.total_price, bookingExtras);
+  const grandTotal = computeGrandTotal(booking.total_price, bookingExtras, bookingExpenses);
   const balance = computeBalance(grandTotal, amountPaid);
 
   return {
     booking,
-    tasks: (tasksResult.data ?? []) as BookingTask[],
-    deliverableProgress: (deliverableProgressResult.data ?? []) as BookingDeliverableProgress[],
-    itineraryStops: (itineraryResult.data ?? []) as BookingItineraryStop[],
+    tasks,
+    deliverableProgress,
+    itineraryStops,
+    editingStages,
     payments,
     bookingExtras,
+    bookingExpenses,
     amountPaid,
     grandTotal,
     balance,

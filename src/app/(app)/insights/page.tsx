@@ -1,4 +1,5 @@
 import { getBookingYears, getAnalyticsBookings } from "@/lib/queries/analytics";
+import { getYearPhotographerExpenses } from "@/lib/queries/expenses";
 import {
   computeYearlyStats,
   computeRevenueByMonth,
@@ -21,15 +22,16 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
   const currentYear = new Date().getFullYear();
   const selectedYear = yearParam ? parseInt(yearParam, 10) : currentYear;
 
-  const [years, analyticsBookings] = await Promise.all([
+  const [years, analyticsBookings, totalExpenses] = await Promise.all([
     getBookingYears(),
     getAnalyticsBookings(selectedYear),
+    getYearPhotographerExpenses(selectedYear),
   ]);
 
   const availableYears =
     years.includes(selectedYear) ? years : [selectedYear, ...years];
 
-  const stats = computeYearlyStats(analyticsBookings);
+  const stats = computeYearlyStats(analyticsBookings, totalExpenses);
   const monthlyRevenue = computeRevenueByMonth(analyticsBookings);
   const packageBreakdown = computePackageBreakdown(analyticsBookings);
   const leadSourceBreakdown = computeLeadSourceBreakdown(analyticsBookings);

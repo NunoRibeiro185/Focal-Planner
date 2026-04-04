@@ -33,6 +33,10 @@ export interface YearlyStats {
   /** null when there are zero inquiries (avoids division by zero) */
   conversionRate: number | null;
   currency: string;
+  /** Total of all photographer-paid expenses for the year. */
+  totalExpenses: number;
+  /** projectedRevenue minus totalExpenses. */
+  netProfit: number;
 }
 
 export interface MonthRevenue {
@@ -66,7 +70,10 @@ function packageLabel(b: AnalyticsBooking): string {
 // Computation functions (pure — no I/O, fully testable)
 // ---------------------------------------------------------------------------
 
-export function computeYearlyStats(bookings: AnalyticsBooking[]): YearlyStats {
+export function computeYearlyStats(
+  bookings: AnalyticsBooking[],
+  totalPhotographerExpenses: number = 0
+): YearlyStats {
   const booked = qualifying(bookings);
   const inquiryCount = bookings.filter((b) => b.status === "inquiry").length;
   const bookedCount = booked.length;
@@ -106,6 +113,8 @@ export function computeYearlyStats(bookings: AnalyticsBooking[]): YearlyStats {
     bookedCount,
     conversionRate,
     currency,
+    totalExpenses: totalPhotographerExpenses,
+    netProfit: projectedRevenue - totalPhotographerExpenses,
   };
 }
 
