@@ -20,33 +20,27 @@ export interface BookingListItem extends BookingWithVersion {
   is_second_shooter: boolean;
 }
 
-/**
- * Returns all bookings for the current user, ordered by event date.
- * Includes the package version snapshot and computed payment totals.
- */
 export async function getBookings(): Promise<BookingListItem[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
-  const [bookingsResult, { data: { user } }] = await Promise.all([
-    supabase
-      .from("bookings")
-      .select(
-        `
-        *,
-        package_version:package_versions(*),
-        payment_log_entries(amount)
-        `
-      )
-      .order("event_date", { ascending: true }),
-    supabase.auth.getUser(),
-  ]);
+  const { data: bookings, error } = await supabase
+    .from("bookings")
+    .select(
+      `
+      *,
+      package_version:package_versions(*),
+      payment_log_entries(amount)
+      `
+    )
+    .eq("photographer_id", user.id)
+    .order("event_date", { ascending: true });
 
-  const { data: bookings, error } = bookingsResult;
   if (error) throw error;
 
   const rows = bookings ?? [];
 
-  // Fetch template names in a single query
   const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
   const templateMap = new Map<string, string>();
   if (templateIds.length > 0) {
@@ -69,21 +63,18 @@ export async function getBookings(): Promise<BookingListItem[]> {
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
-      is_second_shooter: b.second_shooter_id === user?.id,
+      is_second_shooter: b.second_shooter_id === user.id,
     };
   });
 }
 
-/**
- * Returns ALL bookings (including cancelled) whose event_date falls within
- * [start, end] (inclusive). Used by the availability calendar panel to show
- * a complete picture of schedule pressure on a given date.
- */
 export async function getAllBookingsByDateRange(
   start: string,
   end: string
 ): Promise<BookingListItem[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data: bookings, error } = await supabase
     .from("bookings")
@@ -94,6 +85,7 @@ export async function getAllBookingsByDateRange(
       payment_log_entries(amount)
       `
     )
+    .eq("photographer_id", user.id)
     .gte("event_date", start)
     .lte("event_date", end)
     .order("event_date", { ascending: true });
@@ -129,15 +121,13 @@ export async function getAllBookingsByDateRange(
   });
 }
 
-/**
- * Returns bookings whose event_date falls within [start, end] (inclusive).
- * Excludes cancelled bookings. Used by the calendar aggregator.
- */
 export async function getBookingsByDateRange(
   start: string,
   end: string
 ): Promise<BookingListItem[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data: bookings, error } = await supabase
     .from("bookings")
@@ -148,6 +138,7 @@ export async function getBookingsByDateRange(
       payment_log_entries(amount)
       `
     )
+    .eq("photographer_id", user.id)
     .gte("event_date", start)
     .lte("event_date", end)
     .neq("status", "cancelled")
@@ -171,13 +162,11 @@ export async function getBookingsByDateRange(
   });
 }
 
-/**
- * Returns all future bookings (event_date >= today), excluding cancelled.
- * Used for the agenda view and bulk Google Calendar push.
- */
 export async function getFutureBookings(): Promise<BookingListItem[]> {
   const today = new Date().toISOString().split("T")[0];
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data: bookings, error } = await supabase
     .from("bookings")
@@ -188,6 +177,7 @@ export async function getFutureBookings(): Promise<BookingListItem[]> {
       payment_log_entries(amount)
       `
     )
+    .eq("photographer_id", user.id)
     .gte("event_date", today)
     .neq("status", "cancelled")
     .order("event_date", { ascending: true });
@@ -210,10 +200,6 @@ export async function getFutureBookings(): Promise<BookingListItem[]> {
   });
 }
 
-/**
- * Minimal booking shape needed to render a calendar event.
- * Intentionally narrow — no payment data, no full wildcard select.
- */
 export interface CalendarBookingItem {
   id: string;
   client_name_primary: string;
@@ -225,15 +211,13 @@ export interface CalendarBookingItem {
   package_version: { hours_of_coverage: number | null; currency: string } | null;
 }
 
-/**
- * Lean calendar query: only the 7 columns bookingToCalendarEvent actually reads.
- * No payment_log_entries, no wildcard select — used by the calendar aggregator.
- */
 export async function getCalendarBookings(
   start: string,
   end: string
 ): Promise<CalendarBookingItem[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("bookings")
@@ -241,21 +225,21 @@ export async function getCalendarBookings(
       `id, client_name_primary, event_date, start_time, status, venue_name, total_price,
        package_version:package_versions(hours_of_coverage, currency)`
     )
+    .eq("photographer_id", user.id)
     .gte("event_date", start)
     .lte("event_date", end)
     .neq("status", "cancelled")
     .order("event_date", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as CalendarBookingItem[];
+  return (data ?? []) as unknown as CalendarBookingItem[];
 }
 
-/**
- * Same lean query for the agenda view (future bookings only).
- */
 export async function getFutureCalendarBookings(): Promise<CalendarBookingItem[]> {
   const today = new Date().toISOString().split("T")[0];
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("bookings")
@@ -263,23 +247,19 @@ export async function getFutureCalendarBookings(): Promise<CalendarBookingItem[]
       `id, client_name_primary, event_date, start_time, status, venue_name, total_price,
        package_version:package_versions(hours_of_coverage, currency)`
     )
+    .eq("photographer_id", user.id)
     .gte("event_date", today)
     .neq("status", "cancelled")
     .order("event_date", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as CalendarBookingItem[];
+  return (data ?? []) as unknown as CalendarBookingItem[];
 }
 
-/**
- * Returns a single booking with all related data.
- *
- * Uses a single nested PostgREST select instead of 7 parallel queries —
- * one HTTP round-trip vs seven, which substantially cuts re-render time
- * after server actions.
- */
 export async function getBookingById(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data: raw, error } = await supabase
     .from("bookings")
@@ -295,6 +275,7 @@ export async function getBookingById(id: string) {
        expenses(*)`
     )
     .eq("id", id)
+    .eq("photographer_id", user.id)
     .single();
 
   if (error) throw error;
@@ -312,8 +293,6 @@ export async function getBookingById(id: string) {
 
   const booking = bookingData as BookingWithVersion;
 
-  // Sort client-side — data volumes are small and nested PostgREST selects
-  // don't support per-relation ordering via the JS client.
   const tasks = ((rawTasks ?? []) as BookingTask[])
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const deliverableProgress = ((rawDeliverables ?? []) as BookingDeliverableProgress[])

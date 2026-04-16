@@ -14,14 +14,17 @@ export interface SoonTask extends BookingTask {
   booking_client: string;
 }
 
-/** Bookings whose event date is today or in the future, ordered ascending */
 export async function getUpcomingBookings(limit = 5): Promise<UpcomingBooking[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const today = new Date().toISOString().split("T")[0];
 
   const { data, error } = await supabase
     .from("bookings")
     .select(`*, package_version:package_versions(*)`)
+    .eq("photographer_id", user.id)
     .gte("event_date", today)
     .neq("status", "cancelled")
     .neq("status", "done")
@@ -39,9 +42,11 @@ export async function getUpcomingBookings(limit = 5): Promise<UpcomingBooking[]>
   }));
 }
 
-/** Bookings with overdue balance */
 export async function getOverdueBookings(): Promise<OverdueBooking[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const today = new Date().toISOString().split("T")[0];
 
   const { data, error } = await supabase
@@ -49,6 +54,7 @@ export async function getOverdueBookings(): Promise<OverdueBooking[]> {
     .select(
       `*, package_version:package_versions(*), payment_log_entries(amount)`
     )
+    .eq("photographer_id", user.id)
     .lt("payment_due_date", today)
     .neq("status", "cancelled")
     .neq("status", "done");
@@ -66,9 +72,11 @@ export async function getOverdueBookings(): Promise<OverdueBooking[]> {
     .filter((b) => b.balance > 0);
 }
 
-/** Tasks due within the next N days, not yet done */
 export async function getSoonTasks(daysAhead = 7): Promise<SoonTask[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const today = new Date().toISOString().split("T")[0];
   const future = new Date(Date.now() + daysAhead * 86400000)
     .toISOString()
@@ -77,6 +85,7 @@ export async function getSoonTasks(daysAhead = 7): Promise<SoonTask[]> {
   const { data, error } = await supabase
     .from("booking_tasks")
     .select(`*, booking:bookings(client_name_primary, client_name_secondary)`)
+    .eq("photographer_id", user.id)
     .eq("done", false)
     .lte("due_date", future)
     .gte("due_date", today)

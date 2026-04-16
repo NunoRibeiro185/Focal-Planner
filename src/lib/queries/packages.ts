@@ -1,13 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PackageTemplateWithVersion, PackageTemplateWithVersionAndCustomFields } from "@/lib/types";
 
-/**
- * Returns all non-archived package templates for the current user,
- * each joined with its current version row and any snapshotted custom field
- * values (with their definition labels for display).
- */
 export async function getPackageTemplates(): Promise<PackageTemplateWithVersionAndCustomFields[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("package_templates")
@@ -23,6 +20,7 @@ export async function getPackageTemplates(): Promise<PackageTemplateWithVersionA
       )
       `
     )
+    .eq("photographer_id", user.id)
     .eq("archived", false)
     .order("created_at", { ascending: false });
 
@@ -31,11 +29,10 @@ export async function getPackageTemplates(): Promise<PackageTemplateWithVersionA
   return (data ?? []) as PackageTemplateWithVersionAndCustomFields[];
 }
 
-/**
- * Returns all package templates (including archived) with their current version.
- */
 export async function getAllPackageTemplates(): Promise<PackageTemplateWithVersion[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("package_templates")
@@ -45,6 +42,7 @@ export async function getAllPackageTemplates(): Promise<PackageTemplateWithVersi
       current_version:package_versions!fk_current_version(*)
       `
     )
+    .eq("photographer_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -52,11 +50,10 @@ export async function getAllPackageTemplates(): Promise<PackageTemplateWithVersi
   return (data ?? []) as PackageTemplateWithVersion[];
 }
 
-/**
- * Returns a single package template with its full version history.
- */
 export async function getPackageTemplateById(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const [templateResult, versionsResult] = await Promise.all([
     supabase
@@ -68,6 +65,7 @@ export async function getPackageTemplateById(id: string) {
         `
       )
       .eq("id", id)
+      .eq("photographer_id", user.id)
       .single(),
     supabase
       .from("package_versions")

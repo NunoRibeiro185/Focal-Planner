@@ -13,18 +13,17 @@ export interface ExpenseFilters {
   bookingId?: string;
 }
 
-/**
- * Returns all expenses for the current photographer, with an optional
- * booking client name joined for display. Applies filters when provided.
- */
 export async function getExpenses(
   filters: ExpenseFilters = {}
 ): Promise<ExpenseWithBooking[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   let query = supabase
     .from("expenses")
     .select("*, booking:bookings(client_name_primary)")
+    .eq("photographer_id", user.id)
     .order("expense_date", { ascending: false });
 
   if (filters.dateFrom) query = query.gte("expense_date", filters.dateFrom);
@@ -44,15 +43,15 @@ export async function getExpenses(
   }));
 }
 
-/**
- * Returns all expenses linked to a specific booking.
- */
 export async function getBookingExpenses(bookingId: string): Promise<Expense[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("expenses")
     .select("*")
+    .eq("photographer_id", user.id)
     .eq("booking_id", bookingId)
     .order("expense_date", { ascending: false });
 
@@ -61,16 +60,15 @@ export async function getBookingExpenses(bookingId: string): Promise<Expense[]> 
   return (data ?? []) as Expense[];
 }
 
-/**
- * Returns the total amount of photographer-paid expenses for a given year.
- * Used by the Insights net profit calculation.
- */
 export async function getYearPhotographerExpenses(year: number): Promise<number> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("expenses")
     .select("amount")
+    .eq("photographer_id", user.id)
     .eq("paid_by", "photographer")
     .gte("expense_date", `${year}-01-01`)
     .lte("expense_date", `${year}-12-31`);
@@ -80,18 +78,17 @@ export async function getYearPhotographerExpenses(year: number): Promise<number>
   return (data ?? []).reduce((sum: number, e: { amount: number }) => sum + e.amount, 0);
 }
 
-/**
- * Returns a minimal list of the photographer's bookings (id + client name)
- * for the booking selector in the expense form/filter.
- */
 export async function getBookingsForExpenseSelector(): Promise<
   Array<{ id: string; client_name_primary: string; event_date: string | null }>
 > {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("bookings")
     .select("id, client_name_primary, event_date")
+    .eq("photographer_id", user.id)
     .order("event_date", { ascending: false });
 
   if (error) throw error;

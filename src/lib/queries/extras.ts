@@ -1,16 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Extra, BookingExtra } from "@/lib/types";
 
-/**
- * Returns all active (non-deleted) extras for the current photographer,
- * ordered by name.
- */
 export async function getExtras(): Promise<Extra[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("extras")
     .select("*")
+    .eq("photographer_id", user.id)
     .is("deleted_at", null)
     .order("name", { ascending: true });
 
@@ -19,15 +18,15 @@ export async function getExtras(): Promise<Extra[]> {
   return (data ?? []) as Extra[];
 }
 
-/**
- * Returns all booking extras for a given booking.
- */
 export async function getBookingExtras(bookingId: string): Promise<BookingExtra[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("booking_extras")
     .select("*")
+    .eq("photographer_id", user.id)
     .eq("booking_id", bookingId)
     .order("created_at", { ascending: true });
 

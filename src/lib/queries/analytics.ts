@@ -1,15 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import type { AnalyticsBooking } from "@/lib/utils/analytics";
 
-/**
- * Returns the distinct years (from event_date) in which the photographer
- * has at least one booking, sorted descending (most recent first).
- */
 export async function getBookingYears(): Promise<number[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const { data, error } = await supabase
     .from("bookings")
-    .select("event_date");
+    .select("event_date")
+    .eq("photographer_id", user.id);
 
   if (error) throw error;
 
@@ -24,14 +24,13 @@ export async function getBookingYears(): Promise<number[]> {
   return years;
 }
 
-/**
- * Returns all bookings for a given year with the joined package version data
- * needed by the analytics computation functions.
- */
 export async function getAnalyticsBookings(
   year: number
 ): Promise<AnalyticsBooking[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
 
@@ -51,11 +50,11 @@ export async function getAnalyticsBookings(
       )
     `
     )
+    .eq("photographer_id", user.id)
     .gte("event_date", from)
     .lte("event_date", to);
 
   if (error) throw error;
 
-  // Supabase types the joined relation as an array; cast via unknown
   return (data ?? []) as unknown as AnalyticsBooking[];
 }

@@ -13,24 +13,25 @@ export interface EditingBenchItem {
 }
 
 export interface CommandCenterTask extends BookingTask {
-  /** The client name(s) for the associated booking, or null for general tasks. */
   booking_client: string | null;
 }
 
 export interface BookingOption {
   id: string;
-  /** Display label shown in the booking assignment dropdown. */
   label: string;
 }
 
-/** The next upcoming non-cancelled, non-done booking with its incomplete tasks */
 export async function getNextWedding(): Promise<NextWeddingData | null> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
   const today = new Date().toISOString().split("T")[0];
 
   const { data: booking, error } = await supabase
     .from("bookings")
     .select("*")
+    .eq("photographer_id", user.id)
     .gte("event_date", today)
     .neq("status", "cancelled")
     .neq("status", "done")
@@ -59,13 +60,15 @@ export async function getNextWedding(): Promise<NextWeddingData | null> {
   };
 }
 
-/** All bookings currently in "editing" status with their stage progress */
 export async function getEditingBench(): Promise<EditingBenchItem[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select("*")
+    .eq("photographer_id", user.id)
     .eq("status", "editing")
     .order("event_date", { ascending: true });
 
@@ -91,22 +94,21 @@ export async function getEditingBench(): Promise<EditingBenchItem[]> {
   });
 }
 
-/**
- * Incomplete booking tasks grouped by urgency:
- * - thisWeek: due_date within the next 7 days (or today)
- * - upcoming: due_date beyond 7 days, or no due_date
- */
 export async function getCommandCenterTasks(): Promise<{
   thisWeek: CommandCenterTask[];
   upcoming: CommandCenterTask[];
 }> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const today = new Date().toISOString().split("T")[0];
   const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
   const { data, error } = await supabase
     .from("booking_tasks")
     .select(`*, booking:bookings(client_name_primary, client_name_secondary)`)
+    .eq("photographer_id", user.id)
     .eq("done", false)
     .order("due_date", { ascending: true, nullsFirst: false });
 
@@ -138,13 +140,15 @@ export async function getCommandCenterTasks(): Promise<{
   return { thisWeek, upcoming };
 }
 
-/** Bookings in inquiry status — new leads from the public form. */
 export async function getInquiryBookings(): Promise<Booking[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
+    .eq("photographer_id", user.id)
     .eq("status", "inquiry")
     .order("created_at", { ascending: false });
 
@@ -153,12 +157,9 @@ export async function getInquiryBookings(): Promise<Booking[]> {
   return (data ?? []) as Booking[];
 }
 
-/** Editing stage templates for the current photographer */
 export async function getEditingStageTemplates(): Promise<EditingStageTemplate[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
   const { data, error } = await supabase
@@ -172,16 +173,15 @@ export async function getEditingStageTemplates(): Promise<EditingStageTemplate[]
   return (data ?? []) as EditingStageTemplate[];
 }
 
-/**
- * Returns a minimal list of active (non-cancelled, non-done) bookings
- * for use in the task assignment dropdown on the Command Center.
- */
 export async function getActiveBookingsForTaskAssignment(): Promise<BookingOption[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from("bookings")
     .select("id, client_name_primary, client_name_secondary, event_date")
+    .eq("photographer_id", user.id)
     .neq("status", "cancelled")
     .neq("status", "done")
     .order("event_date", { ascending: true });
@@ -203,7 +203,6 @@ export async function getActiveBookingsForTaskAssignment(): Promise<BookingOptio
   });
 }
 
-/** Editing stages for a specific booking */
 export async function getBookingEditingStages(
   bookingId: string
 ): Promise<BookingEditingStage[]> {
