@@ -8,6 +8,7 @@ import type {
   BookingEditingStage,
   PaymentLogEntry,
   Expense,
+  BookingStatus,
 } from "@/lib/types";
 import { computeAmountPaid, computeBalance, isOverdue } from "@/lib/utils/currency";
 import { computeGrandTotal } from "@/lib/utils/extras";
@@ -205,7 +206,7 @@ export interface CalendarBookingItem {
   client_name_primary: string;
   event_date: string | null;
   start_time: string | null;
-  status: string;
+  status: BookingStatus;
   venue_name: string | null;
   total_price: number;
   package_version: { hours_of_coverage: number | null; currency: string } | null;

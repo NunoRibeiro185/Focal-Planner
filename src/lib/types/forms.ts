@@ -16,6 +16,12 @@ export const packageFormSchema = z.object({
     .number()
     .positive("Hours must be positive")
     .max(24),
+  edited_photos_count: z.coerce.number().int().min(0).nullable(),
+  wedding_album: z.boolean().default(false),
+  film_rolls_count: z.coerce.number().int().min(0).nullable(),
+  video: z.boolean().default(false),
+  short_clips: z.boolean().default(false),
+  second_shooter: z.boolean().default(false),
   custom_fields: z
     .array(
       z.object({
