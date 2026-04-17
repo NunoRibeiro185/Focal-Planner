@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { ExternalLink, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -145,13 +145,13 @@ export function BookingPreviewPopover({
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-2 pt-1">
-          <Link
+          <PrefetchLink
             href={`/bookings/${event.bookingId}`}
             className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
           >
             View full booking
             <ExternalLink className="h-3 w-3" />
-          </Link>
+          </PrefetchLink>
           {hasChanges && (
             <Button
               size="sm"

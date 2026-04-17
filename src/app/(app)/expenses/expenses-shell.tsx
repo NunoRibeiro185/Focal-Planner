@@ -34,6 +34,7 @@ import {
 import { format } from "date-fns";
 import { Plus, Pencil, Trash2, ExternalLink, Receipt } from "lucide-react";
 import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 
 interface BookingOption {
   id: string;
@@ -344,13 +345,13 @@ function ExpenseListRow({
             {expense.booking_client_name && (
               <>
                 <span className="text-muted-foreground/50">·</span>
-                <Link
-                  href={`/bookings/${expense.booking_id}`}
+                <PrefetchLink
+                  href={`/bookings/${expense.booking_id!}`}
                   className="flex items-center gap-0.5 hover:text-foreground transition-colors"
                 >
                   {expense.booking_client_name}
                   <ExternalLink className="h-2.5 w-2.5" />
-                </Link>
+                </PrefetchLink>
               </>
             )}
           </div>
@@ -378,13 +379,13 @@ function ExpenseListRow({
           </>
         )}
         {expense.auto_generated && expense.booking_id && (
-          <Link
-            href={`/bookings/${expense.booking_id}`}
+          <PrefetchLink
+            href={`/bookings/${expense.booking_id!}`}
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5"
           >
             Edit in booking
             <ExternalLink className="h-2.5 w-2.5" />
-          </Link>
+          </PrefetchLink>
         )}
       </div>
     </div>

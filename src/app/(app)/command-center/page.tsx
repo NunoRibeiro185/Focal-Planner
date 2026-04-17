@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { Camera, Clock, Users, ImageIcon } from "lucide-react";
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
@@ -105,12 +106,12 @@ async function NextWeddingSection() {
               </p>
             )}
 
-            <Link
+            <PrefetchLink
               href={`/bookings/${nextWedding.booking.id}`}
               className="text-xs text-primary hover:underline"
             >
               Open booking →
-            </Link>
+            </PrefetchLink>
           </div>
         ) : (
           <div className="flex items-center gap-3 py-2">
@@ -146,7 +147,7 @@ async function EditingBenchSection() {
         ) : (
           <div className="space-y-4">
             {editingBench.map(({ booking, stages, progress }) => (
-              <Link
+              <PrefetchLink
                 key={booking.id}
                 href={`/bookings/${booking.id}`}
                 className="block rounded-md p-3 hover:bg-muted/40 transition-colors"
@@ -205,7 +206,7 @@ async function EditingBenchSection() {
                     </Link>
                   </p>
                 )}
-              </Link>
+              </PrefetchLink>
             ))}
           </div>
         )}
@@ -255,7 +256,7 @@ async function InquiriesSection() {
         ) : (
           <div className="space-y-1">
             {inquiryBookings.map((booking) => (
-              <Link
+              <PrefetchLink
                 key={booking.id}
                 href={`/bookings/${booking.id}`}
                 className="flex items-center justify-between rounded-md px-3 py-2.5 hover:bg-muted/40 transition-colors"
@@ -278,7 +279,7 @@ async function InquiriesSection() {
                     {format(new Date(booking.created_at), "d MMM")}
                   </span>
                 </div>
-              </Link>
+              </PrefetchLink>
             ))}
           </div>
         )}

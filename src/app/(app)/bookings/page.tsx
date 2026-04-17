@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { getBookings } from "@/lib/queries/bookings";
 import { getPendingSecondShooterInvites } from "@/lib/queries/second-shooter";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
@@ -95,7 +96,7 @@ export default async function BookingsPage({ searchParams }: Props) {
           {/* ── Mobile card list ── */}
           <div className="md:hidden divide-y rounded-lg border overflow-hidden">
             {bookings.map((booking) => (
-              <Link
+              <PrefetchLink
                 key={booking.id}
                 href={`/bookings/${booking.id}`}
                 className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
@@ -122,7 +123,7 @@ export default async function BookingsPage({ searchParams }: Props) {
                     )}
                   </div>
                 </div>
-              </Link>
+              </PrefetchLink>
             ))}
           </div>
 
@@ -141,12 +142,12 @@ export default async function BookingsPage({ searchParams }: Props) {
                 {bookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <Link href={`/bookings/${booking.id}`} className="font-medium hover:underline">
+                      <PrefetchLink href={`/bookings/${booking.id}`} className="font-medium hover:underline">
                         {booking.client_name_primary}
                         {booking.client_name_secondary && (
                           <span> & {booking.client_name_secondary}</span>
                         )}
-                      </Link>
+                      </PrefetchLink>
                       {booking.venue_name && (
                         <p className="text-xs text-muted-foreground mt-0.5">{booking.venue_name}</p>
                       )}
