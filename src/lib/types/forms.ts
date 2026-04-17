@@ -184,7 +184,7 @@ export const personalEventFormSchema = z.object({
   color: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Invalid color")
-    .default("#6366f1"),
+    .default("#7986CB"),
   notes: z.string().nullable(),
 });
 

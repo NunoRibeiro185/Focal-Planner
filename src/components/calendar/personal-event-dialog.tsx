@@ -21,17 +21,18 @@ import { personalEventFormSchema, type PersonalEventFormValues } from "@/lib/typ
 import type { PersonalEvent } from "@/lib/types";
 import { Trash2 } from "lucide-react";
 
-const PRESET_COLORS = [
-  "#6366f1", // indigo
-  "#3b82f6", // blue
-  "#10b981", // emerald
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#ec4899", // pink
-  "#8b5cf6", // violet
-  "#06b6d4", // cyan
-  "#f97316", // orange
-  "#6b7280", // gray
+const PRESET_COLORS: { hex: string; name: string }[] = [
+  { hex: "#7986CB", name: "Lavender" },
+  { hex: "#33B679", name: "Sage" },
+  { hex: "#8E24AA", name: "Grape" },
+  { hex: "#E67C73", name: "Flamingo" },
+  { hex: "#F6BF26", name: "Banana" },
+  { hex: "#F4511E", name: "Tangerine" },
+  { hex: "#039BE5", name: "Peacock" },
+  { hex: "#616161", name: "Graphite" },
+  { hex: "#3F51B5", name: "Blueberry" },
+  { hex: "#0B8043", name: "Basil" },
+  { hex: "#D50000", name: "Tomato" },
 ];
 
 interface PersonalEventDialogProps {
@@ -63,7 +64,7 @@ export function PersonalEventDialog({
       start_time: null,
       end_time: null,
       tag: null,
-      color: "#6366f1",
+      color: "#7986CB",
       notes: null,
     },
   });
@@ -92,7 +93,7 @@ export function PersonalEventDialog({
               start_time: null,
               end_time: null,
               tag: null,
-              color: "#6366f1",
+              color: "#7986CB",
               notes: null,
             }
       );
@@ -208,17 +209,20 @@ export function PersonalEventDialog({
           <div className="space-y-1.5">
             <Label>Color</Label>
             <div className="flex gap-2 flex-wrap">
-              {PRESET_COLORS.map((c) => (
+              {PRESET_COLORS.map(({ hex, name }) => (
                 <button
-                  key={c}
+                  key={hex}
                   type="button"
-                  onClick={() => form.setValue("color", c)}
+                  onClick={() => form.setValue("color", hex)}
+                  title={name}
                   className="h-6 w-6 rounded-full border-2 transition-transform hover:scale-110"
                   style={{
-                    backgroundColor: c,
-                    borderColor: selectedColor === c ? "black" : "transparent",
+                    backgroundColor: hex,
+                    borderColor: selectedColor === hex ? "white" : "transparent",
+                    outline: selectedColor === hex ? `2px solid ${hex}` : "none",
+                    outlineOffset: "1px",
                   }}
-                  aria-label={c}
+                  aria-label={name}
                 />
               ))}
             </div>

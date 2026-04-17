@@ -138,6 +138,20 @@ export async function listCalendars(
 
 // ─── Event mapping ───────────────────────────────────────────
 
+const HEX_TO_GOOGLE_COLOR_ID: Record<string, string> = {
+  "#7986CB": "1",  // Lavender
+  "#33B679": "2",  // Sage
+  "#8E24AA": "3",  // Grape
+  "#E67C73": "4",  // Flamingo
+  "#F6BF26": "5",  // Banana
+  "#F4511E": "6",  // Tangerine
+  "#039BE5": "7",  // Peacock
+  "#616161": "8",  // Graphite
+  "#3F51B5": "9",  // Blueberry
+  "#0B8043": "10", // Basil
+  "#D50000": "11", // Tomato
+};
+
 function buildGoogleEventBodyFull(
   event: CalendarEvent,
   startTime?: string | null,
@@ -161,10 +175,15 @@ function buildGoogleEventBodyFull(
           .filter(Boolean)
           .join("\n");
 
+  const colorId = event.kind === "personal"
+    ? HEX_TO_GOOGLE_COLOR_ID[event.color.toUpperCase()] ?? undefined
+    : undefined;
+
   if (event.allDay) {
     return {
       summary: baseTitle,
       description: description || undefined,
+      colorId,
       start: { date: event.start },
       end: { date: event.end },
     };
@@ -176,6 +195,7 @@ function buildGoogleEventBodyFull(
   return {
     summary: baseTitle,
     description: description || undefined,
+    colorId,
     start: { dateTime: `${event.start}T${resolvedStart}`, timeZone: "UTC" },
     end: { dateTime: `${event.end}T${resolvedEnd}`, timeZone: "UTC" },
   };
