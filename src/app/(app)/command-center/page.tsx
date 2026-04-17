@@ -5,13 +5,18 @@ import {
   getCommandCenterTasks,
   getInquiryBookings,
   getActiveBookingsForTaskAssignment,
+  type NextWeddingData,
+  type EditingBenchItem,
+  type CommandCenterTask,
+  type BookingOption,
 } from "@/lib/queries/command-center";
+import type { Booking } from "@/lib/types";
 import { CommandCenterTasksPanel } from "@/components/command-center/tasks-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
+import Link from "next/link";
+import { format } from "date-fns";
 import { Camera, Clock, Users, ImageIcon } from "lucide-react";
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
@@ -45,8 +50,8 @@ function CardSkeleton() {
 
 // ─── Async sections ───────────────────────────────────────────────────────────
 
-async function NextWeddingSection() {
-  const nextWedding = await getNextWedding();
+async function NextWeddingSection({ promise }: { promise: Promise<NextWeddingData | null> }) {
+  const nextWedding = await promise;
 
   return (
     <Card className="border-primary/20 bg-primary/5">
@@ -126,8 +131,8 @@ async function NextWeddingSection() {
   );
 }
 
-async function EditingBenchSection() {
-  const editingBench = await getEditingBench();
+async function EditingBenchSection({ promise }: { promise: Promise<EditingBenchItem[]> }) {
+  const editingBench = await promise;
 
   return (
     <Card>
@@ -215,11 +220,14 @@ async function EditingBenchSection() {
   );
 }
 
-async function TasksSection() {
-  const [tasks, bookingOptions] = await Promise.all([
-    getCommandCenterTasks(),
-    getActiveBookingsForTaskAssignment(),
-  ]);
+async function TasksSection({
+  tasksPromise,
+  bookingOptionsPromise,
+}: {
+  tasksPromise: Promise<{ thisWeek: CommandCenterTask[]; upcoming: CommandCenterTask[] }>;
+  bookingOptionsPromise: Promise<BookingOption[]>;
+}) {
+  const [tasks, bookingOptions] = await Promise.all([tasksPromise, bookingOptionsPromise]);
 
   return (
     <CommandCenterTasksPanel
@@ -230,8 +238,8 @@ async function TasksSection() {
   );
 }
 
-async function InquiriesSection() {
-  const inquiryBookings = await getInquiryBookings();
+async function InquiriesSection({ promise }: { promise: Promise<Booking[]> }) {
+  const inquiryBookings = await promise;
 
   return (
     <Card>
@@ -288,27 +296,33 @@ async function InquiriesSection() {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page — kicks off all fetches simultaneously, streams UI independently ────
 
 export default function CommandCenterPage() {
+  const nextWeddingPromise = getNextWedding();
+  const editingBenchPromise = getEditingBench();
+  const tasksPromise = getCommandCenterTasks();
+  const inquiryPromise = getInquiryBookings();
+  const bookingOptionsPromise = getActiveBookingsForTaskAssignment();
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <h1 className="text-2xl font-bold">Command Center</h1>
 
       <Suspense fallback={<HeroSkeleton />}>
-        <NextWeddingSection />
+        <NextWeddingSection promise={nextWeddingPromise} />
       </Suspense>
 
       <Suspense fallback={<CardSkeleton />}>
-        <EditingBenchSection />
+        <EditingBenchSection promise={editingBenchPromise} />
       </Suspense>
 
       <Suspense fallback={<CardSkeleton />}>
-        <TasksSection />
+        <TasksSection tasksPromise={tasksPromise} bookingOptionsPromise={bookingOptionsPromise} />
       </Suspense>
 
       <Suspense fallback={<CardSkeleton />}>
-        <InquiriesSection />
+        <InquiriesSection promise={inquiryPromise} />
       </Suspense>
     </div>
   );
