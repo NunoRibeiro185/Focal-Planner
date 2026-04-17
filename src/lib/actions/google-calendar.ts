@@ -345,14 +345,47 @@ export async function selectGoogleCalendar(
 }
 
 /**
- * Disconnects Google Calendar by deleting the token row.
+ * Disconnects Google Calendar. If deleteEvents is true, removes all previously
+ * synced events from Google Calendar before deleting the token.
  */
-export async function disconnectGoogleCalendar(): Promise<void> {
+export async function disconnectGoogleCalendar(deleteEvents = false): Promise<void> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthenticated");
+
+  if (deleteEvents) {
+    const token = await getValidToken(supabase, user.id);
+    if (token?.selected_calendar_id) {
+      const [{ data: bookings }, { data: personalEvents }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id, google_event_id")
+          .eq("photographer_id", user.id)
+          .not("google_event_id", "is", null),
+        supabase
+          .from("personal_events")
+          .select("id, google_event_id")
+          .eq("photographer_id", user.id)
+          .not("google_event_id", "is", null),
+      ]);
+
+      await Promise.all([
+        ...(bookings ?? []).map((b) =>
+          deleteEvent(token.access_token, token.selected_calendar_id!, b.google_event_id!).catch(() => {})
+        ),
+        ...(personalEvents ?? []).map((e) =>
+          deleteEvent(token.access_token, token.selected_calendar_id!, e.google_event_id!).catch(() => {})
+        ),
+      ]);
+
+      await Promise.all([
+        supabase.from("bookings").update({ google_event_id: null }).eq("photographer_id", user.id),
+        supabase.from("personal_events").update({ google_event_id: null }).eq("photographer_id", user.id),
+      ]);
+    }
+  }
 
   await supabase
     .from("google_calendar_tokens")

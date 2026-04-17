@@ -11,6 +11,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   initiateGoogleCalendarConnect,
   disconnectGoogleCalendar,
   selectGoogleCalendar,
@@ -36,6 +44,7 @@ export function GoogleCalendarPanel({
   const [isPending, startTransition] = useTransition();
   const [calendars, setCalendars] = useState<CalendarOption[]>([]);
   const [loadingCalendars, setLoadingCalendars] = useState(false);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
 
   const isConnected = !!token;
   const hasCalendarSelected = !!token?.selected_calendar_id;
@@ -58,9 +67,10 @@ export function GoogleCalendarPanel({
     });
   }
 
-  function handleDisconnect() {
+  function handleDisconnect(deleteEvents: boolean) {
+    setDisconnectDialogOpen(false);
     startTransition(async () => {
-      await disconnectGoogleCalendar();
+      await disconnectGoogleCalendar(deleteEvents);
     });
   }
 
@@ -127,7 +137,7 @@ export function GoogleCalendarPanel({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleDisconnect}
+              onClick={() => setDisconnectDialogOpen(true)}
               disabled={isPending}
               className="text-muted-foreground"
             >
@@ -172,7 +182,7 @@ export function GoogleCalendarPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleDisconnect}
+                onClick={() => setDisconnectDialogOpen(true)}
                 disabled={isPending}
                 className="text-muted-foreground"
               >
@@ -183,5 +193,34 @@ export function GoogleCalendarPanel({
         )}
       </CardContent>
     </Card>
+
+    <Dialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Disconnect Google Calendar</DialogTitle>
+          <DialogDescription>
+            What should happen to the events that were synced to your Google Calendar?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
+          <Button
+            variant="outline"
+            onClick={() => handleDisconnect(false)}
+            disabled={isPending}
+            className="w-full"
+          >
+            Keep events in Google Calendar
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => handleDisconnect(true)}
+            disabled={isPending}
+            className="w-full"
+          >
+            Delete synced events
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
