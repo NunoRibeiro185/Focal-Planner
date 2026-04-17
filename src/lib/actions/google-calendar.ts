@@ -16,6 +16,7 @@ import {
 } from "@/lib/services/google-calendar";
 import { personalEventToCalendarEvent, bookingToCalendarEvent } from "@/lib/services/calendar-aggregator";
 import { getFutureBookings } from "@/lib/queries/bookings";
+import { getFuturePersonalEvents } from "@/lib/queries/personal-events";
 import type { GoogleCalendarToken } from "@/lib/types";
 
 // ─── Internal helpers ─────────────────────────────────────────
@@ -290,12 +291,16 @@ export async function selectGoogleCalendar(
     })
     .eq("photographer_id", user.id);
 
-  // Bulk push all future non-cancelled bookings
+  // Bulk push all future non-cancelled bookings and personal events
   const token = await getValidToken(supabase, user.id);
   if (token) {
     try {
-      const futureBookings = await getFutureBookings();
-      const events = futureBookings
+      const [futureBookings, futurePersonalEvents] = await Promise.all([
+        getFutureBookings(),
+        getFuturePersonalEvents(),
+      ]);
+
+      const bookingEvents = futureBookings
         .filter((b) => b.event_date != null)
         .map((b) => ({
           event: bookingToCalendarEvent(b),
@@ -303,18 +308,31 @@ export async function selectGoogleCalendar(
           startTime: b.start_time,
         }));
 
-      const results = await bulkPushEvents(
-        token.access_token,
-        calendarId,
-        events
-      );
+      const personalEvents = futurePersonalEvents.map((e) => ({
+        event: personalEventToCalendarEvent(e),
+        localId: e.id,
+        startTime: e.start_time,
+        endTime: e.end_time,
+      }));
 
-      // Store google_event_id for each booking
-      for (const [bookingId, googleId] of results.entries()) {
+      const [bookingResults, personalResults] = await Promise.all([
+        bulkPushEvents(token.access_token, calendarId, bookingEvents),
+        bulkPushEvents(token.access_token, calendarId, personalEvents),
+      ]);
+
+      for (const [bookingId, googleId] of bookingResults.entries()) {
         await supabase
           .from("bookings")
           .update({ google_event_id: googleId })
           .eq("id", bookingId)
+          .eq("photographer_id", user.id);
+      }
+
+      for (const [eventId, googleId] of personalResults.entries()) {
+        await supabase
+          .from("personal_events")
+          .update({ google_event_id: googleId })
+          .eq("id", eventId)
           .eq("photographer_id", user.id);
       }
     } catch (e) {
