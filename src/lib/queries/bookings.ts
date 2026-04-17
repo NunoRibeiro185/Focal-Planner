@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import type {
   BookingWithVersion,
   BookingTask,
@@ -22,37 +22,24 @@ export interface BookingListItem extends BookingWithVersion {
 }
 
 export async function getBookings(): Promise<BookingListItem[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `
-      *,
-      package_version:package_versions(*),
-      payment_log_entries(amount)
-      `
+      `*,
+       package_version:package_versions(*, package_template:package_templates(id, name)),
+       payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
     .order("event_date", { ascending: true });
 
   if (error) throw error;
 
-  const rows = bookings ?? [];
-
-  const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
-  const templateMap = new Map<string, string>();
-  if (templateIds.length > 0) {
-    const { data: templates } = await supabase
-      .from("package_templates")
-      .select("id, name")
-      .in("id", templateIds);
-    templates?.forEach((t: any) => templateMap.set(t.id, t.name));
-  }
-
-  return rows.map((b: any) => {
+  return (bookings ?? []).map((b: any) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -60,7 +47,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
     return {
       ...b,
       package_version: b.package_version,
-      package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
+      package_name: b.package_version?.package_template?.name ?? null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
@@ -73,18 +60,17 @@ export async function getAllBookingsByDateRange(
   start: string,
   end: string
 ): Promise<BookingListItem[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `
-      *,
-      package_version:package_versions(*),
-      payment_log_entries(amount)
-      `
+      `*,
+       package_version:package_versions(*, package_template:package_templates(id, name)),
+       payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
     .gte("event_date", start)
@@ -93,19 +79,7 @@ export async function getAllBookingsByDateRange(
 
   if (error) throw error;
 
-  const rows = bookings ?? [];
-
-  const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
-  const templateMap = new Map<string, string>();
-  if (templateIds.length > 0) {
-    const { data: templates } = await supabase
-      .from("package_templates")
-      .select("id, name")
-      .in("id", templateIds);
-    templates?.forEach((t: any) => templateMap.set(t.id, t.name));
-  }
-
-  return rows.map((b: any) => {
+  return (bookings ?? []).map((b: any) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -113,7 +87,7 @@ export async function getAllBookingsByDateRange(
     return {
       ...b,
       package_version: b.package_version,
-      package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
+      package_name: b.package_version?.package_template?.name ?? null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
@@ -126,18 +100,17 @@ export async function getBookingsByDateRange(
   start: string,
   end: string
 ): Promise<BookingListItem[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `
-      *,
-      package_version:package_versions(*),
-      payment_log_entries(amount)
-      `
+      `*,
+       package_version:package_versions(*),
+       payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
     .gte("event_date", start)
@@ -165,18 +138,17 @@ export async function getBookingsByDateRange(
 
 export async function getFutureBookings(): Promise<BookingListItem[]> {
   const today = new Date().toISOString().split("T")[0];
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `
-      *,
-      package_version:package_versions(*),
-      payment_log_entries(amount)
-      `
+      `*,
+       package_version:package_versions(*),
+       payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
     .gte("event_date", today)
@@ -216,9 +188,10 @@ export async function getCalendarBookings(
   start: string,
   end: string
 ): Promise<CalendarBookingItem[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("bookings")
@@ -238,9 +211,10 @@ export async function getCalendarBookings(
 
 export async function getFutureCalendarBookings(): Promise<CalendarBookingItem[]> {
   const today = new Date().toISOString().split("T")[0];
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("bookings")
@@ -258,9 +232,10 @@ export async function getFutureCalendarBookings(): Promise<CalendarBookingItem[]
 }
 
 export async function getBookingById(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data: raw, error } = await supabase
     .from("bookings")

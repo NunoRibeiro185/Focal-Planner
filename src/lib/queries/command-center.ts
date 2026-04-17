@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import type { Booking, BookingTask, BookingEditingStage, EditingStageTemplate } from "@/lib/types";
 
 export interface NextWeddingData {
@@ -22,10 +22,10 @@ export interface BookingOption {
 }
 
 export async function getNextWedding(): Promise<NextWeddingData | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) return null;
 
+  const supabase = await createClient();
   const today = new Date().toISOString().split("T")[0];
 
   const { data: booking, error } = await supabase
@@ -61,9 +61,10 @@ export async function getNextWedding(): Promise<NextWeddingData | null> {
 }
 
 export async function getEditingBench(): Promise<EditingBenchItem[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data: bookings, error } = await supabase
     .from("bookings")
@@ -98,10 +99,10 @@ export async function getCommandCenterTasks(): Promise<{
   thisWeek: CommandCenterTask[];
   upcoming: CommandCenterTask[];
 }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
 
+  const supabase = await createClient();
   const today = new Date().toISOString().split("T")[0];
   const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
@@ -141,9 +142,10 @@ export async function getCommandCenterTasks(): Promise<{
 }
 
 export async function getInquiryBookings(): Promise<Booking[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("bookings")
@@ -158,9 +160,10 @@ export async function getInquiryBookings(): Promise<Booking[]> {
 }
 
 export async function getEditingStageTemplates(): Promise<EditingStageTemplate[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) return [];
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("editing_stage_templates")
@@ -174,9 +177,10 @@ export async function getEditingStageTemplates(): Promise<EditingStageTemplate[]
 }
 
 export async function getActiveBookingsForTaskAssignment(): Promise<BookingOption[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("bookings")

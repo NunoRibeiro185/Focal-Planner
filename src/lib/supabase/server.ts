@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 /**
- * Server-side Supabase client. Use in Server Components, Server Actions,
- * and Route Handlers. Reads/writes auth cookies automatically.
+ * Server-side Supabase client. Memoised per-request via React cache() so all
+ * query functions in the same render share one client and one cookie read.
  */
-export async function createClient() {
+export const createClient = cache(async () => {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -29,4 +30,13 @@ export async function createClient() {
       },
     }
   );
-}
+});
+
+/** Cached auth lookup — resolves once per request regardless of call count. */
+export const getUser = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});

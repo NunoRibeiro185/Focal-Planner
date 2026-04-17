@@ -19,7 +19,7 @@ import type {
   CalendarEvent,
   PackageTemplateWithVersion,
 } from "@/lib/types";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
 import { StatusStepper } from "@/components/bookings/status-stepper";
 import { PaymentPanel } from "@/components/bookings/payment-panel";
@@ -66,9 +66,7 @@ export default async function BookingDetailPage({
 }) {
   const { id } = await params;
 
-  // Get current user to detect second-shooter vs primary-photographer view
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [user, supabase] = await Promise.all([getUser(), createClient()]);
 
   const [data, catalogExtras, stageTemplates, packageTemplates, photographerResult] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
