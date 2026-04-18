@@ -69,7 +69,7 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
           {/* ── Lead Source + Package Breakdown ── */}
           <div className="grid gap-4 md:grid-cols-2">
             <LeadSourceChart data={leadSourceBreakdown} />
-            <PackagePieChart data={packageBreakdown} />
+            <PackagePieChart data={packageBreakdown} currency={stats.currency} />
           </div>
         </>
       )}

@@ -9,9 +9,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils/currency";
 import type { PackageSlice } from "@/lib/utils/analytics";
 
-// Palette cycles through these colours for pie slices
 const COLOURS = [
   "var(--chart-1)",
   "var(--chart-2)",
@@ -22,9 +22,10 @@ const COLOURS = [
 
 interface PackagePieChartProps {
   data: PackageSlice[];
+  currency: string;
 }
 
-export function PackagePieChart({ data }: PackagePieChartProps) {
+export function PackagePieChart({ data, currency }: PackagePieChartProps) {
   if (data.length === 0) {
     return (
       <Card>
@@ -34,25 +35,37 @@ export function PackagePieChart({ data }: PackagePieChartProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[220px]">
-          <p className="text-sm text-muted-foreground">No data</p>
+          <p className="text-sm text-muted-foreground">
+            No package data yet. Bookings will appear here once confirmed.
+          </p>
         </CardContent>
       </Card>
     );
   }
 
+  // data is sorted by revenue descending — most valuable is first
+  const mostValuable = data[0];
+  const mostPopular = [...data].sort((a, b) => b.count - a.count)[0];
+
+  const annotation =
+    mostPopular.label === mostValuable.label
+      ? `${mostValuable.label} leads in both bookings and revenue.`
+      : `Most booked: ${mostPopular.label} · Top earner: ${mostValuable.label}`;
+
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-1">
         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Package Breakdown
         </CardTitle>
+        <p className="text-xs text-muted-foreground/70 mt-0.5">{annotation}</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie
               data={data}
-              dataKey="count"
+              dataKey="revenue"
               nameKey="label"
               cx="50%"
               cy="50%"
@@ -67,7 +80,10 @@ export function PackagePieChart({ data }: PackagePieChartProps) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value) => [Number(value ?? 0), "Bookings"]}
+              formatter={(value, _name, entry) => [
+                `${formatCurrency(Number(value ?? 0), currency)} · ${entry.payload.count} ${entry.payload.count === 1 ? "booking" : "bookings"}`,
+                entry.payload.label,
+              ]}
               contentStyle={{ fontSize: 12 }}
             />
             <Legend

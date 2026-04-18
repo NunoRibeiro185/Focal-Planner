@@ -48,6 +48,7 @@ export interface MonthRevenue {
 export interface PackageSlice {
   label: string;
   count: number;
+  revenue: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,15 +138,19 @@ export function computeRevenueByMonth(
 export function computePackageBreakdown(
   bookings: AnalyticsBooking[]
 ): PackageSlice[] {
-  const countByLabel = new Map<string, number>();
+  const dataByLabel = new Map<string, { count: number; revenue: number }>();
   for (const b of qualifying(bookings)) {
     const label = packageLabel(b);
-    countByLabel.set(label, (countByLabel.get(label) ?? 0) + 1);
+    const prev = dataByLabel.get(label) ?? { count: 0, revenue: 0 };
+    dataByLabel.set(label, {
+      count: prev.count + 1,
+      revenue: prev.revenue + b.total_price,
+    });
   }
 
-  return Array.from(countByLabel.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count);
+  return Array.from(dataByLabel.entries())
+    .map(([label, { count, revenue }]) => ({ label, count, revenue }))
+    .sort((a, b) => b.revenue - a.revenue);
 }
 
 /**
