@@ -56,14 +56,14 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
           {/* ── Financial Health & Performance ── */}
           <YearlyStatsGrid stats={stats} />
 
-          {/* ── Revenue + Lead Source ── */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <RevenueLineChart data={monthlyRevenue} currency={stats.currency} />
-            <LeadSourceChart data={leadSourceBreakdown} />
-          </div>
+          {/* ── Revenue ── */}
+          <RevenueLineChart data={monthlyRevenue} currency={stats.currency} />
 
-          {/* ── Package Breakdown ── */}
-          <PackagePieChart data={packageBreakdown} />
+          {/* ── Lead Source + Package Breakdown ── */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <LeadSourceChart data={leadSourceBreakdown} />
+            <PackagePieChart data={packageBreakdown} />
+          </div>
         </>
       )}
     </div>
