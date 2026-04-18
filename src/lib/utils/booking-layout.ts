@@ -51,37 +51,71 @@ export interface BookingLayoutConfig {
 
 /**
  * Inquiry: evaluating a lead.
- * Priority: who is asking, when, are you free, what do they want.
+ * Priority: am I free (calendar), who is asking (client), what do they want (itinerary).
+ * Calendar earns more space — it's the highest-stakes check at this stage.
+ * Notes get 2/3 of row 2 — first impressions and requirements matter.
+ * Package/extras wider than payment — the quote is what closes the deal.
  */
 const INQUIRY_LAYOUT: BookingLayoutConfig = {
   sections: [
-    { slots: [{ panel: "client_info" }, { panel: "availability_calendar" }, { panel: "itinerary" }] },
-    { slots: [{ panel: "tasks" }, { panel: "notes", forceShow: true }] },
-    { slots: [{ panel: "package_extras" }, { panel: "payment" }] },
+    { slots: [
+      { panel: "client_info", weight: 1 },
+      { panel: "availability_calendar", weight: 2 },
+      { panel: "itinerary", weight: 1 },
+    ]},
+    { slots: [
+      { panel: "tasks", weight: 1 },
+      { panel: "notes", forceShow: true, weight: 2 },
+    ]},
+    { slots: [
+      { panel: "package_extras", weight: 2 },
+      { panel: "payment", weight: 1 },
+    ]},
   ],
 };
 
 /**
  * Confirmed: shoot is locked in.
- * Priority: logistics — itinerary and tasks front and centre.
+ * Priority: the shoot brief (notes), then logistics (itinerary, tasks), then admin.
+ * Notes lead row 1 — the brief is what the photographer reads before every shoot.
+ * Itinerary wider in row 2 — the venue sequence is the day-of reference.
+ * Tasks wider than payment in row 3 — pre-shoot prep is the active work.
  */
 const CONFIRMED_LAYOUT: BookingLayoutConfig = {
   sections: [
-    { slots: [{ panel: "availability_calendar" }, { panel: "notes", forceShow: true }] },
-    { slots: [{ panel: "client_info" }, { panel: "itinerary" }, { panel: "package_extras" }] },
-    { slots: [{ panel: "tasks" }, { panel: "payment" }] },
+    { slots: [
+      { panel: "notes", forceShow: true, weight: 2 },
+      { panel: "availability_calendar", weight: 1 },
+    ]},
+    { slots: [
+      { panel: "client_info", weight: 1 },
+      { panel: "itinerary", weight: 2 },
+      { panel: "package_extras", weight: 1 },
+    ]},
+    { slots: [
+      { panel: "tasks", weight: 2 },
+      { panel: "payment", weight: 1 },
+    ]},
     { slots: [{ panel: "second_shooter" }] },
   ],
 };
 
 /**
  * Shoot completed: day is done, raw files in hand.
- * Priority: post-shoot checklist and confirming payment.
+ * Priority: post-shoot checklist (tasks), confirming payment.
+ * Tasks wider — there's more to close out than just confirming a number.
+ * Package wider in row 2 — confirms what was actually delivered on the day.
  */
 const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
   sections: [
-    { slots: [{ panel: "tasks" }, { panel: "payment" }] },
-    { slots: [{ panel: "client_info" }, { panel: "package_extras" }] },
+    { slots: [
+      { panel: "tasks", weight: 2 },
+      { panel: "payment", weight: 1 },
+    ]},
+    { slots: [
+      { panel: "client_info", weight: 1 },
+      { panel: "package_extras", weight: 2 },
+    ]},
     { slots: [{ panel: "notes" }] },
     { slots: [{ panel: "second_shooter" }] },
   ],
@@ -90,6 +124,7 @@ const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
 /**
  * Editing: in post-production.
  * Priority: editing pipeline progress, then admin.
+ * Pipeline is full-width — it IS the work at this stage.
  */
 const EDITING_LAYOUT: BookingLayoutConfig = {
   sections: [
@@ -101,12 +136,20 @@ const EDITING_LAYOUT: BookingLayoutConfig = {
 
 /**
  * Delivered: gallery sent, awaiting final payments and physical deliverables.
- * Priority: what's been paid, what's been handed over.
+ * Priority: financial closure (payment), handover confirmation (deliverables).
+ * Payment wider — the final amount, balance, and log is what needs attention.
+ * Package wider in row 2 — confirms what was included in the delivered gallery.
  */
 const DELIVERED_LAYOUT: BookingLayoutConfig = {
   sections: [
-    { slots: [{ panel: "payment" }, { panel: "deliverables" }] },
-    { slots: [{ panel: "client_info" }, { panel: "package_extras" }] },
+    { slots: [
+      { panel: "payment", weight: 2 },
+      { panel: "deliverables", weight: 1 },
+    ]},
+    { slots: [
+      { panel: "client_info", weight: 1 },
+      { panel: "package_extras", weight: 2 },
+    ]},
     { slots: [{ panel: "tasks" }, { panel: "notes" }] },
   ],
 };

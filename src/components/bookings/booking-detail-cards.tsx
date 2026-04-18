@@ -214,9 +214,7 @@ export function ClientInfoCard({
             <Mail className="h-3.5 w-3.5" />
             {booking.client_email}
           </a>
-        ) : (
-          <p className="text-muted-foreground italic text-xs">No email</p>
-        )}
+        ) : null}
         {booking.client_phone ? (
           <a
             href={`tel:${booking.client_phone}`}
@@ -225,9 +223,7 @@ export function ClientInfoCard({
             <Phone className="h-3.5 w-3.5" />
             {booking.client_phone}
           </a>
-        ) : (
-          <p className="text-muted-foreground italic text-xs">No phone</p>
-        )}
+        ) : null}
         {booking.lead_source && (
           <p className="text-xs text-muted-foreground">
             Source: {LEAD_SOURCE_OPTIONS.find((o) => o.value === booking.lead_source)?.label ?? booking.lead_source}
@@ -457,8 +453,8 @@ export function ItineraryCard({
             </SortableContext>
           </DndContext>
         ) : (
-          <p className="text-muted-foreground italic text-sm">
-            No itinerary yet — add the first stop.
+          <p className="text-muted-foreground text-sm">
+            No stops yet — add venues, addresses, and times to build your day.
           </p>
         )}
       </CardContent>
@@ -589,8 +585,8 @@ export function NotesCard({
         ) : notes ? (
           <p className="text-sm whitespace-pre-wrap">{notes}</p>
         ) : (
-          <p className="text-sm text-muted-foreground italic">
-            No notes yet — click Edit to add observations.
+          <p className="text-sm text-muted-foreground">
+            Nothing written yet. Add requirements, preferences, or anything worth remembering about this booking.
           </p>
         )}
       </CardContent>

@@ -36,16 +36,26 @@ import {
   NotesCard,
 } from "@/components/bookings/booking-detail-cards";
 import { format } from "date-fns";
-import { MapPin, Calendar, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, Archive } from "lucide-react";
+
+const STAGE_CONTEXT: Partial<Record<string, string>> = {
+  inquiry: "Evaluating this lead — check your availability, review the details, and decide.",
+  confirmed: "Shoot is locked in — itinerary and tasks are your day-of reference.",
+  shoot_completed: "Back from the shoot — run through your post-shoot checklist.",
+  editing: "In post-production — track progress through your editing pipeline.",
+  delivered: "Gallery delivered — confirm final payments and physical deliverables.",
+  done: "Booking complete and archived.",
+  cancelled: "This booking was cancelled.",
+};
 
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
   2: "grid gap-6 grid-cols-1 lg:grid-cols-2",
   3: "grid gap-4 grid-cols-1 md:grid-cols-3",
-  4: "grid gap-4 grid-cols-1 md:grid-cols-4",
-  5: "grid gap-4 grid-cols-1 md:grid-cols-5",
-  6: "grid gap-4 grid-cols-1 md:grid-cols-6",
+  4: "grid gap-4 grid-cols-1 lg:grid-cols-4",
+  5: "grid gap-4 grid-cols-1 lg:grid-cols-5",
+  6: "grid gap-4 grid-cols-1 lg:grid-cols-6",
 };
 
 const COL_SPAN_CLASS: Record<number, string> = {
@@ -225,6 +235,9 @@ export default async function BookingDetailPage({
     }
   }
 
+  const isArchive = booking.status === "done" || booking.status === "cancelled";
+  const stageContext = STAGE_CONTEXT[booking.status];
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       {/* ── Header ── */}
@@ -235,7 +248,10 @@ export default async function BookingDetailPage({
             {booking.client_name_secondary && ` & ${booking.client_name_secondary}`}
           </h1>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <BookingStatusBadge status={booking.status} />
+            {/* Badge only for cancelled (no stepper to communicate status) */}
+            {booking.status === "cancelled" && (
+              <BookingStatusBadge status={booking.status} />
+            )}
             {booking.venue_name && (
               <span className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5" />
@@ -263,7 +279,25 @@ export default async function BookingDetailPage({
         <StatusStepper bookingId={id} currentStatus={booking.status} />
       )}
 
+      {/* ── Stage context hint ── */}
+      {stageContext && (
+        <p className="text-sm text-muted-foreground">{stageContext}</p>
+      )}
+
+      {/* ── Archive notice ── */}
+      {isArchive && (
+        <div className="flex items-center gap-2 rounded-md bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+          <Archive className="h-4 w-4 shrink-0" />
+          <span>
+            {booking.status === "cancelled"
+              ? "This booking was cancelled — kept here for reference."
+              : "This booking is complete and archived. All panels are read-only."}
+          </span>
+        </div>
+      )}
+
       {/* ── Layout sections ── */}
+      <div className={isArchive ? "opacity-80" : undefined}>
       {layout.sections.map((section, sectionIndex) => {
         const rendered = section.slots
           .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))
@@ -289,6 +323,7 @@ export default async function BookingDetailPage({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

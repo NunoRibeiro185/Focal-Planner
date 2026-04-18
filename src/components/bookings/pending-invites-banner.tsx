@@ -47,7 +47,7 @@ function InviteCard({ invite }: { invite: PendingSecondShooterInvite }) {
   }
 
   return (
-    <Card className="border-l-4 border-l-primary">
+    <Card className="bg-primary/5 border-primary/20">
       <CardContent className="pt-4 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1 min-w-0">

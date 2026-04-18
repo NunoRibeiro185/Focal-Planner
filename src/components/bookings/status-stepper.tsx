@@ -90,8 +90,9 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
     <div>
       <div className="flex items-center gap-0">
         {STATUS_STEPS.map((step, index) => {
-          const isCompleted = index <= currentIndex;
+          const isPast = index < currentIndex;
           const isCurrent = index === currentIndex;
+          const isFuture = index > currentIndex;
           const isClickable =
             !isLocked && getStepperTargetStatus(activeStatus, index) !== null;
 
@@ -103,24 +104,24 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
                 disabled={!isClickable || isPending}
                 className={cn(
                   "flex flex-col items-center gap-1.5 group",
-                  isClickable && "cursor-pointer",
-                  !isClickable && "cursor-default"
+                  isClickable ? "cursor-pointer" : "cursor-default"
                 )}
               >
                 <div
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium transition-colors",
-                    isCompleted
-                      ? "bg-primary border-primary text-primary-foreground"
-                      : "bg-background border-muted-foreground/30 text-muted-foreground",
-                    isClickable && isCompleted &&
-                      "group-hover:bg-primary/80 group-hover:border-primary/80",
-                    isClickable && !isCompleted &&
-                      "group-hover:border-primary group-hover:text-primary"
+                    "flex items-center justify-center rounded-full border-2 text-xs font-medium transition-all",
+                    // Past: solid filled — done, move on
+                    isPast && "h-7 w-7 bg-primary border-primary text-primary-foreground",
+                    isPast && isClickable && "group-hover:bg-primary/80 group-hover:border-primary/80",
+                    // Current: ring only — clearly active
+                    isCurrent && "h-8 w-8 border-primary bg-background text-primary font-semibold ring-2 ring-primary/20 ring-offset-1",
+                    // Future: grey — not yet reached
+                    isFuture && "h-7 w-7 bg-background border-muted-foreground/25 text-muted-foreground",
+                    isFuture && isClickable && "group-hover:border-primary group-hover:text-primary",
                   )}
                 >
-                  {isCompleted ? (
-                    <Check className="h-4 w-4" />
+                  {isPast ? (
+                    <Check className="h-3.5 w-3.5" />
                   ) : (
                     <span>{index + 1}</span>
                   )}
@@ -136,13 +137,13 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
                 </span>
               </button>
 
-              {/* Connector line */}
+              {/* Connector line: filled only between completed steps */}
               {index < STATUS_STEPS.length - 1 && (
                 <div
                   className={cn(
                     "h-0.5 flex-1 mx-2 transition-colors",
                     "sm:mb-5",
-                    isCompleted ? "bg-primary" : "bg-border"
+                    isPast ? "bg-primary" : "bg-border"
                   )}
                 />
               )}

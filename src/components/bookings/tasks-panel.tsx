@@ -169,6 +169,12 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
           </>
         )}
 
+        {tasks.length === 0 && !showAddForm && (
+          <p className="text-sm text-muted-foreground py-1">
+            No tasks yet — add anything that needs to happen before or after this booking.
+          </p>
+        )}
+
         <Separator className="my-2" />
 
         {/* Add task form */}
