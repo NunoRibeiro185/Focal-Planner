@@ -51,11 +51,11 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid gap-6 grid-cols-1 lg:grid-cols-2",
-  3: "grid gap-4 grid-cols-1 md:grid-cols-3",
-  4: "grid gap-4 grid-cols-1 lg:grid-cols-4",
-  5: "grid gap-4 grid-cols-1 lg:grid-cols-5",
-  6: "grid gap-4 grid-cols-1 lg:grid-cols-6",
+  2: "grid gap-6 items-start grid-cols-1 lg:grid-cols-2",
+  3: "grid gap-6 items-start grid-cols-1 md:grid-cols-3",
+  4: "grid gap-6 items-start grid-cols-1 lg:grid-cols-4",
+  5: "grid gap-6 items-start grid-cols-1 lg:grid-cols-5",
+  6: "grid gap-6 items-start grid-cols-1 lg:grid-cols-6",
 };
 
 const COL_SPAN_CLASS: Record<number, string> = {
@@ -297,7 +297,7 @@ export default async function BookingDetailPage({
       )}
 
       {/* ── Layout sections ── */}
-      <div className={isArchive ? "opacity-80" : undefined}>
+      <div className={isArchive ? "space-y-6 opacity-80" : "space-y-6"}>
       {layout.sections.map((section, sectionIndex) => {
         const rendered = section.slots
           .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))

@@ -88,15 +88,10 @@ export function isForwardStepperTransition(
 }
 
 /**
- * Determines the target status when a step in the progress stepper is clicked.
+ * Returns the target status when a step in the progress stepper is clicked.
  *
- * The stepper treats each step as a checkbox:
- * - Clicking an unchecked step (ahead of current) marks it as done → advances
- *   status to that step. Visually, steps 0..clicked show as ✓.
- * - Clicking a checked step (current or behind) unchecks it → moves back to
- *   the step just before the clicked one. Clicking step 0 from any later step
- *   resets to "inquiry" (step 0 can't be unchecked further).
- * - Clicking the "done" step or any click when status is terminal → no-op.
+ * Simple model: clicking any step navigates directly to that step.
+ * Clicking the current step is a no-op (returns null → not clickable).
  */
 export function getStepperTargetStatus(
   currentStatus: BookingStatus,
@@ -107,16 +102,7 @@ export function getStepperTargetStatus(
   const currentIndex = STATUS_STEPS.indexOf(currentStatus);
   if (currentIndex === -1) return null;
 
-  if (clickedStepIndex > currentIndex) {
-    // Forward click — advance to the clicked step
-    return STATUS_STEPS[clickedStepIndex];
-  }
+  if (clickedStepIndex === currentIndex) return null;
 
-  // Backward click or self-click — uncheck the clicked step
-  // → move to the step just before it (or stay at inquiry for step 0)
-  if (clickedStepIndex === 0) {
-    // Clicking inquiry when already at inquiry → no-op
-    return currentIndex > 0 ? STATUS_STEPS[0] : null;
-  }
-  return STATUS_STEPS[clickedStepIndex - 1];
+  return STATUS_STEPS[clickedStepIndex] ?? null;
 }

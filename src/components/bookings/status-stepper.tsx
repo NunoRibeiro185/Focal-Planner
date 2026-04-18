@@ -109,14 +109,14 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
               >
                 <div
                   className={cn(
-                    "flex items-center justify-center rounded-full border-2 text-xs font-medium transition-all",
-                    // Past: solid filled — done, move on
-                    isPast && "h-7 w-7 bg-primary border-primary text-primary-foreground",
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium transition-all",
+                    // Past: solid filled — done
+                    isPast && "bg-primary border-primary text-primary-foreground",
                     isPast && isClickable && "group-hover:bg-primary/80 group-hover:border-primary/80",
-                    // Current: ring only — clearly active
-                    isCurrent && "h-8 w-8 border-primary bg-background text-primary font-semibold ring-2 ring-primary/20 ring-offset-1",
-                    // Future: grey — not yet reached
-                    isFuture && "h-7 w-7 bg-background border-muted-foreground/25 text-muted-foreground",
+                    // Current: ring only — clearly where you are
+                    isCurrent && "border-primary bg-background text-primary font-semibold ring-2 ring-primary/20 ring-offset-1",
+                    // Future: muted — not yet reached
+                    isFuture && "bg-background border-muted-foreground/25 text-muted-foreground",
                     isFuture && isClickable && "group-hover:border-primary group-hover:text-primary",
                   )}
                 >

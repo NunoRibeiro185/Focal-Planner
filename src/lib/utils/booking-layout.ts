@@ -52,16 +52,18 @@ export interface BookingLayoutConfig {
 /**
  * Inquiry: evaluating a lead.
  * Priority: am I free (calendar), who is asking (client), what do they want (itinerary).
- * Calendar earns more space — it's the highest-stakes check at this stage.
- * Notes get 2/3 of row 2 — first impressions and requirements matter.
+ * Row 1: equal thirds — three distinct questions, no single one dominates yet.
+ * Notes get 2/3 of row 2 — first impressions and requirements deserve space.
  * Package/extras wider than payment — the quote is what closes the deal.
+ *
+ * All rows use total weight ≤ 3 so columns stay readable.
  */
 const INQUIRY_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [
-      { panel: "client_info", weight: 1 },
-      { panel: "availability_calendar", weight: 2 },
-      { panel: "itinerary", weight: 1 },
+      { panel: "client_info" },
+      { panel: "availability_calendar" },
+      { panel: "itinerary" },
     ]},
     { slots: [
       { panel: "tasks", weight: 1 },
@@ -77,8 +79,8 @@ const INQUIRY_LAYOUT: BookingLayoutConfig = {
 /**
  * Confirmed: shoot is locked in.
  * Priority: the shoot brief (notes), then logistics (itinerary, tasks), then admin.
- * Notes lead row 1 — the brief is what the photographer reads before every shoot.
- * Itinerary wider in row 2 — the venue sequence is the day-of reference.
+ * Notes lead row 1 at 2/3 — the brief is what the photographer re-reads before every shoot.
+ * Row 2: equal thirds for client/itinerary/package — all useful day-of reference.
  * Tasks wider than payment in row 3 — pre-shoot prep is the active work.
  */
 const CONFIRMED_LAYOUT: BookingLayoutConfig = {
@@ -88,9 +90,9 @@ const CONFIRMED_LAYOUT: BookingLayoutConfig = {
       { panel: "availability_calendar", weight: 1 },
     ]},
     { slots: [
-      { panel: "client_info", weight: 1 },
-      { panel: "itinerary", weight: 2 },
-      { panel: "package_extras", weight: 1 },
+      { panel: "client_info" },
+      { panel: "itinerary" },
+      { panel: "package_extras" },
     ]},
     { slots: [
       { panel: "tasks", weight: 2 },
@@ -104,7 +106,7 @@ const CONFIRMED_LAYOUT: BookingLayoutConfig = {
  * Shoot completed: day is done, raw files in hand.
  * Priority: post-shoot checklist (tasks), confirming payment.
  * Tasks wider — there's more to close out than just confirming a number.
- * Package wider in row 2 — confirms what was actually delivered on the day.
+ * Package wider in row 2 — confirms what was actually shot on the day.
  */
 const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
   sections: [
