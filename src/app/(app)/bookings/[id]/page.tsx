@@ -51,7 +51,7 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid gap-6 items-start grid-cols-1 lg:grid-cols-2",
+  2: "grid gap-6 items-start grid-cols-1 md:grid-cols-2",
   3: "grid gap-6 items-start grid-cols-1 md:grid-cols-3",
   4: "grid gap-6 items-start grid-cols-1 lg:grid-cols-4",
   5: "grid gap-6 items-start grid-cols-1 lg:grid-cols-5",

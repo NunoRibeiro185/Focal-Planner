@@ -48,40 +48,53 @@ export interface BookingLayoutConfig {
 }
 
 // ─── Per-status layouts ───────────────────────────────────────────────────────
+//
+// Height classes (approximate):
+//   always tall  : availability_calendar (~350px), payment with log (~400px+)
+//   grows tall   : notes, tasks, itinerary, editing_pipeline
+//   short-medium : client_info (~160px), deliverables (~180px), second_shooter (~180px)
+//   medium       : package_extras (~200-300px)
+//
+// Rule: pair panels of similar height in the same row. Tall panels that have no
+// equally-tall partner go full-width alone so there is no height gap beside them.
 
 /**
  * Inquiry: evaluating a lead.
- * Priority: am I free (calendar), who is asking (client), what do they want (itinerary).
- * Row 1: equal thirds — three distinct questions, no single one dominates yet.
- * Notes get 2/3 of row 2 — first impressions and requirements deserve space.
- * Package/extras wider than payment — the quote is what closes the deal.
+ * Primary question: am I free? Secondary: who/where, what's the quote.
  *
- * All rows use total weight ≤ 3 so columns stay readable.
+ * Row 1: calendar(2) + notes(1) — both tall/growable. Calendar is the primary check;
+ *         notes (forceShow) captures first impressions alongside it.
+ * Row 2: client_info + itinerary — both short, well matched.
+ * Row 3: package_extras(2) + payment(1) — quote context + deposit terms.
+ * Row 4: tasks — full width, follow-up action items.
  */
 const INQUIRY_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [
-      { panel: "client_info" },
-      { panel: "availability_calendar" },
-      { panel: "itinerary" },
+      { panel: "availability_calendar", weight: 2 },
+      { panel: "notes", forceShow: true, weight: 1 },
     ]},
     { slots: [
-      { panel: "tasks", weight: 1 },
-      { panel: "notes", forceShow: true, weight: 2 },
+      { panel: "client_info" },
+      { panel: "itinerary" },
     ]},
     { slots: [
       { panel: "package_extras", weight: 2 },
       { panel: "payment", weight: 1 },
     ]},
+    { slots: [{ panel: "tasks" }] },
   ],
 };
 
 /**
  * Confirmed: shoot is locked in.
- * Priority: the shoot brief (notes), then logistics (itinerary, tasks), then admin.
- * Notes lead row 1 at 2/3 — the brief is what the photographer re-reads before every shoot.
- * Row 2: equal thirds for client/itinerary/package — all useful day-of reference.
- * Tasks wider than payment in row 3 — pre-shoot prep is the active work.
+ * Primary: shoot brief + logistics. Secondary: admin.
+ *
+ * Row 1: notes(2) + calendar(1) — brief leads. Notes will be filled (it's the shoot brief);
+ *         height matches the calendar well when content is present.
+ * Row 2: itinerary(2) + client_info(1) — day-of sequence wider, contact reference narrower.
+ * Row 3: tasks(2) + payment(1) — pre-shoot prep wider, payment is reference.
+ * Row 4: package_extras + second_shooter — both medium height, administrative reference.
  */
 const CONFIRMED_LAYOUT: BookingLayoutConfig = {
   sections: [
@@ -90,23 +103,27 @@ const CONFIRMED_LAYOUT: BookingLayoutConfig = {
       { panel: "availability_calendar", weight: 1 },
     ]},
     { slots: [
-      { panel: "client_info" },
-      { panel: "itinerary" },
-      { panel: "package_extras" },
+      { panel: "itinerary", weight: 2 },
+      { panel: "client_info", weight: 1 },
     ]},
     { slots: [
       { panel: "tasks", weight: 2 },
       { panel: "payment", weight: 1 },
     ]},
-    { slots: [{ panel: "second_shooter" }] },
+    { slots: [
+      { panel: "package_extras" },
+      { panel: "second_shooter" },
+    ]},
   ],
 };
 
 /**
  * Shoot completed: day is done, raw files in hand.
- * Priority: post-shoot checklist (tasks), confirming payment.
- * Tasks wider — there's more to close out than just confirming a number.
- * Package wider in row 2 — confirms what was actually shot on the day.
+ * Primary: close out tasks and confirm payment. Secondary: reference.
+ *
+ * Row 1: tasks(2) + payment(1) — both grow tall, close in height.
+ * Row 2: package_extras(2) + client_info(1) — what was shot + who.
+ * Row 3: notes + second_shooter — full-width pair of wrap-up panels.
  */
 const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
   sections: [
@@ -115,44 +132,61 @@ const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
       { panel: "payment", weight: 1 },
     ]},
     { slots: [
-      { panel: "client_info", weight: 1 },
       { panel: "package_extras", weight: 2 },
+      { panel: "client_info", weight: 1 },
     ]},
-    { slots: [{ panel: "notes" }] },
-    { slots: [{ panel: "second_shooter" }] },
+    { slots: [
+      { panel: "notes" },
+      { panel: "second_shooter" },
+    ]},
   ],
 };
 
 /**
  * Editing: in post-production.
- * Priority: editing pipeline progress, then admin.
- * Pipeline is full-width — it IS the work at this stage.
+ * Primary: pipeline progress. Secondary: tasks, then admin.
+ *
+ * Row 1: editing_pipeline — full width. This IS the stage.
+ * Row 2: tasks(2) + payment(1) — active editing tasks wider; payment is reference.
+ * Row 3: notes + package_extras — equal; both reference panels.
  */
 const EDITING_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [{ panel: "editing_pipeline" }] },
-    { slots: [{ panel: "payment" }, { panel: "tasks" }] },
-    { slots: [{ panel: "package_extras" }, { panel: "notes" }] },
+    { slots: [
+      { panel: "tasks", weight: 2 },
+      { panel: "payment", weight: 1 },
+    ]},
+    { slots: [
+      { panel: "notes" },
+      { panel: "package_extras" },
+    ]},
   ],
 };
 
 /**
- * Delivered: gallery sent, awaiting final payments and physical deliverables.
- * Priority: financial closure (payment), handover confirmation (deliverables).
- * Payment wider — the final amount, balance, and log is what needs attention.
- * Package wider in row 2 — confirms what was included in the delivered gallery.
+ * Delivered: gallery sent, awaiting final payment and physical handover.
+ * Primary: financial closure. Secondary: handover confirmation, then reference.
+ *
+ * Row 1: payment — full width alone. It's the tallest panel in the app (totals + log)
+ *         and the single most important thing at this stage. No partner can match its height.
+ * Row 2: deliverables + client_info — both short (~180px), well matched.
+ *         "What have I handed over, to whom?"
+ * Row 3: package_extras(2) + tasks(1) — what was included, any remaining items.
+ * Row 4: notes — full width, final observations.
  */
 const DELIVERED_LAYOUT: BookingLayoutConfig = {
   sections: [
+    { slots: [{ panel: "payment" }] },
     { slots: [
-      { panel: "payment", weight: 2 },
-      { panel: "deliverables", weight: 1 },
+      { panel: "deliverables" },
+      { panel: "client_info" },
     ]},
     { slots: [
-      { panel: "client_info", weight: 1 },
       { panel: "package_extras", weight: 2 },
+      { panel: "tasks", weight: 1 },
     ]},
-    { slots: [{ panel: "tasks" }, { panel: "notes" }] },
+    { slots: [{ panel: "notes" }] },
   ],
 };
 

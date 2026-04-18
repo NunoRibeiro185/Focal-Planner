@@ -39,15 +39,17 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/inquiry/") ||
     pathname.startsWith("/second-shooter/");
 
+  const devBypass = process.env.DEV_BYPASS_AUTH === "true";
+
   // Redirect unauthenticated users to login
-  if (!user && !isPublicPath) {
+  if (!user && !isPublicPath && !devBypass) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // Redirect authenticated users away from the login page
-  if (user && pathname.startsWith("/login")) {
+  if ((user || devBypass) && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/bookings";
     return NextResponse.redirect(url);
