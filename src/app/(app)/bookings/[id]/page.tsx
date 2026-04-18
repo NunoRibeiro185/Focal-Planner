@@ -51,11 +51,11 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid gap-6 items-start grid-cols-1 md:grid-cols-2",
-  3: "grid gap-6 items-start grid-cols-1 md:grid-cols-3",
-  4: "grid gap-6 items-start grid-cols-1 lg:grid-cols-4",
-  5: "grid gap-6 items-start grid-cols-1 lg:grid-cols-5",
-  6: "grid gap-6 items-start grid-cols-1 lg:grid-cols-6",
+  2: "grid gap-6 grid-cols-1 md:grid-cols-2",
+  3: "grid gap-6 grid-cols-1 md:grid-cols-3",
+  4: "grid gap-6 grid-cols-1 lg:grid-cols-4",
+  5: "grid gap-6 grid-cols-1 lg:grid-cols-5",
+  6: "grid gap-6 grid-cols-1 lg:grid-cols-6",
 };
 
 const COL_SPAN_CLASS: Record<number, string> = {
@@ -318,7 +318,7 @@ export default async function BookingDetailPage({
               const spanClass = COL_SPAN_CLASS[weight] ?? `col-span-${weight}`;
               return weight === 1
                 ? node
-                : <div key={(node as React.ReactElement).key} className={spanClass}>{node}</div>;
+                : <div key={(node as React.ReactElement).key} className={`${spanClass} *:h-full`}>{node}</div>;
             })}
           </div>
         );
