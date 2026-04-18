@@ -1,4 +1,5 @@
 import type { BookingStatus, LeadSource } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils/currency";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -167,4 +168,67 @@ export function computeLeadSourceBreakdown(
   return Array.from(countBySource.entries())
     .map(([source, count]) => ({ source, count }))
     .sort((a, b) => b.count - a.count);
+}
+
+// ---------------------------------------------------------------------------
+// Insight summary
+// ---------------------------------------------------------------------------
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+export interface InsightSummary {
+  headline: string;
+  detail: string | null;
+}
+
+export function computeInsightSummary(
+  stats: YearlyStats,
+  monthlyRevenue: MonthRevenue[],
+  selectedYear: number,
+  priorYearRevenue: number | null,
+): InsightSummary {
+  const { projectedRevenue, bestSellingPackage, currency } = stats;
+
+  const bestMonth = monthlyRevenue.reduce(
+    (best, m) => (m.revenue > best.revenue ? m : best),
+    monthlyRevenue[0],
+  );
+  const hasBestMonth = bestMonth && bestMonth.revenue > 0;
+
+  let headline: string;
+
+  if (priorYearRevenue !== null && priorYearRevenue > 0) {
+    const diff = projectedRevenue - priorYearRevenue;
+    const pct = Math.round((Math.abs(diff) / priorYearRevenue) * 100);
+
+    if (pct < 2) {
+      headline = `${selectedYear} is on track with last year — ${formatCurrency(projectedRevenue, currency)} in expected income.`;
+    } else if (diff > 0) {
+      headline = `Your best year yet — ${formatCurrency(projectedRevenue, currency)} in expected income, up ${pct}% from ${selectedYear - 1}.`;
+    } else {
+      headline = `Revenue is down ${pct}% from ${selectedYear - 1}, with ${formatCurrency(projectedRevenue, currency)} expected for the year.`;
+    }
+  } else {
+    if (hasBestMonth) {
+      headline = `${MONTH_NAMES[bestMonth.month - 1]} was your strongest month — ${formatCurrency(bestMonth.revenue, currency)} in revenue.`;
+    } else {
+      headline = `${formatCurrency(projectedRevenue, currency)} in expected income for ${selectedYear}.`;
+    }
+  }
+
+  let detail: string | null = null;
+
+  if (priorYearRevenue !== null && hasBestMonth) {
+    detail = `${MONTH_NAMES[bestMonth.month - 1]} was your busiest stretch.`;
+    if (bestSellingPackage) {
+      detail = `${MONTH_NAMES[bestMonth.month - 1]} carried the most weight. ${bestSellingPackage} is your top package.`;
+    }
+  } else if (bestSellingPackage) {
+    detail = `${bestSellingPackage} is bringing in most of your work.`;
+  }
+
+  return { headline, detail };
 }

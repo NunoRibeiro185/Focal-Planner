@@ -1,6 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import type { AnalyticsBooking } from "@/lib/utils/analytics";
 
+export async function getPriorYearRevenue(year: number): Promise<number | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("total_price")
+    .eq("photographer_id", user.id)
+    .gte("event_date", `${year}-01-01`)
+    .lte("event_date", `${year}-12-31`)
+    .not("status", "in", "(inquiry,cancelled)");
+
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+
+  return data.reduce((sum, b) => sum + (b.total_price ?? 0), 0);
+}
+
 export async function getBookingYears(): Promise<number[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
