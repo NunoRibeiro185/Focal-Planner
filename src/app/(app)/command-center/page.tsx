@@ -313,16 +313,18 @@ export default function CommandCenterPage() {
         <NextWeddingSection promise={nextWeddingPromise} />
       </Suspense>
 
-      <Suspense fallback={<CardSkeleton />}>
-        <EditingBenchSection promise={editingBenchPromise} />
-      </Suspense>
+      {/* ── Status overview: side-by-side on desktop ── */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Suspense fallback={<CardSkeleton />}>
+          <EditingBenchSection promise={editingBenchPromise} />
+        </Suspense>
+        <Suspense fallback={<CardSkeleton />}>
+          <InquiriesSection promise={inquiryPromise} />
+        </Suspense>
+      </div>
 
       <Suspense fallback={<CardSkeleton />}>
         <TasksSection tasksPromise={tasksPromise} bookingOptionsPromise={bookingOptionsPromise} />
-      </Suspense>
-
-      <Suspense fallback={<CardSkeleton />}>
-        <InquiriesSection promise={inquiryPromise} />
       </Suspense>
     </div>
   );

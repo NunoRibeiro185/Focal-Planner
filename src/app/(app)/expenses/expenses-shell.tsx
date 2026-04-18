@@ -122,21 +122,27 @@ export function ExpensesShell({
 
   return (
     <div className="space-y-6">
-      {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <SummaryCard
-          label="Total Expenses"
-          value={formatCurrency(summary.totalExpenses, defaultCurrency)}
-        />
-        <SummaryCard
-          label="Outstanding Reimbursements"
-          value={formatCurrency(summary.outstandingReimbursements, defaultCurrency)}
-          highlight={summary.outstandingReimbursements > 0}
-        />
-        <SummaryCard
-          label="Total VAT"
-          value={formatCurrency(summary.totalVat, defaultCurrency)}
-        />
+      {/* Summary */}
+      <div className="space-y-3">
+        <div className="rounded-xl bg-card px-7 py-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
+            Total Expenses
+          </p>
+          <p className="font-heading text-4xl font-bold tabular-nums leading-none">
+            {formatCurrency(summary.totalExpenses, defaultCurrency)}
+          </p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <SummaryCard
+            label="Outstanding Reimbursements"
+            value={formatCurrency(summary.outstandingReimbursements, defaultCurrency)}
+            highlight={summary.outstandingReimbursements > 0}
+          />
+          <SummaryCard
+            label="Total VAT"
+            value={formatCurrency(summary.totalVat, defaultCurrency)}
+          />
+        </div>
       </div>
 
       {/* Filters + create button */}
