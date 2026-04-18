@@ -1,7 +1,7 @@
 "use client";
 
 import { format, isSameMonth, isSameDay, parseISO } from "date-fns";
-import { useRef } from "react";
+import { useRef, useMemo, memo } from "react";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -53,7 +53,7 @@ export function MonthGrid({
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const days = getMonthGrid(year, month);
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
 
   const weeks: Date[][] = [];
   for (let i = 0; i < days.length; i += 7) {
@@ -108,7 +108,7 @@ interface WeekRowProps {
   isLastWeek: boolean;
 }
 
-function WeekRow({
+const WeekRow = memo(function WeekRow({
   weekDays,
   allEvents,
   currentMonth,
@@ -132,16 +132,29 @@ function WeekRow({
     suppressDayClick.current = true;
   }
 
-  const spans = computeWeekSpans(weekDays, allEvents);
+  const spans = useMemo(() => computeWeekSpans(weekDays, allEvents), [weekDays, allEvents]);
 
   // Single-day events per cell: bookings on their start day, or personal events that start+end same day
-  const singleDayEvents: CalendarEvent[][] = weekDays.map((day) =>
-    allEvents.filter((e) => {
-      if (!isSameDay(parseISO(e.start), day)) return false;
-      if (e.kind === "booking") return true;
-      return isSameDay(parseISO(e.start), parseISO(e.end));
-    })
+  const singleDayEvents: CalendarEvent[][] = useMemo(
+    () =>
+      weekDays.map((day) =>
+        allEvents.filter((e) => {
+          if (!isSameDay(parseISO(e.start), day)) return false;
+          if (e.kind === "booking") return true;
+          return isSameDay(parseISO(e.start), parseISO(e.end));
+        })
+      ),
+    [weekDays, allEvents]
   );
+
+  // Pre-compute conflict set so hasBookingConflict isn't called multiple times per event
+  const conflictIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const event of allEvents) {
+      if (hasBookingConflict(event, allEvents)) set.add(event.id);
+    }
+    return set;
+  }, [allEvents]);
 
   // Height of the spans layer (capped at MAX_LANES)
   const maxLane = spans.reduce((m, s) => Math.max(m, s.lane), -1);
@@ -201,12 +214,12 @@ function WeekRow({
               <div className="px-0.5 space-y-0.5 pb-1">
                 {visible.map((event) =>
                   event.kind === "booking" ? (
-                    <BookingPreviewPopover key={event.id} event={event} onSaved={onEventSaved} onWillClose={handleWillClose} hasConflict={hasBookingConflict(event, allEvents)}>
+                    <BookingPreviewPopover key={event.id} event={event} onSaved={onEventSaved} onWillClose={handleWillClose} hasConflict={conflictIds.has(event.id)}>
                       <button
                         onClick={(e) => e.stopPropagation()}
                         className="w-full text-left"
                       >
-                        <EventChip event={event} hasConflict={hasBookingConflict(event, allEvents)} />
+                        <EventChip event={event} hasConflict={conflictIds.has(event.id)} />
                       </button>
                     </BookingPreviewPopover>
                   ) : (
@@ -255,9 +268,9 @@ function WeekRow({
               }}
             >
               {span.event.kind === "booking" ? (
-                <BookingPreviewPopover event={span.event} onSaved={onEventSaved} onWillClose={handleWillClose} hasConflict={hasBookingConflict(span.event, allEvents)}>
+                <BookingPreviewPopover event={span.event} onSaved={onEventSaved} onWillClose={handleWillClose} hasConflict={conflictIds.has(span.event.id)}>
                   <button className="w-full h-full block">
-                    <SpanBar span={span} hasConflict={hasBookingConflict(span.event, allEvents)} />
+                    <SpanBar span={span} hasConflict={conflictIds.has(span.event.id)} />
                   </button>
                 </BookingPreviewPopover>
               ) : (
@@ -279,7 +292,7 @@ function WeekRow({
       </div>
     </div>
   );
-}
+});
 
 function SpanBar({ span, hasConflict }: { span: SpanLayout; hasConflict?: boolean }) {
   return (
