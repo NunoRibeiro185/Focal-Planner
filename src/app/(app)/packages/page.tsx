@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getPackageTemplates } from "@/lib/queries/packages";
+import { getPackageTemplates, getPackageTemplatesCount } from "@/lib/queries/packages";
 import { getExtras } from "@/lib/queries/extras";
 import { PackageCard } from "@/components/packages/package-card";
 import { ExtrasCatalog } from "@/components/extras/extras-catalog";
+import { NewPackageButton } from "@/components/paywall/new-package-button";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -24,14 +25,11 @@ export default async function PackagesPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [packages, extras, photographer] = await Promise.all([
+  const [packages, extras, photographer, packageCount] = await Promise.all([
     activeTab === "packages" ? getPackageTemplates() : Promise.resolve([]),
     activeTab === "extras" ? getExtras() : Promise.resolve([]),
-    supabase
-      .from("photographers")
-      .select("default_currency")
-      .eq("id", user.id)
-      .single(),
+    supabase.from("photographers").select("default_currency").eq("id", user.id).single(),
+    getPackageTemplatesCount(),
   ]);
 
   const defaultCurrency =
@@ -49,12 +47,7 @@ export default async function PackagesPage({
           </p>
         </div>
         {activeTab === "packages" && (
-          <Button asChild>
-            <Link href="/packages/new">
-              <Plus className="h-4 w-4" />
-              New Package
-            </Link>
-          </Button>
+          <NewPackageButton currentCount={packageCount} />
         )}
       </div>
 
@@ -88,12 +81,9 @@ export default async function PackagesPage({
           <div className="text-center py-16 text-muted-foreground">
             <p className="text-lg font-medium">No packages yet</p>
             <p className="text-sm mt-1">Create your first package to get started.</p>
-            <Button asChild className="mt-4">
-              <Link href="/packages/new">
-                <Plus className="h-4 w-4" />
-                New Package
-              </Link>
-            </Button>
+            <div className="mt-4">
+              <NewPackageButton currentCount={packageCount} />
+            </div>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

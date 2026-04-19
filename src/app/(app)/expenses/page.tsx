@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { getExpenses } from "@/lib/queries/expenses";
-import { getBookingsForExpenseSelector } from "@/lib/queries/expenses";
+import { getExpenses, getBookingsForExpenseSelector, getExpensesThisMonthCount } from "@/lib/queries/expenses";
 import { computeExpenseSummary } from "@/lib/utils/expenses";
 import { ExpensesShell } from "./expenses-shell";
 
@@ -10,10 +9,11 @@ export default async function ExpensesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [expenses, bookings, photographerResult] = await Promise.all([
+  const [expenses, bookings, photographerResult, expensesThisMonth] = await Promise.all([
     getExpenses(),
     getBookingsForExpenseSelector(),
     supabase.from("photographers").select("default_currency").eq("id", user.id).single(),
+    getExpensesThisMonthCount(),
   ]);
 
   const defaultCurrency =
@@ -29,6 +29,7 @@ export default async function ExpensesPage() {
         bookings={bookings}
         summary={summary}
         defaultCurrency={defaultCurrency}
+        expensesThisMonth={expensesThisMonth}
       />
     </div>
   );

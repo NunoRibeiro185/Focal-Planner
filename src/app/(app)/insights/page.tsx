@@ -1,5 +1,6 @@
 import { getBookingYears, getAnalyticsBookings, getPriorYearRevenue } from "@/lib/queries/analytics";
 import { getYearPhotographerExpenses } from "@/lib/queries/expenses";
+import { FeatureGate } from "@/components/paywall/feature-gate";
 import {
   computeYearlyStats,
   computeRevenueByMonth,
@@ -42,37 +43,35 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Insights</h1>
-        <YearFilter years={availableYears} selectedYear={selectedYear} />
-      </div>
+      <FeatureGate
+        feature="insights"
+        description="Unlock Insights to see revenue trends, lead sources, and booking analytics."
+      >
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Insights</h1>
+          <YearFilter years={availableYears} selectedYear={selectedYear} />
+        </div>
 
-      {analyticsBookings.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No bookings found for {selectedYear}.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* ── Summary lede ── */}
-          <InsightSummaryBlock summary={summary} />
-
-          {/* ── Financial Health & Performance ── */}
-          <YearlyStatsGrid stats={stats} />
-
-          {/* ── Revenue ── */}
-          <RevenueLineChart data={monthlyRevenue} currency={stats.currency} />
-
-          {/* ── Lead Source + Package Breakdown ── */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <LeadSourceChart data={leadSourceBreakdown} />
-            <PackagePieChart data={packageBreakdown} currency={stats.currency} />
-          </div>
-        </>
-      )}
+        {analyticsBookings.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                No bookings found for {selectedYear}.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <InsightSummaryBlock summary={summary} />
+            <YearlyStatsGrid stats={stats} />
+            <RevenueLineChart data={monthlyRevenue} currency={stats.currency} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <LeadSourceChart data={leadSourceBreakdown} />
+              <PackagePieChart data={packageBreakdown} currency={stats.currency} />
+            </div>
+          </>
+        )}
+      </FeatureGate>
     </div>
   );
 }

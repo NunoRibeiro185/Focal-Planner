@@ -82,3 +82,17 @@ export async function getPackageTemplateById(id: string) {
     versions: versionsResult.data ?? [],
   };
 }
+
+export async function getPackageTemplatesCount(): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { count } = await supabase
+    .from("package_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("photographer_id", user.id)
+    .eq("archived", false);
+
+  return count ?? 0;
+}

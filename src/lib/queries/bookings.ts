@@ -327,3 +327,22 @@ export async function getBookingById(id: string) {
     overdue: isOverdue(booking.payment_due_date, balance),
   };
 }
+
+export async function getBookingsThisMonthCount(): Promise<number> {
+  const user = await getUser();
+  if (!user) return 0;
+
+  const supabase = await createClient();
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+  const { count } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("photographer_id", user.id)
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  return count ?? 0;
+}

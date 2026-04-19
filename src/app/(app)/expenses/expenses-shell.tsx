@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { Plus, Pencil, Trash2, ExternalLink, Receipt } from "lucide-react";
 import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
+import { UsageLimit } from "@/components/paywall/usage-limit";
 
 interface BookingOption {
   id: string;
@@ -47,6 +48,7 @@ interface ExpensesShellProps {
   bookings: BookingOption[];
   summary: ExpenseSummary;
   defaultCurrency: string;
+  expensesThisMonth: number;
 }
 
 // ─── Filters ─────────────────────────────────────────────────
@@ -89,6 +91,7 @@ export function ExpensesShell({
   bookings,
   summary,
   defaultCurrency,
+  expensesThisMonth,
 }: ExpensesShellProps) {
   const [expenses, setExpenses] = useState(initialExpenses);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -222,10 +225,12 @@ export function ExpensesShell({
             </Select>
           </div>
         </div>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          New expense
-        </Button>
+        <UsageLimit resource="expensesPerMonth" currentCount={expensesThisMonth} resourceLabel="expenses this month">
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            New expense
+          </Button>
+        </UsageLimit>
       </div>
 
       {/* Expenses list */}

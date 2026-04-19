@@ -95,3 +95,23 @@ export async function getBookingsForExpenseSelector(): Promise<
 
   return data ?? [];
 }
+
+export async function getExpensesThisMonthCount(): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+  const { count } = await supabase
+    .from("expenses")
+    .select("id", { count: "exact", head: true })
+    .eq("photographer_id", user.id)
+    .eq("auto_generated", false)
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  return count ?? 0;
+}

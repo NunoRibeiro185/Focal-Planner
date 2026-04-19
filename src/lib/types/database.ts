@@ -41,6 +41,9 @@ export type ExpenseCategory =
 
 export type ExpensePaidBy = "photographer" | "client";
 
+export type SubscriptionStatus = "active" | "cancelled" | "past_due" | "paused";
+export type SubscriptionPlan = "monthly" | "annual";
+
 // ─── Row types ───────────────────────────────────────────────
 
 export interface Photographer {
@@ -50,6 +53,7 @@ export interface Photographer {
   default_currency: string;
   created_at: string;
   slug: string | null;
+  trial_warning_sent_at: string | null;
   inquiry_form_enabled: boolean;
   inquiry_show_packages: boolean;
   inquiry_show_prices: boolean;
@@ -292,6 +296,30 @@ export interface PersonalEvent {
   updated_at: string;
 }
 
+export interface Subscription {
+  photographer_id: string;
+  lemon_squeezy_subscription_id: string;
+  lemon_squeezy_customer_id: string;
+  status: SubscriptionStatus;
+  plan: SubscriptionPlan;
+  price_locked: boolean;
+  current_period_end: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionInsert {
+  photographer_id: string;
+  lemon_squeezy_subscription_id: string;
+  lemon_squeezy_customer_id: string;
+  status: SubscriptionStatus;
+  plan: SubscriptionPlan;
+  price_locked: boolean;
+  current_period_end: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface GoogleCalendarToken {
   photographer_id: string;
   access_token: string;
@@ -388,6 +416,11 @@ export interface Database {
       booking_editing_stages: { Row: BookingEditingStage };
       second_shooter_notes: { Row: SecondShooterNote };
       expenses: { Row: Expense };
+      subscriptions: {
+        Row: Subscription;
+        Insert: SubscriptionInsert;
+        Update: Partial<SubscriptionInsert>;
+      };
     };
     Enums: {
       booking_status: BookingStatus;
@@ -395,6 +428,8 @@ export interface Database {
       lead_source: LeadSource;
       expense_category: ExpenseCategory;
       expense_paid_by: ExpensePaidBy;
+      subscription_status: SubscriptionStatus;
+      subscription_plan: SubscriptionPlan;
     };
 
     Functions: {

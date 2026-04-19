@@ -125,6 +125,54 @@ export async function sendSecondShooterInvite(
   }
 }
 
+// ─── Trial warning ────────────────────────────────────────────
+
+/** Sends the one-time trial expiry warning email to a photographer. Fire-and-forget. */
+export async function sendTrialWarningEmail(
+  photographerEmail: string,
+  photographerName: string | null
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+
+  const name = photographerName ?? "there";
+  const pricingUrl = `${APP_URL}/pricing`;
+  const expiryDate = "31 July 2026";
+
+  const html = `
+    <h2>Your Focal trial ends on ${expiryDate}</h2>
+    <p>Hi ${name},</p>
+    <p>
+      Your free trial of Focal Pro ends in <strong>7 days</strong> on <strong>${expiryDate}</strong>.
+      After that, you'll move to the free tier and lose access to Pro features like
+      Google Calendar sync, Insights, Inquiry Forms, and Second Shooter collaboration.
+    </p>
+    <p>
+      <strong>Subscribe now to lock in our launch price of €10/month</strong> — this rate
+      is guaranteed forever for early subscribers.
+    </p>
+    <p>
+      <a href="${pricingUrl}" style="display:inline-block;padding:10px 20px;background:#000;color:#fff;text-decoration:none;border-radius:6px;">
+        Upgrade to Pro →
+      </a>
+    </p>
+    <p style="color:#666;font-size:12px;">
+      If you choose not to subscribe, your account will continue on the free tier and all your existing data will remain accessible.
+    </p>
+  `;
+
+  try {
+    await client.emails.send({
+      from: FROM,
+      to: photographerEmail,
+      subject: "Your Focal trial ends in 7 days — lock in €10/month",
+      html,
+    });
+  } catch (err) {
+    console.error("Failed to send trial warning email:", err);
+  }
+}
+
 /** Sends an auto-reply confirmation to the client. */
 export async function sendInquiryConfirmation(
   payload: InquiryEmailPayload

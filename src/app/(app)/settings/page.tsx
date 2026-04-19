@@ -5,6 +5,7 @@ import { CustomFieldsPanel } from "@/components/settings/custom-fields-panel";
 import { GoogleCalendarPanel } from "@/components/settings/google-calendar-panel";
 import { EditingWorkflowPanel } from "@/components/settings/editing-workflow-panel";
 import { InquiryFormPanel } from "@/components/settings/inquiry-form-panel";
+import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getCustomFieldDefinitions } from "@/lib/queries/custom-fields";
 import { getGoogleCalendarToken } from "@/lib/queries/google-calendar";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
@@ -55,11 +56,14 @@ export default async function SettingsPage({
               default_currency: photographer?.default_currency ?? "EUR",
             }}
           />
-          <GoogleCalendarPanel token={googleToken} connectionStatus={googleStatus} />
+          <FeatureGate feature="googleCalendarSync" description="Upgrade to Pro to connect Google Calendar and sync your bookings automatically.">
+            <GoogleCalendarPanel token={googleToken} connectionStatus={googleStatus} />
+          </FeatureGate>
           <EditingWorkflowPanel stages={editingStages} />
         </div>
         <div className="flex flex-col gap-6">
           <CustomFieldsPanel fields={customFields} />
+          <FeatureGate feature="inquiryForms" description="Upgrade to Pro to publish a public inquiry form and receive leads directly.">
           <InquiryFormPanel
             defaultValues={{
               slug:                        inquirySettings?.slug ?? "",
@@ -74,6 +78,7 @@ export default async function SettingsPage({
               inquiry_show_notes:          inquirySettings?.inquiry_show_notes ?? true,
             }}
           />
+          </FeatureGate>
         </div>
       </div>
     </div>

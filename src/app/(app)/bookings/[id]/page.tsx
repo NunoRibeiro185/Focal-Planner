@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getBookingById } from "@/lib/queries/bookings";
 import { getExtras } from "@/lib/queries/extras";
 import { getPackageTemplates } from "@/lib/queries/packages";
@@ -223,11 +224,12 @@ export default async function BookingDetailPage({
 
       case "second_shooter":
         return (
-          <SecondShooterPanel
-            key={panel}
-            booking={booking}
-            bookingId={id}
-          />
+          <FeatureGate key={panel} feature="secondShooter" description="Upgrade to Pro to collaborate with a second shooter on bookings.">
+            <SecondShooterPanel
+              booking={booking}
+              bookingId={id}
+            />
+          </FeatureGate>
         );
 
       default:

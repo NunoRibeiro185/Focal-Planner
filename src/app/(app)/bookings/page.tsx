@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
-import { getBookings } from "@/lib/queries/bookings";
+import { getBookings, getBookingsThisMonthCount } from "@/lib/queries/bookings";
 import { getPendingSecondShooterInvites } from "@/lib/queries/second-shooter";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
 import { PendingInvitesBanner } from "@/components/bookings/pending-invites-banner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { NewBookingButton } from "@/components/paywall/new-booking-button";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,9 +22,10 @@ export default async function BookingsPage({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [allBookings, pendingInvites] = await Promise.all([
+  const [allBookings, pendingInvites, bookingsThisMonth] = await Promise.all([
     getBookings(),
     user ? getPendingSecondShooterInvites(user.id) : Promise.resolve([]),
+    getBookingsThisMonthCount(),
   ]);
 
   const bookings =
@@ -48,12 +50,7 @@ export default async function BookingsPage({ searchParams }: Props) {
             {bookings.length} booking{bookings.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/bookings/new">
-            <Plus className="h-4 w-4" />
-            New Booking
-          </Link>
-        </Button>
+        <NewBookingButton currentCount={bookingsThisMonth} />
       </div>
 
       <PendingInvitesBanner invites={pendingInvites} />
@@ -84,12 +81,9 @@ export default async function BookingsPage({ searchParams }: Props) {
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-lg font-medium">No bookings yet</p>
           <p className="text-sm mt-1">Create your first booking to get started.</p>
-          <Button asChild className="mt-4">
-            <Link href="/bookings/new">
-              <Plus className="h-4 w-4" />
-              New Booking
-            </Link>
-          </Button>
+          <div className="mt-4">
+            <NewBookingButton currentCount={bookingsThisMonth} />
+          </div>
         </div>
       ) : (
         <>
