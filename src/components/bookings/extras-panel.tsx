@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Plus, Trash2, Clock, Pencil, Check, X, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,16 +79,20 @@ export function ExtrasPanel({
       if (!catalogExtra) return;
       setErrors({});
       startTransition(async () => {
-        await addBookingExtra(bookingId, {
-          extra_id: catalogExtra.id,
-          name_snapshot: catalogExtra.name,
-          price_snapshot: catalogExtra.price,
-          currency_snapshot: catalogExtra.currency,
-          quantity: qty,
-        });
-        setSelectedExtraId("");
-        setCatalogQty("1");
-        setShowAddForm(false);
+        try {
+          await addBookingExtra(bookingId, {
+            extra_id: catalogExtra.id,
+            name_snapshot: catalogExtra.name,
+            price_snapshot: catalogExtra.price,
+            currency_snapshot: catalogExtra.currency,
+            quantity: qty,
+          });
+          setSelectedExtraId("");
+          setCatalogQty("1");
+          setShowAddForm(false);
+        } catch {
+          toast.error("Couldn't add extra — try again");
+        }
       });
     } else {
       if (!customName.trim()) newErrors.name = "Name is required";
@@ -101,24 +106,32 @@ export function ExtrasPanel({
       }
       setErrors({});
       startTransition(async () => {
-        await addBookingExtra(bookingId, {
-          extra_id: null,
-          name_snapshot: customName.trim(),
-          price_snapshot: price,
-          currency_snapshot: customCurrency,
-          quantity: qty,
-        });
-        setCustomName("");
-        setCustomPrice("");
-        setCustomQty("1");
-        setShowAddForm(false);
+        try {
+          await addBookingExtra(bookingId, {
+            extra_id: null,
+            name_snapshot: customName.trim(),
+            price_snapshot: price,
+            currency_snapshot: customCurrency,
+            quantity: qty,
+          });
+          setCustomName("");
+          setCustomPrice("");
+          setCustomQty("1");
+          setShowAddForm(false);
+        } catch {
+          toast.error("Couldn't add extra — try again");
+        }
       });
     }
   }
 
   function handleRemove(extraId: string) {
     startTransition(async () => {
-      await removeBookingExtra(extraId, bookingId);
+      try {
+        await removeBookingExtra(extraId, bookingId);
+      } catch {
+        toast.error("Couldn't remove extra — try again");
+      }
     });
   }
 
@@ -394,18 +407,26 @@ export function PackageExtrasCard({
   function handleAssignPackage() {
     if (!selectedTemplateId) return;
     startTransition(async () => {
-      await updateBookingPackage(bookingId, selectedTemplateId);
-      setShowPackagePicker(false);
+      try {
+        await updateBookingPackage(bookingId, selectedTemplateId);
+        setShowPackagePicker(false);
+      } catch {
+        toast.error("Couldn't assign package — try again");
+      }
     });
   }
 
   function handleSavePricing() {
     startTransition(async () => {
-      await updateBookingPricing(bookingId, {
-        price_override: draftPriceOverride !== "" ? Number(draftPriceOverride) : null,
-        hours_override: draftHoursOverride !== "" ? Number(draftHoursOverride) : null,
-      });
-      setEditingPricing(false);
+      try {
+        await updateBookingPricing(bookingId, {
+          price_override: draftPriceOverride !== "" ? Number(draftPriceOverride) : null,
+          hours_override: draftHoursOverride !== "" ? Number(draftHoursOverride) : null,
+        });
+        setEditingPricing(false);
+      } catch {
+        toast.error("Couldn't save pricing — try again");
+      }
     });
   }
 
@@ -420,14 +441,18 @@ export function PackageExtrasCard({
       if (!catalogExtra) return;
       setErrors({});
       startTransition(async () => {
-        await addBookingExtra(bookingId, {
-          extra_id: catalogExtra.id,
-          name_snapshot: catalogExtra.name,
-          price_snapshot: catalogExtra.price,
-          currency_snapshot: catalogExtra.currency,
-          quantity: qty,
-        });
-        setSelectedExtraId(""); setCatalogQty("1"); setShowAddForm(false);
+        try {
+          await addBookingExtra(bookingId, {
+            extra_id: catalogExtra.id,
+            name_snapshot: catalogExtra.name,
+            price_snapshot: catalogExtra.price,
+            currency_snapshot: catalogExtra.currency,
+            quantity: qty,
+          });
+          setSelectedExtraId(""); setCatalogQty("1"); setShowAddForm(false);
+        } catch {
+          toast.error("Couldn't add extra — try again");
+        }
       });
     } else {
       if (!customName.trim()) newErrors.name = "Name is required";
@@ -438,20 +463,30 @@ export function PackageExtrasCard({
       if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
       setErrors({});
       startTransition(async () => {
-        await addBookingExtra(bookingId, {
-          extra_id: null,
-          name_snapshot: customName.trim(),
-          price_snapshot: price,
-          currency_snapshot: customCurrency,
-          quantity: qty,
-        });
-        setCustomName(""); setCustomPrice(""); setCustomQty("1"); setShowAddForm(false);
+        try {
+          await addBookingExtra(bookingId, {
+            extra_id: null,
+            name_snapshot: customName.trim(),
+            price_snapshot: price,
+            currency_snapshot: customCurrency,
+            quantity: qty,
+          });
+          setCustomName(""); setCustomPrice(""); setCustomQty("1"); setShowAddForm(false);
+        } catch {
+          toast.error("Couldn't add extra — try again");
+        }
       });
     }
   }
 
   function handleRemove(extraId: string) {
-    startTransition(async () => { await removeBookingExtra(extraId, bookingId); });
+    startTransition(async () => {
+      try {
+        await removeBookingExtra(extraId, bookingId);
+      } catch {
+        toast.error("Couldn't remove extra — try again");
+      }
+    });
   }
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -68,27 +69,43 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
 
   function handleAddTask(values: TaskValues) {
     startTransition(async () => {
-      await addBookingTask(bookingId, values);
-      reset();
-      setShowAddForm(false);
+      try {
+        await addBookingTask(bookingId, values);
+        reset();
+        setShowAddForm(false);
+      } catch {
+        toast.error("Couldn't add task — try again");
+      }
     });
   }
 
   function handleToggle(taskId: string, done: boolean) {
     startTransition(async () => {
-      await toggleBookingTask(taskId, done, bookingId);
+      try {
+        await toggleBookingTask(taskId, done, bookingId);
+      } catch {
+        toast.error("Couldn't update task — try again");
+      }
     });
   }
 
   function handleDelete(taskId: string) {
     startTransition(async () => {
-      await deleteBookingTask(taskId, bookingId);
+      try {
+        await deleteBookingTask(taskId, bookingId);
+      } catch {
+        toast.error("Couldn't delete task — try again");
+      }
     });
   }
 
   function handleUpdate(taskId: string, values: TaskValues) {
     startTransition(async () => {
-      await updateBookingTask(taskId, values, bookingId);
+      try {
+        await updateBookingTask(taskId, values, bookingId);
+      } catch {
+        toast.error("Couldn't update task — try again");
+      }
     });
   }
 
@@ -100,7 +117,6 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
     const newIndex = pendingTasks.findIndex((t) => t.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    // Compute new sort_order using midpoint between neighbours
     const sorted = [...pendingTasks];
     const [moved] = sorted.splice(oldIndex, 1);
     sorted.splice(newIndex, 0, moved);
@@ -111,7 +127,11 @@ export function TasksPanel({ tasks, bookingId }: TasksPanelProps) {
     const newOrder = Math.floor((prevOrder + nextOrder) / 2);
 
     startTransition(async () => {
-      await reorderBookingTask(String(active.id), newOrder, bookingId);
+      try {
+        await reorderBookingTask(String(active.id), newOrder, bookingId);
+      } catch {
+        toast.error("Couldn't save task order — try again");
+      }
     });
   }
 

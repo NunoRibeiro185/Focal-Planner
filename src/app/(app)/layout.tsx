@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { Toaster } from "sonner";
 
 export default async function AppLayout({
   children,
@@ -20,6 +21,7 @@ export default async function AppLayout({
       <main className="flex-1 overflow-y-auto overscroll-y-contain pb-16 md:pb-0">
         {children}
       </main>
+      <Toaster position="bottom-right" richColors />
     </div>
   );
 }

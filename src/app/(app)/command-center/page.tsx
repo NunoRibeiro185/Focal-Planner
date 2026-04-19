@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries/command-center";
 import type { Booking } from "@/lib/types";
 import { CommandCenterTasksPanel } from "@/components/command-center/tasks-panel";
+import { OnboardingHint } from "@/components/command-center/onboarding-hint";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
@@ -107,7 +108,7 @@ async function NextWeddingSection({ promise }: { promise: Promise<NextWeddingDat
               </div>
             ) : (
               <p className="text-sm text-primary/80 font-medium">
-                ✓ All caught up for this wedding.
+                All caught up for this wedding.
               </p>
             )}
 
@@ -119,11 +120,19 @@ async function NextWeddingSection({ promise }: { promise: Promise<NextWeddingDat
             </PrefetchLink>
           </div>
         ) : (
-          <div className="flex items-center gap-3 py-2">
-            <Camera className="h-8 w-8 text-muted-foreground/40" strokeWidth={1.5} />
-            <p className="text-muted-foreground">
-              No upcoming weddings scheduled. Time to fill that calendar!
-            </p>
+          <div className="space-y-3 py-2">
+            <div className="flex items-center gap-3">
+              <Camera className="h-8 w-8 text-muted-foreground/40 shrink-0" strokeWidth={1.5} />
+              <p className="text-muted-foreground">
+                No upcoming weddings scheduled yet.
+              </p>
+            </div>
+            <Link
+              href="/bookings/new"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
+            >
+              Add your first booking →
+            </Link>
           </div>
         )}
       </CardContent>
@@ -147,7 +156,7 @@ async function EditingBenchSection({ promise }: { promise: Promise<EditingBenchI
       <CardContent>
         {editingBench.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">
-            🎉 You&apos;re all caught up — no weddings in the darkroom right now!
+            You&apos;re all caught up — no weddings in the darkroom right now.
           </p>
         ) : (
           <div className="space-y-4">
@@ -177,7 +186,7 @@ async function EditingBenchSection({ promise }: { promise: Promise<EditingBenchI
 
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="h-full rounded-full bg-primary transition-all animate-progress-fill"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -250,7 +259,7 @@ async function InquiriesSection({ promise }: { promise: Promise<Booking[]> }) {
             New Inquiries
           </CardTitle>
           {inquiryBookings.length > 0 && (
-            <span className="ml-auto text-xs font-bold bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+            <span className="ml-auto text-xs font-bold bg-primary/10 text-primary rounded-full px-2 py-0.5">
               {inquiryBookings.length}
             </span>
           )}
@@ -282,7 +291,7 @@ async function InquiriesSection({ promise }: { promise: Promise<Booking[]> }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-3 w-3 text-amber-500" />
+                  <Clock className="h-3 w-3 text-primary/70" />
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(booking.created_at), "d MMM")}
                   </span>
@@ -294,6 +303,21 @@ async function InquiriesSection({ promise }: { promise: Promise<Booking[]> }) {
       </CardContent>
     </Card>
   );
+}
+
+async function OnboardingSection({
+  inquiryPromise,
+  bookingOptionsPromise,
+}: {
+  inquiryPromise: Promise<Booking[]>;
+  bookingOptionsPromise: Promise<BookingOption[]>;
+}) {
+  const [inquiries, bookingOptions] = await Promise.all([
+    inquiryPromise,
+    bookingOptionsPromise,
+  ]);
+  if (inquiries.length > 0 || bookingOptions.length > 0) return null;
+  return <OnboardingHint />;
 }
 
 // ─── Page — kicks off all fetches simultaneously, streams UI independently ────
@@ -308,6 +332,13 @@ export default function CommandCenterPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <h1 className="text-2xl font-bold">Command Center</h1>
+
+      <Suspense fallback={null}>
+        <OnboardingSection
+          inquiryPromise={inquiryPromise}
+          bookingOptionsPromise={bookingOptionsPromise}
+        />
+      </Suspense>
 
       <Suspense fallback={<HeroSkeleton />}>
         <NextWeddingSection promise={nextWeddingPromise} />

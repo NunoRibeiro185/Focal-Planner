@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
+import { toast } from "sonner";
 import { GripVertical, Trash2, Plus, Check, Pencil, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,6 +201,7 @@ export function EditingPipelinePanel({
   );
 
   function handleToggle(stageId: string, complete: boolean) {
+    const previous = stages;
     setStages((prev) =>
       prev.map((s) =>
         s.id === stageId
@@ -208,30 +210,51 @@ export function EditingPipelinePanel({
       )
     );
     startTransition(async () => {
-      await toggleBookingEditingStage(stageId, complete, bookingId);
+      try {
+        await toggleBookingEditingStage(stageId, complete, bookingId);
+      } catch {
+        setStages(previous);
+        toast.error("Couldn't update stage — try again");
+      }
     });
   }
 
   function handleDelete(stageId: string) {
+    const previous = stages;
     setStages((prev) => prev.filter((s) => s.id !== stageId));
     startTransition(async () => {
-      await deleteBookingEditingStage(stageId, bookingId);
+      try {
+        await deleteBookingEditingStage(stageId, bookingId);
+      } catch {
+        setStages(previous);
+        toast.error("Couldn't delete stage — try again");
+      }
     });
   }
 
   function handleAdd() {
     if (!newTitle.trim()) return;
     startTransition(async () => {
-      await addBookingEditingStage(bookingId, newTitle.trim());
-      setNewTitle("");
-      setShowAdd(false);
+      try {
+        await addBookingEditingStage(bookingId, newTitle.trim());
+        setNewTitle("");
+        setShowAdd(false);
+      } catch {
+        toast.error("Couldn't add stage — try again");
+      }
     });
   }
 
   function handleUpdate(stageId: string, title: string) {
+    const previous = stages;
     setStages((prev) => prev.map((s) => s.id === stageId ? { ...s, title } : s));
     startTransition(async () => {
-      await updateBookingEditingStage(stageId, title, bookingId);
+      try {
+        await updateBookingEditingStage(stageId, title, bookingId);
+      } catch {
+        setStages(previous);
+        toast.error("Couldn't update stage — try again");
+      }
     });
   }
 
@@ -241,15 +264,21 @@ export function EditingPipelinePanel({
 
     const oldIndex = stages.findIndex((s) => s.id === active.id);
     const newIndex = stages.findIndex((s) => s.id === over.id);
+    const previous = stages;
     const reordered = arrayMove(stages, oldIndex, newIndex);
     setStages(reordered);
 
     startTransition(async () => {
-      await Promise.all(
-        reordered.map((s, i) =>
-          reorderBookingEditingStage(s.id, (i + 1) * 10, bookingId)
-        )
-      );
+      try {
+        await Promise.all(
+          reordered.map((s, i) =>
+            reorderBookingEditingStage(s.id, (i + 1) * 10, bookingId)
+          )
+        );
+      } catch {
+        setStages(previous);
+        toast.error("Couldn't save stage order — try again");
+      }
     });
   }
 

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
+import { CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,8 +120,8 @@ export function InquiryForm({
   if (submitted) {
     return (
       <div className="rounded-lg border bg-card p-8 text-center space-y-3">
-        <div className="text-4xl">✓</div>
-        <h2 className="text-xl font-semibold">Inquiry sent!</h2>
+        <CheckCircle2 className="h-10 w-10 text-primary mx-auto" strokeWidth={1.5} />
+        <h2 className="text-xl font-semibold">Inquiry sent</h2>
         <p className="text-sm text-muted-foreground">
           Thank you — we&apos;ll be in touch with you shortly.
         </p>

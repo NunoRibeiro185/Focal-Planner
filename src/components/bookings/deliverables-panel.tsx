@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 import { toggleBookingDeliverable } from "@/lib/actions/bookings";
 import type { BookingDeliverableProgress } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,11 @@ export function DeliverablesPanel({
 
   function handleToggle(progressId: string, done: boolean) {
     startTransition(async () => {
-      await toggleBookingDeliverable(progressId, done, bookingId);
+      try {
+        await toggleBookingDeliverable(progressId, done, bookingId);
+      } catch {
+        toast.error("Couldn't update deliverable — try again");
+      }
     });
   }
 

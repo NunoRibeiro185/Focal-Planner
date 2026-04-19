@@ -42,7 +42,7 @@ export default async function PackagesPage({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Packages</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="hidden sm:block text-muted-foreground text-sm mt-1">
             {activeTab === "packages"
               ? "Manage your service packages. Editing creates a new version — existing bookings are never affected."
               : "Define reusable add-ons to attach to bookings."}

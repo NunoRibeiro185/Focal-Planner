@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { MapPin, Mail, Phone, Pencil, Check, X, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -54,6 +56,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
+
+// ─── Edit pattern rule ────────────────────────────────────────────────────────
+// Dialog: structured multi-field forms where the data exists independently of
+//   the display context (itinerary stops — 4 fields, standalone entity).
+// Inline expand: multi-field forms where showing the form in-place is useful
+//   (client info, second-shooter settings — the form IS the card content).
+// Inline toggle: single freetext fields (notes textarea, deposit row).
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Client ───────────────────────────────────────────────────────────────────
 
@@ -100,8 +110,12 @@ export function ClientInfoCard({
 
   function handleSave(values: ClientInfoValues) {
     startTransition(async () => {
-      await updateBookingCoreFields(bookingId, values);
-      setEditing(false);
+      try {
+        await updateBookingCoreFields(bookingId, values);
+        setEditing(false);
+      } catch {
+        toast.error("Couldn't save client info — try again");
+      }
     });
   }
 
@@ -375,6 +389,7 @@ export function ItineraryCard({
   useEffect(() => { setStops(initialStops); }, [initialStops]);
 
   const [editingStop, setEditingStop] = useState<BookingItineraryStop | null>(null);
+  const [deletingStop, setDeletingStop] = useState<BookingItineraryStop | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -388,34 +403,57 @@ export function ItineraryCard({
     if (!over || active.id === over.id) return;
     const oldIdx = stops.findIndex((s) => s.id === active.id);
     const newIdx = stops.findIndex((s) => s.id === over.id);
+    const previous = stops;
     const reordered = arrayMove(stops, oldIdx, newIdx);
     setStops(reordered);
     startTransition(async () => {
-      await Promise.all(
-        reordered.map((s, i) => reorderItineraryStop(s.id, (i + 1) * 10, bookingId))
-      );
+      try {
+        await Promise.all(
+          reordered.map((s, i) => reorderItineraryStop(s.id, (i + 1) * 10, bookingId))
+        );
+      } catch {
+        setStops(previous);
+        toast.error("Couldn't save order — try again");
+      }
     });
   }
 
   function handleAdd(values: ItineraryStopValues) {
     startTransition(async () => {
-      await addItineraryStop(bookingId, values);
-      setShowAddDialog(false);
+      try {
+        await addItineraryStop(bookingId, values);
+        setShowAddDialog(false);
+      } catch {
+        toast.error("Couldn't add stop — try again");
+      }
     });
   }
 
   function handleUpdate(values: ItineraryStopValues) {
     if (!editingStop) return;
     startTransition(async () => {
-      await updateItineraryStop(editingStop.id, bookingId, values);
-      setEditingStop(null);
+      try {
+        await updateItineraryStop(editingStop.id, bookingId, values);
+        setEditingStop(null);
+      } catch {
+        toast.error("Couldn't update stop — try again");
+      }
     });
   }
 
-  function handleDelete(stopId: string) {
+  function handleDeleteConfirm() {
+    if (!deletingStop) return;
+    const stopId = deletingStop.id;
+    const previous = stops;
     setStops((prev) => prev.filter((s) => s.id !== stopId));
+    setDeletingStop(null);
     startTransition(async () => {
-      await deleteItineraryStop(stopId, bookingId);
+      try {
+        await deleteItineraryStop(stopId, bookingId);
+      } catch {
+        setStops(previous);
+        toast.error("Couldn't delete stop — try again");
+      }
     });
   }
 
@@ -446,7 +484,7 @@ export function ItineraryCard({
                   key={stop.id}
                   stop={stop}
                   onEdit={() => setEditingStop(stop)}
-                  onDelete={() => handleDelete(stop.id)}
+                  onDelete={() => setDeletingStop(stop)}
                   disabled={isPending}
                 />
               ))}
@@ -495,6 +533,26 @@ export function ItineraryCard({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete stop confirmation */}
+      <Dialog open={!!deletingStop} onOpenChange={(open) => !open && setDeletingStop(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove this stop?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <strong>{deletingStop?.name}</strong> will be removed from the itinerary. This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingStop(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isPending}>
+              Remove stop
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -524,8 +582,12 @@ export function NotesCard({
 
   function handleSave() {
     startTransition(async () => {
-      await updateBookingNotes(bookingId, draft.trim() || null);
-      setEditing(false);
+      try {
+        await updateBookingNotes(bookingId, draft.trim() || null);
+        setEditing(false);
+      } catch {
+        toast.error("Couldn't save notes — try again");
+      }
     });
   }
 

@@ -127,3 +127,21 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading, var(--font-sans, serif));
 }
+
+/* ─── Progress bar entrance animation ──────────────────────────────────────── */
+@keyframes progress-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.animate-progress-fill {
+  transform-origin: left;
+  animation: progress-fill 600ms ease-out both;
+  animation-delay: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-progress-fill {
+    animation: none;
+  }
+}

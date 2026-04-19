@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { STATUS_STEPS, BOOKING_STATUS_LABELS, getStepperTargetStatus, isTerminalStatus, isBackwardTransition } from "@/lib/utils/booking-status";
 import { updateBookingStatus } from "@/lib/actions/bookings";
 import type { BookingStatus } from "@/lib/types";
@@ -51,10 +52,16 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
   }
 
   function applyTransition(target: BookingStatus) {
+    const previous = optimisticStatus;
     setOptimisticStatus(target);
     setPendingTarget(null);
     startTransition(async () => {
-      await updateBookingStatus(bookingId, target);
+      try {
+        await updateBookingStatus(bookingId, target);
+      } catch {
+        setOptimisticStatus(previous);
+        toast.error("Couldn't update status — try again");
+      }
     });
   }
 
@@ -103,7 +110,7 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
                 onClick={() => handleStepClick(index)}
                 disabled={!isClickable || isPending}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 group",
+                  "flex flex-col items-center gap-1.5 group min-w-[44px] py-1",
                   isClickable ? "cursor-pointer" : "cursor-default"
                 )}
               >
@@ -156,7 +163,7 @@ export function StatusStepper({ bookingId, currentStatus }: StatusStepperProps) 
       <p className="sm:hidden mt-2 text-sm font-medium text-center">
         {BOOKING_STATUS_LABELS[activeStatus]}
         <span className="text-muted-foreground font-normal">
-          {" "}· step {currentIndex + 1} of {STATUS_STEPS.length}
+          {" "}· {currentIndex + 1} of {STATUS_STEPS.length}
         </span>
       </p>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   UserPlus,
   Check,
@@ -44,6 +52,7 @@ interface SecondShooterPanelProps {
 export function SecondShooterPanel({ booking, bookingId }: SecondShooterPanelProps) {
   const [editingSettings, setEditingSettings] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [invitePending, startInviteTransition] = useTransition();
   const [removePending, startRemoveTransition] = useTransition();
   const [inviteResult, setInviteResult] = useState<{ foundAccount: boolean } | null>(null);
@@ -60,35 +69,60 @@ export function SecondShooterPanel({ booking, bookingId }: SecondShooterPanelPro
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleRemove() {
-    if (!confirm("Remove second shooter from this booking? This will revoke all access.")) return;
+  function handleRemoveConfirm() {
+    setConfirmingRemove(false);
     startRemoveTransition(async () => {
-      await removeSecondShooter(bookingId);
+      try {
+        await removeSecondShooter(bookingId);
+      } catch {
+        toast.error("Couldn't remove second shooter — try again");
+      }
     });
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <UserPlus className="h-3.5 w-3.5" />
-            Second Shooter
-          </CardTitle>
-          {(booking.second_shooter_email || booking.second_shooter_id) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-muted-foreground hover:text-destructive"
-              onClick={handleRemove}
-              disabled={removePending}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
+    <>
+      <Dialog open={confirmingRemove} onOpenChange={setConfirmingRemove}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove second shooter?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will revoke all access for{" "}
+            <strong>{booking.second_shooter_email ?? "this second shooter"}</strong>. They won&apos;t be able to view the booking page.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmingRemove(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRemoveConfirm} disabled={removePending}>
               Remove
             </Button>
-          )}
-        </div>
-      </CardHeader>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <UserPlus className="h-3.5 w-3.5" />
+              Second Shooter
+            </CardTitle>
+            {(booking.second_shooter_email || booking.second_shooter_id) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                onClick={() => setConfirmingRemove(true)}
+                disabled={removePending}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </Button>
+            )}
+          </div>
+        </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Settings section */}
@@ -180,6 +214,7 @@ export function SecondShooterPanel({ booking, bookingId }: SecondShooterPanelPro
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }
 
@@ -280,8 +315,12 @@ function SettingsForm({
 
   function handleSave(values: SecondShooterPanelValues) {
     startTransition(async () => {
-      await saveSecondShooterSettings(bookingId, values);
-      onDone();
+      try {
+        await saveSecondShooterSettings(bookingId, values);
+        onDone();
+      } catch {
+        toast.error("Couldn't save settings — try again");
+      }
     });
   }
 
@@ -375,12 +414,12 @@ function PasswordForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(handleSave)} className="flex items-start gap-2">
-      <div className="flex-1 space-y-1">
+    <form onSubmit={handleSubmit(handleSave)} className="space-y-2">
+      <div className="space-y-1">
         <Input
           type="text"
           placeholder={hasPassword ? "New password" : "Set a password"}
-          className="h-7 text-sm"
+          className="text-sm"
           autoFocus
           {...register("password")}
         />
@@ -388,19 +427,14 @@ function PasswordForm({
           <p className="text-xs text-destructive">{errors.password.message}</p>
         )}
       </div>
-      <Button type="submit" size="sm" className="h-7 shrink-0" disabled={isPending}>
-        <Check className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        className="h-7 shrink-0"
-        onClick={onDone}
-        disabled={isPending}
-      >
-        <X className="h-3.5 w-3.5" />
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={isPending}>
+          <Check className="h-3.5 w-3.5" /> Save
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onDone} disabled={isPending}>
+          <X className="h-3.5 w-3.5" /> Cancel
+        </Button>
+      </div>
     </form>
   );
 }
@@ -416,7 +450,11 @@ function RemovePasswordButton({ bookingId }: { bookingId: string }) {
       disabled={isPending}
       onClick={() =>
         startTransition(async () => {
-          await removeSecondShooterPassword(bookingId);
+          try {
+            await removeSecondShooterPassword(bookingId);
+          } catch {
+            toast.error("Couldn't remove password — try again");
+          }
         })
       }
     >

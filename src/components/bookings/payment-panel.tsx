@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -109,59 +110,87 @@ export function PaymentPanel({
 
   function handleAddPayment(values: PaymentEntryValues) {
     startTransition(async () => {
-      await addPaymentEntry(booking.id, values);
-      paymentForm.reset();
-      setShowAddPayment(false);
+      try {
+        await addPaymentEntry(booking.id, values);
+        paymentForm.reset();
+        setShowAddPayment(false);
+      } catch {
+        toast.error("Couldn't add payment — try again");
+      }
     });
   }
 
   function handleAddExpense(values: ExpenseFormValues) {
     startTransition(async () => {
-      await createExpense({ ...values, booking_id: booking.id });
-      expenseForm.reset({
-        category: "other",
-        description: "",
-        amount: undefined,
-        expense_date: new Date().toISOString().split("T")[0],
-        vat_percentage: null,
-        paid_by: "photographer",
-        booking_id: booking.id,
-      });
-      setShowAddExpense(false);
+      try {
+        await createExpense({ ...values, booking_id: booking.id });
+        expenseForm.reset({
+          category: "other",
+          description: "",
+          amount: undefined,
+          expense_date: new Date().toISOString().split("T")[0],
+          vat_percentage: null,
+          paid_by: "photographer",
+          booking_id: booking.id,
+        });
+        setShowAddExpense(false);
+      } catch {
+        toast.error("Couldn't add expense — try again");
+      }
     });
   }
 
   function handleMarkDeposit() {
     startTransition(async () => {
-      await markDepositPaid(booking.id, new Date().toISOString().split("T")[0]);
+      try {
+        await markDepositPaid(booking.id, new Date().toISOString().split("T")[0]);
+      } catch {
+        toast.error("Couldn't mark deposit as paid — try again");
+      }
     });
   }
 
   function handleDeletePayment(entryId: string) {
     startTransition(async () => {
-      await deletePaymentEntry(entryId, booking.id);
+      try {
+        await deletePaymentEntry(entryId, booking.id);
+      } catch {
+        toast.error("Couldn't delete payment — try again");
+      }
     });
   }
 
   function handleDeleteExpense(expenseId: string) {
     startTransition(async () => {
-      await deleteExpense(expenseId);
+      try {
+        await deleteExpense(expenseId);
+      } catch {
+        toast.error("Couldn't delete expense — try again");
+      }
     });
   }
 
   function handleMarkReimbursed(expenseId: string) {
     startTransition(async () => {
-      await markExpenseReimbursed(expenseId, booking.id);
+      try {
+        await markExpenseReimbursed(expenseId, booking.id);
+      } catch {
+        toast.error("Couldn't mark as reimbursed — try again");
+      }
     });
   }
 
   function handleSaveDeposit() {
     startTransition(async () => {
-      await updateBookingDeposit(booking.id, {
-        deposit_amount: draftDeposit !== "" ? Number(draftDeposit) : null,
-        payment_due_date: draftDueDate || null,
-      });
-      setEditingDeposit(false);
+      try {
+        await updateBookingDeposit(booking.id, {
+          deposit_amount: draftDeposit !== "" ? Number(draftDeposit) : null,
+          payment_due_date: draftDueDate || null,
+        });
+        setEditingDeposit(false);
+      } catch {
+        toast.error("Couldn't save deposit — try again");
+      }
     });
   }
 

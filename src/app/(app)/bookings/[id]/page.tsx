@@ -36,15 +36,15 @@ import {
   NotesCard,
 } from "@/components/bookings/booking-detail-cards";
 import { format } from "date-fns";
-import { MapPin, Calendar, Clock, Archive } from "lucide-react";
+import { MapPin, Calendar, Clock, Archive, CheckCircle2 } from "lucide-react";
 
 const STAGE_CONTEXT: Partial<Record<string, string>> = {
   inquiry: "Evaluating this lead — check your availability, review the details, and decide.",
   confirmed: "Shoot is locked in — itinerary and tasks are your day-of reference.",
   shoot_completed: "Back from the shoot — run through your post-shoot checklist.",
   editing: "In post-production — track progress through your editing pipeline.",
-  delivered: "Gallery delivered — confirm final payments and physical deliverables.",
-  done: "Booking complete and archived.",
+  delivered: "Gallery is out. Follow up on final payments and any remaining deliverables.",
+  done: "All wrapped up. Another story beautifully told.",
   cancelled: "This booking was cancelled.",
 };
 
@@ -243,7 +243,7 @@ export default async function BookingDetailPage({
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-5xl font-[family-name:var(--font-heading)] leading-tight tracking-wide">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-[family-name:var(--font-heading)] leading-tight tracking-wide break-words">
             {booking.client_name_primary}
             {booking.client_name_secondary && ` & ${booking.client_name_secondary}`}
           </h1>
@@ -286,14 +286,17 @@ export default async function BookingDetailPage({
 
       {/* ── Archive notice ── */}
       {isArchive && (
-        <div className="flex items-center gap-2 rounded-md bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
-          <Archive className="h-4 w-4 shrink-0" />
-          <span>
-            {booking.status === "cancelled"
-              ? "This booking was cancelled — kept here for reference."
-              : "This booking is complete and archived. All panels are read-only."}
-          </span>
-        </div>
+        booking.status === "done" ? (
+          <div className="flex items-center gap-2 rounded-md bg-primary/8 px-4 py-3 text-sm text-primary/80 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
+            <CheckCircle2 className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+            <span>Archived — all panels are read-only.</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-md bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+            <Archive className="h-4 w-4 shrink-0" />
+            <span>This booking was cancelled — kept here for reference.</span>
+          </div>
+        )
       )}
 
       {/* ── Layout sections ── */}
