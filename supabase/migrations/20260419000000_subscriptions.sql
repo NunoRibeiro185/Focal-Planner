@@ -18,7 +18,7 @@ create table subscriptions (
 -- Auto-update updated_at
 create trigger subscriptions_updated_at
   before update on subscriptions
-  for each row execute function moddatetime(updated_at);
+  for each row execute function public.set_updated_at();
 
 -- RLS: photographers can only read their own subscription
 alter table subscriptions enable row level security;
