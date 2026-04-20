@@ -350,9 +350,11 @@ export async function updateBookingStatus(
     throw new Error(`Cannot transition from "${booking.status}" to "${newStatus}"`);
   }
 
+  const autoArchive = newStatus === "done" || newStatus === "cancelled";
+
   const { error } = await supabase
     .from("bookings")
-    .update({ status: newStatus })
+    .update({ status: newStatus, ...(autoArchive ? { is_archived: true } : {}) })
     .eq("id", bookingId)
     .eq("photographer_id", user.id);
 
@@ -622,6 +624,94 @@ export async function updateBookingDeposit(
   if (error) throw error;
 
   revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Archives a booking (hides from main list, shows in Archived tab).
+ */
+export async function archiveBooking(bookingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ is_archived: true })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath("/bookings");
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Unarchives a booking (moves it back to the main list).
+ */
+export async function unarchiveBooking(bookingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ is_archived: false })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath("/bookings");
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Permanently deletes a booking and all related data.
+ * Expenses are explicitly deleted first since they use ON DELETE SET NULL.
+ * All other child records cascade automatically.
+ */
+export async function deleteBooking(bookingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  // Verify ownership
+  const { data: booking, error: fetchError } = await supabase
+    .from("bookings")
+    .select("id, google_event_id")
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id)
+    .single();
+
+  if (fetchError || !booking) throw new Error("Booking not found");
+
+  // Delete expenses explicitly (they use SET NULL, not CASCADE)
+  await supabase
+    .from("expenses")
+    .delete()
+    .eq("booking_id", bookingId)
+    .eq("photographer_id", user.id);
+
+  // Delete the booking (all other child records cascade)
+  const { error } = await supabase
+    .from("bookings")
+    .delete()
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  // Fire-and-forget: remove Google Calendar event if one exists
+  if (booking.google_event_id) {
+    syncBookingToGoogle(bookingId, "delete").catch((e) =>
+      console.error("[GoogleSync] deleteBooking:", e)
+    );
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/calendar");
+  redirect("/bookings");
 }
 
 /**

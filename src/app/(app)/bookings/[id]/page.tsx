@@ -38,6 +38,7 @@ import {
 } from "@/components/bookings/booking-detail-cards";
 import { format } from "date-fns";
 import { MapPin, Calendar, Clock, Archive, CheckCircle2 } from "lucide-react";
+import { BookingArchiveDeleteActions } from "@/components/bookings/booking-archive-delete-actions";
 
 const STAGE_CONTEXT: Partial<Record<string, string>> = {
   inquiry: "Evaluating this lead — check your availability, review the details, and decide.",
@@ -274,6 +275,11 @@ export default async function BookingDetailPage({
             )}
           </div>
         </div>
+        <BookingArchiveDeleteActions
+          bookingId={id}
+          isArchived={booking.is_archived ?? false}
+          clientName={booking.client_name_primary}
+        />
       </div>
 
       {/* ── Status stepper ── */}

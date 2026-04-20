@@ -129,6 +129,7 @@ export interface Booking {
   second_shooter_invite_token: string | null;
   second_shooter_invite_status: SecondShooterInviteStatus | null;
   second_shooter_show_client_contact: boolean;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
 }

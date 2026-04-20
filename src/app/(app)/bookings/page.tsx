@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
-import { getBookings, getBookingsThisMonthCount } from "@/lib/queries/bookings";
+import { getBookings, getArchivedBookings, getBookingsThisMonthCount } from "@/lib/queries/bookings";
 import { getPendingSecondShooterInvites } from "@/lib/queries/second-shooter";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
 import { PendingInvitesBanner } from "@/components/bookings/pending-invites-banner";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { NewBookingButton } from "@/components/paywall/new-booking-button";
+import { unarchiveBooking } from "@/lib/actions/bookings";
+import { BookingListActions } from "@/components/bookings/booking-list-actions";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,14 +22,18 @@ export default async function BookingsPage({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [allBookings, pendingInvites, bookingsThisMonth] = await Promise.all([
-    getBookings(),
+  const isArchiveTab = filter === "archived";
+
+  const [allBookings, archivedBookings, pendingInvites, bookingsThisMonth] = await Promise.all([
+    isArchiveTab ? Promise.resolve([]) : getBookings(),
+    isArchiveTab ? getArchivedBookings() : Promise.resolve([]),
     user ? getPendingSecondShooterInvites(user.id) : Promise.resolve([]),
     getBookingsThisMonthCount(),
   ]);
 
-  const bookings =
-    filter === "inquiries"
+  const bookings = isArchiveTab
+    ? archivedBookings
+    : filter === "inquiries"
       ? allBookings.filter((b) => b.status === "inquiry")
       : filter === "active"
         ? allBookings.filter((b) => b.status !== "inquiry" && b.status !== "cancelled" && b.status !== "done")
@@ -37,8 +41,9 @@ export default async function BookingsPage({ searchParams }: Props) {
 
   const tabs = [
     { label: "All", value: undefined },
-    { label: "Inquiries", value: "inquiries" },
     { label: "Active", value: "active" },
+    { label: "Inquiries", value: "inquiries" },
+    { label: "Archived", value: "archived" },
   ];
 
   return (
@@ -50,7 +55,7 @@ export default async function BookingsPage({ searchParams }: Props) {
             {bookings.length} booking{bookings.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <NewBookingButton currentCount={bookingsThisMonth} />
+        {!isArchiveTab && <NewBookingButton currentCount={bookingsThisMonth} />}
       </div>
 
       <PendingInvitesBanner invites={pendingInvites} />
@@ -78,13 +83,101 @@ export default async function BookingsPage({ searchParams }: Props) {
       </div>
 
       {bookings.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="text-lg font-medium">No bookings yet</p>
-          <p className="text-sm mt-1">Create your first booking to get started.</p>
-          <div className="mt-4">
-            <NewBookingButton currentCount={bookingsThisMonth} />
+        isArchiveTab ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <p className="text-sm">No archived bookings.</p>
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-16 text-muted-foreground">
+            <p className="text-lg font-medium">No bookings yet</p>
+            <p className="text-sm mt-1">Create your first booking to get started.</p>
+            <div className="mt-4">
+              <NewBookingButton currentCount={bookingsThisMonth} />
+            </div>
+          </div>
+        )
+      ) : isArchiveTab ? (
+        /* ── Archived view ── */
+        <>
+          {/* Mobile */}
+          <div className="md:hidden divide-y rounded-lg border overflow-hidden opacity-80">
+            {bookings.map((booking) => (
+              <div key={booking.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <PrefetchLink href={`/bookings/${booking.id}`} className="min-w-0 flex-1">
+                  <p className="font-medium truncate text-muted-foreground">
+                    {booking.client_name_primary}
+                    {booking.client_name_secondary && ` & ${booking.client_name_secondary}`}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground/70">
+                      {booking.event_date
+                        ? format(new Date(booking.event_date), "d MMM yyyy")
+                        : "Date TBD"}
+                    </span>
+                    <BookingStatusBadge status={booking.status} />
+                  </div>
+                </PrefetchLink>
+                <form action={unarchiveBooking.bind(null, booking.id)}>
+                  <button
+                    type="submit"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2 py-1 rounded hover:bg-muted/60"
+                  >
+                    Unarchive
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden md:block rounded-lg border overflow-hidden opacity-80">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/30 text-left">
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Client</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Date</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {bookings.map((booking) => (
+                  <tr key={booking.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <PrefetchLink
+                        href={`/bookings/${booking.id}`}
+                        className="font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {booking.client_name_primary}
+                        {booking.client_name_secondary && (
+                          <span> & {booking.client_name_secondary}</span>
+                        )}
+                      </PrefetchLink>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground/70">
+                      {booking.event_date
+                        ? format(new Date(booking.event_date), "dd MMM yyyy")
+                        : <span className="italic">TBD</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <BookingStatusBadge status={booking.status} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <form action={unarchiveBooking.bind(null, booking.id)}>
+                        <button
+                          type="submit"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/60"
+                        >
+                          Unarchive
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <>
           {/* ── Mobile card list ── */}
@@ -112,9 +205,6 @@ export default async function BookingsPage({ searchParams }: Props) {
                       </span>
                     )}
                     <BookingStatusBadge status={booking.status} />
-                    {booking.is_second_shooter && (
-                      <Badge variant="secondary" className="text-xs">2nd Shooter</Badge>
-                    )}
                   </div>
                 </div>
               </PrefetchLink>
@@ -130,11 +220,12 @@ export default async function BookingsPage({ searchParams }: Props) {
                   <th className="px-4 py-3 font-medium text-muted-foreground">Date</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground">Package</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {bookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-muted/30 transition-colors">
+                  <tr key={booking.id} className="group hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
                       <PrefetchLink href={`/bookings/${booking.id}`} className="font-medium hover:underline">
                         {booking.client_name_primary}
@@ -157,12 +248,13 @@ export default async function BookingsPage({ searchParams }: Props) {
                         : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <BookingStatusBadge status={booking.status} />
-                        {booking.is_second_shooter && (
-                          <Badge variant="secondary" className="text-xs">2nd Shooter</Badge>
-                        )}
-                      </div>
+                      <BookingStatusBadge status={booking.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <BookingListActions
+                        bookingId={booking.id}
+                        clientName={booking.client_name_primary}
+                      />
                     </td>
                   </tr>
                 ))}

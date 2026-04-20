@@ -35,6 +35,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
+    .eq("is_archived", false)
     .order("event_date", { ascending: true });
 
   if (error) throw error;
@@ -60,6 +61,40 @@ export async function getBookings(): Promise<BookingListItem[]> {
       ...b,
       package_version: b.package_version,
       package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
+      amount_paid: amountPaid,
+      balance,
+      overdue: isOverdue(b.payment_due_date, balance),
+      is_second_shooter: b.second_shooter_id === user.id,
+    };
+  });
+}
+
+export async function getArchivedBookings(): Promise<BookingListItem[]> {
+  const user = await getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
+
+  const { data: bookings, error } = await supabase
+    .from("bookings")
+    .select(`*, package_version:package_versions(*), payment_log_entries(amount)`)
+    .eq("photographer_id", user.id)
+    .eq("is_archived", true)
+    .order("event_date", { ascending: false });
+
+  if (error) throw error;
+
+  const rows = bookings ?? [];
+
+  return rows.map((b: any) => {
+    const amountPaid = computeAmountPaid(
+      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
+    );
+    const balance = computeBalance(b.total_price, amountPaid);
+    return {
+      ...b,
+      package_version: b.package_version,
+      package_name: null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),

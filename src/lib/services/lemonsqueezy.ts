@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { lemonSqueezySetup, createCheckout } from "@lemonsqueezy/lemonsqueezy.js";
 import { LAUNCH_WINDOW } from "@/config/plans";
 import type { SubscriptionPlan, SubscriptionStatus } from "@/lib/types/database";
 
@@ -36,19 +35,13 @@ export interface SubscriptionSyncData {
   currentPeriodEnd: string;
 }
 
-// ─── Setup ────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────
 
 function getEnv(key: string): string {
   const val = process.env[key];
   if (!val) throw new Error(`Missing env var: ${key}`);
   return val;
 }
-
-function setup() {
-  lemonSqueezySetup({ apiKey: getEnv("LEMONSQUEEZY_API_KEY") });
-}
-
-// ─── Variant resolution ───────────────────────────────────────
 
 function isLaunchPeriod(now: Date = new Date()): boolean {
   return now >= LAUNCH_WINDOW.start && now <= LAUNCH_WINDOW.end;
@@ -74,24 +67,44 @@ export async function createCheckoutSession(
   plan: SubscriptionPlan,
   now: Date = new Date()
 ): Promise<string> {
-  setup();
+  const apiKey = getEnv("LEMONSQUEEZY_API_KEY");
   const storeId = getEnv("LEMONSQUEEZY_STORE_ID");
   const variantId = getVariantId(plan, now);
 
-  const { data, error } = await createCheckout(storeId, variantId, {
-    checkoutData: {
-      email,
-      custom: { photographer_id: photographerId },
+  const res = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
     },
-    checkoutOptions: {
-      embed: false,
-    },
+    body: JSON.stringify({
+      data: {
+        type: "checkouts",
+        attributes: {
+          checkout_data: {
+            email,
+            custom: { photographer_id: photographerId },
+          },
+        },
+        relationships: {
+          store: { data: { type: "stores", id: storeId } },
+          variant: { data: { type: "variants", id: variantId } },
+        },
+      },
+    }),
   });
 
-  if (error) throw new Error(`LemonSqueezy checkout error: ${error.message}`);
-  if (!data?.data?.attributes?.url) throw new Error("No checkout URL returned");
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`LemonSqueezy checkout error ${res.status}: ${body}`);
+  }
 
-  return data.data.attributes.url;
+  const json = await res.json();
+  const url = json?.data?.attributes?.url;
+  if (!url) throw new Error("No checkout URL returned from LemonSqueezy");
+
+  return url;
 }
 
 // ─── Webhook signature verification ──────────────────────────
