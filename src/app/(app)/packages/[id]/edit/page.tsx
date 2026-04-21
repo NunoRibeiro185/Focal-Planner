@@ -28,12 +28,6 @@ export default async function EditPackagePage({
         base_price: v.base_price,
         currency: v.currency,
         hours_of_coverage: v.hours_of_coverage,
-        edited_photos_count: v.edited_photos_count,
-        wedding_album: v.wedding_album,
-        film_rolls_count: v.film_rolls_count,
-        video: v.video,
-        short_clips: v.short_clips,
-        second_shooter: v.second_shooter,
         custom_fields: customFieldDefinitions.map((def) => {
           const saved = existingCustomFields.find(
             (cf) => cf.field_definition_id === def.id
