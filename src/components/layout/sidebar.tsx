@@ -46,7 +46,7 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 py-5 border-b border-sidebar-border">
           <Camera className="h-6 w-6 text-primary" strokeWidth={1.5} />
-          <span className="font-bold text-lg text-sidebar-foreground">Focal Planner</span>
+          <span className="text-lg tracking-wide text-sidebar-foreground" style={{ fontFamily: "var(--font-heading)" }}>Focal Planner</span>
         </div>
 
         {/* Nav */}
