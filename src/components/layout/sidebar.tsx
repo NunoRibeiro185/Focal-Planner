@@ -45,7 +45,6 @@ export function Sidebar() {
       <aside className="hidden md:flex h-screen w-60 flex-col border-r bg-sidebar">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 py-5 border-b border-sidebar-border">
-          <Camera className="h-6 w-6 text-primary" strokeWidth={1.5} />
           <span className="text-lg tracking-wide text-sidebar-foreground" style={{ fontFamily: "var(--font-heading)" }}>Focal Planner</span>
         </div>
 
