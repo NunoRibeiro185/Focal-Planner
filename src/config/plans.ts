@@ -54,7 +54,7 @@ export const TRIAL_OVERRIDES = {
 
 // Launch window: all users get full Pro access free within this range
 export const LAUNCH_WINDOW = {
-  start: new Date("2026-05-01T00:00:00.000Z"),
+  start: new Date("2026-04-21T00:00:00.000Z"),
   end: new Date("2026-07-31T23:59:59.999Z"),
 };
 
