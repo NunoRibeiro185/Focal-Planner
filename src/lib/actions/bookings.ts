@@ -18,7 +18,6 @@ import {
   type BookingDepositValues,
 } from "@/lib/types/forms";
 import { canTransition, isBackwardTransition, isForwardStepperTransition, isTerminalStatus } from "@/lib/utils/booking-status";
-import { getEnabledDeliverables } from "@/lib/utils/deliverables";
 import { buildBookingStagesFromTemplates } from "@/lib/utils/editing-workflow";
 import type { BookingStatus } from "@/lib/types";
 import { syncBookingToGoogle } from "@/lib/actions/google-calendar";
@@ -129,8 +128,7 @@ export async function createBooking(
 
   const totalPrice = version.base_price + (data.price_override ?? 0);
 
-  // Gather deliverable keys (legacy — will be empty for packages without hardcoded fields)
-  const deliverableKeys = getEnabledDeliverables(version);
+  const deliverableKeys: string[] = [];
 
   // Gather tasks from templates
   const { data: taskTemplates } = await supabase

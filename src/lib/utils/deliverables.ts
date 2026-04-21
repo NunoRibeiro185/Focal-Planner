@@ -1,4 +1,4 @@
-import type { DeliverableKey, PackageVersion } from "@/lib/types";
+import type { DeliverableKey } from "@/lib/types";
 
 export interface DeliverableMeta {
   key: DeliverableKey;
@@ -61,19 +61,3 @@ export const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
   completed: "Completed",
 };
 
-/**
- * Returns the list of deliverable keys that are enabled in a given
- * package version. Used when creating deliverable_statuses rows.
- */
-export function getEnabledDeliverables(version: PackageVersion): DeliverableKey[] {
-  const enabled: DeliverableKey[] = [];
-  if (version.edited_photos_count && version.edited_photos_count > 0)
-    enabled.push("edited_photos");
-  if (version.wedding_album) enabled.push("wedding_album");
-  if (version.film_rolls_count && version.film_rolls_count > 0)
-    enabled.push("film_rolls");
-  if (version.video) enabled.push("video");
-  if (version.short_clips) enabled.push("short_clips");
-  if (version.second_shooter) enabled.push("second_shooter");
-  return enabled;
-}

@@ -83,12 +83,6 @@ export interface PackageVersion {
   base_price: number;
   currency: string;
   hours_of_coverage: number;
-  edited_photos_count: number | null;
-  wedding_album: boolean;
-  film_rolls_count: number | null;
-  video: boolean;
-  short_clips: boolean;
-  second_shooter: boolean;
   description: string | null;
   created_at: string;
 }

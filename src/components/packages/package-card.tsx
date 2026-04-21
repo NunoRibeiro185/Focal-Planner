@@ -1,13 +1,5 @@
 import Link from "next/link";
-import {
-  Clock,
-  Camera,
-  Film,
-  Video,
-  Users,
-  BookOpen,
-  Clapperboard,
-} from "lucide-react";
+import { Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,26 +69,6 @@ export function PackageCard({ pkg }: PackageCardProps) {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-1.5">
-              {v.edited_photos_count && v.edited_photos_count > 0 ? (
-                <DeliverablePill icon={<Camera className="h-3 w-3" />} label={`${v.edited_photos_count} photos`} />
-              ) : null}
-              {v.wedding_album && (
-                <DeliverablePill icon={<BookOpen className="h-3 w-3" />} label="Album" />
-              )}
-              {v.film_rolls_count && v.film_rolls_count > 0 ? (
-                <DeliverablePill icon={<Film className="h-3 w-3" />} label={`${v.film_rolls_count} film roll${v.film_rolls_count > 1 ? "s" : ""}`} />
-              ) : null}
-              {v.video && (
-                <DeliverablePill icon={<Video className="h-3 w-3" />} label="Video" />
-              )}
-              {v.short_clips && (
-                <DeliverablePill icon={<Clapperboard className="h-3 w-3" />} label="Short clips" />
-              )}
-              {v.second_shooter && (
-                <DeliverablePill icon={<Users className="h-3 w-3" />} label="2nd shooter" />
-              )}
-            </div>
           </>
         )}
 
