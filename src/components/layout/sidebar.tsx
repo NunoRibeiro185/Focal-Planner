@@ -71,16 +71,13 @@ export function Sidebar() {
         </nav>
 
         {/* Sign out */}
-        <div className="px-3 py-4 border-t border-sidebar-border">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-4 w-4" strokeWidth={1.5} />
-            Sign out
-          </Button>
-        </div>
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 px-6 py-4 border-t border-sidebar-border text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors duration-150 w-full"
+        >
+          <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Sign out
+        </button>
       </aside>
 
       {/* ── Mobile bottom tab bar ── */}

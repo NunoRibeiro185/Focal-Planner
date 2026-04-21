@@ -60,10 +60,6 @@ export default async function SettingsPage({
           <FeatureGate feature="googleCalendarSync" description="Upgrade to Pro to connect Google Calendar and sync your bookings automatically.">
             <GoogleCalendarPanel token={googleToken} connectionStatus={googleStatus} />
           </FeatureGate>
-          <EditingWorkflowPanel stages={editingStages} />
-        </div>
-        <div className="flex flex-col gap-6">
-          <CustomFieldsPanel fields={customFields} />
           <FeatureGate feature="inquiryForms" description="Upgrade to Pro to publish a public inquiry form and receive leads directly.">
           <InquiryFormPanel
             defaultValues={{
@@ -80,6 +76,10 @@ export default async function SettingsPage({
             }}
           />
           </FeatureGate>
+        </div>
+        <div className="flex flex-col gap-6">
+          <EditingWorkflowPanel stages={editingStages} />
+          <CustomFieldsPanel fields={customFields} />
         </div>
       </div>
       <DeleteAccountPanel />

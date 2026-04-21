@@ -58,8 +58,10 @@ export default async function AppLayout({
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           {showTrialBanner && <TrialWarningBanner expiryDateLabel={expiryDateLabel} />}
-          <main className="flex-1 overflow-y-auto overscroll-y-contain pb-16 md:pb-0">
-            {children}
+          <main className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-16 md:pb-0">
+              {children}
+            </div>
             <AppFooter />
           </main>
         </div>
