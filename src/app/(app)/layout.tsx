@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { AppFooter } from "@/components/layout/app-footer";
 import { Toaster } from "sonner";
 import { SubscriptionProvider } from "@/lib/contexts/subscription-context";
 import { TrialWarningBanner } from "@/components/paywall/trial-warning-banner";
@@ -57,8 +58,13 @@ export default async function AppLayout({
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           {showTrialBanner && <TrialWarningBanner expiryDateLabel={expiryDateLabel} />}
-          <main className="flex-1 overflow-y-auto overscroll-y-contain pb-16 md:pb-0">
-            {children}
+          <main className="flex-1 overflow-y-auto overscroll-y-contain">
+            <div className="min-h-full flex flex-col">
+              <div className="flex-1 pb-16 md:pb-0">
+                {children}
+              </div>
+              <AppFooter />
+            </div>
           </main>
         </div>
       </div>

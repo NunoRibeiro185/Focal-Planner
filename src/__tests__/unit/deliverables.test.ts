@@ -23,6 +23,7 @@ function makeVersion(overrides: Partial<PackageVersion> = {}): PackageVersion {
     video: false,
     short_clips: false,
     second_shooter: false,
+    description: null,
     created_at: new Date().toISOString(),
     ...overrides,
   };
