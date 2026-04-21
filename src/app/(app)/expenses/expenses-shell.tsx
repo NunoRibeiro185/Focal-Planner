@@ -155,7 +155,7 @@ export function ExpensesShell({
 
       {/* Filters + create button */}
       <div className="space-y-2">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
           <div className="flex gap-2 flex-wrap flex-1">
             <div className="space-y-1">
               <Label className="text-xs">From</Label>
