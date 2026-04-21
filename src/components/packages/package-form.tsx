@@ -40,6 +40,7 @@ export function PackageForm({
   customFieldDefinitions = [],
 }: PackageFormProps) {
   const [pending, setPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [localDefinitions, setLocalDefinitions] = useState<CustomFieldDefinition[]>(customFieldDefinitions);
   const [newLabel, setNewLabel] = useState("");
   const [newType, setNewType] = useState<"checkbox" | "text">("checkbox");
@@ -93,9 +94,11 @@ export function PackageForm({
 
   async function handleFormSubmit(values: PackageFormValues) {
     setPending(true);
+    setSubmitError(null);
     try {
       await onSubmit(values);
-    } catch {
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setPending(false);
     }
   }
@@ -258,9 +261,14 @@ export function PackageForm({
         )}
       </div>
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : submitLabel}
-      </Button>
+      <div className="space-y-3">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : submitLabel}
+        </Button>
+        {submitError && (
+          <p className="text-sm text-destructive">{submitError}</p>
+        )}
+      </div>
     </form>
   );
 }
