@@ -10,6 +10,7 @@ import { getCustomFieldDefinitions } from "@/lib/queries/custom-fields";
 import { getGoogleCalendarToken } from "@/lib/queries/google-calendar";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
 import { getInquirySettings } from "@/lib/queries/inquiries";
+import { DeleteAccountPanel } from "@/components/settings/delete-account-panel";
 import type { Photographer } from "@/lib/types";
 
 export default async function SettingsPage({
@@ -81,6 +82,7 @@ export default async function SettingsPage({
           </FeatureGate>
         </div>
       </div>
+      <DeleteAccountPanel />
     </div>
   );
 }

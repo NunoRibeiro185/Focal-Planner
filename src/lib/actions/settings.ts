@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { settingsSchema, type SettingsValues } from "@/lib/types/forms";
 
 export async function updateSettings(values: SettingsValues) {
@@ -25,4 +27,19 @@ export async function updateSettings(values: SettingsValues) {
   if (error) throw error;
 
   revalidatePath("/settings");
+}
+
+export async function deleteAccount() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const admin = createServiceRoleClient();
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) throw error;
+
+  await supabase.auth.signOut();
+  redirect("/login");
 }
