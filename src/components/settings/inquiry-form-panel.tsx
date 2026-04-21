@@ -129,7 +129,7 @@ export function InquiryFormPanel({ defaultValues }: InquiryFormPanelProps) {
             <Label htmlFor="slug">Your form URL slug</Label>
             <div className="flex gap-2">
               <span className="flex items-center text-sm text-muted-foreground bg-muted px-3 rounded-l-md border border-r-0 border-input whitespace-nowrap">
-                focal.app/inquiry/
+                focalplanner.com/inquiry/
               </span>
               <Input
                 id="slug"
