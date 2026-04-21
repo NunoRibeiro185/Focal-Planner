@@ -35,7 +35,7 @@ import { format } from "date-fns";
 import { Plus, Pencil, Trash2, ExternalLink, Receipt } from "lucide-react";
 import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
-import { UsageLimit } from "@/components/paywall/usage-limit";
+import { useSubscription } from "@/lib/contexts/subscription-context";
 
 interface BookingOption {
   id: string;
@@ -93,11 +93,16 @@ export function ExpensesShell({
   defaultCurrency,
   expensesThisMonth,
 }: ExpensesShellProps) {
+  const { tier, remaining, atLimit } = useSubscription();
   const [expenses, setExpenses] = useState(initialExpenses);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const isBlocked = tier === "free" && atLimit("expensesPerMonth", expensesThisMonth);
+  const limitLeft = tier === "free" ? remaining("expensesPerMonth", expensesThisMonth) : null;
+  const showWarning = !isBlocked && limitLeft !== null && limitLeft <= 2;
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters]);
 
@@ -149,88 +154,108 @@ export function ExpensesShell({
       </div>
 
       {/* Filters + create button */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
-        <div className="flex gap-2 flex-wrap flex-1">
-          <div className="space-y-1">
-            <Label className="text-xs">From</Label>
-            <Input
-              type="date"
-              className="h-8 text-xs w-36"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-            />
+      <div className="space-y-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+          <div className="flex gap-2 flex-wrap flex-1">
+            <div className="space-y-1">
+              <Label className="text-xs">From</Label>
+              <Input
+                type="date"
+                className="h-8 text-xs w-36"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">To</Label>
+              <Input
+                type="date"
+                className="h-8 text-xs w-36"
+                value={filters.dateTo}
+                onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Category</Label>
+              <Select
+                value={filters.category}
+                onValueChange={(v) => setFilters((f) => ({ ...f, category: v }))}
+              >
+                <SelectTrigger className="h-8 text-xs w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All categories</SelectItem>
+                  {EXPENSE_CATEGORY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value} className="text-xs">
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Type</Label>
+              <Select
+                value={filters.scope}
+                onValueChange={(v) => setFilters((f) => ({ ...f, scope: v as Filters["scope"] }))}
+              >
+                <SelectTrigger className="h-8 text-xs w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All</SelectItem>
+                  <SelectItem value="general" className="text-xs">General</SelectItem>
+                  <SelectItem value="booking" className="text-xs">Booking</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Booking</Label>
+              <Select
+                value={filters.bookingId}
+                onValueChange={(v) => setFilters((f) => ({ ...f, bookingId: v }))}
+              >
+                <SelectTrigger className="h-8 text-xs w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All bookings</SelectItem>
+                  {bookings.map((b) => (
+                    <SelectItem key={b.id} value={b.id} className="text-xs">
+                      {b.client_name_primary}
+                      {b.event_date ? ` (${format(new Date(b.event_date), "d MMM yyyy")})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">To</Label>
-            <Input
-              type="date"
-              className="h-8 text-xs w-36"
-              value={filters.dateTo}
-              onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Category</Label>
-            <Select
-              value={filters.category}
-              onValueChange={(v) => setFilters((f) => ({ ...f, category: v }))}
-            >
-              <SelectTrigger className="h-8 text-xs w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">All categories</SelectItem>
-                {EXPENSE_CATEGORY_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value} className="text-xs">
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Type</Label>
-            <Select
-              value={filters.scope}
-              onValueChange={(v) => setFilters((f) => ({ ...f, scope: v as Filters["scope"] }))}
-            >
-              <SelectTrigger className="h-8 text-xs w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">All</SelectItem>
-                <SelectItem value="general" className="text-xs">General</SelectItem>
-                <SelectItem value="booking" className="text-xs">Booking</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Booking</Label>
-            <Select
-              value={filters.bookingId}
-              onValueChange={(v) => setFilters((f) => ({ ...f, bookingId: v }))}
-            >
-              <SelectTrigger className="h-8 text-xs w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">All bookings</SelectItem>
-                {bookings.map((b) => (
-                  <SelectItem key={b.id} value={b.id} className="text-xs">
-                    {b.client_name_primary}
-                    {b.event_date ? ` (${format(new Date(b.event_date), "d MMM yyyy")})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isBlocked && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New expense
+            </Button>
+          )}
         </div>
-        <UsageLimit resource="expensesPerMonth" currentCount={expensesThisMonth} resourceLabel="expenses this month">
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            New expense
-          </Button>
-        </UsageLimit>
+        {isBlocked && (
+          <p className="text-sm text-muted-foreground">
+            Limit reached.{" "}
+            <Link href="/pricing" className="font-medium text-foreground underline underline-offset-2">
+              Upgrade to Pro
+            </Link>{" "}
+            for unlimited expenses.
+          </p>
+        )}
+        {showWarning && (
+          <p className="text-xs text-muted-foreground">
+            {limitLeft} expense{limitLeft === 1 ? "" : "s"} remaining this month.{" "}
+            <Link href="/pricing" className="font-medium underline underline-offset-2">
+              Upgrade
+            </Link>{" "}
+            for unlimited.
+          </p>
+        )}
       </div>
 
       {/* Expenses list */}
