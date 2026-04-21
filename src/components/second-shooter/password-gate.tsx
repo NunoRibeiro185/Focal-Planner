@@ -66,7 +66,7 @@ export function PasswordGate({ bookingId, onSuccess }: PasswordGateProps) {
           </Button>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground/50">Powered by Focal</p>
+        <p className="text-center text-xs text-muted-foreground/50">Powered by Focal Planner</p>
       </div>
     </div>
   );

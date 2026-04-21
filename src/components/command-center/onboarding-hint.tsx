@@ -25,7 +25,7 @@ export function OnboardingHint() {
     <div className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-3">
-          <p className="text-sm font-medium">Get started with Focal</p>
+          <p className="text-sm font-medium">Get started with Focal Planner</p>
           <div className="space-y-2">
             <Link
               href="/packages/new"

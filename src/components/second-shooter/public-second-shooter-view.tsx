@@ -184,7 +184,7 @@ export function PublicSecondShooterView({
           </Card>
         )}
 
-        <p className="text-center text-xs text-muted-foreground/50 pt-4">Powered by Focal</p>
+        <p className="text-center text-xs text-muted-foreground/50 pt-4">Powered by Focal Planner</p>
       </div>
     </div>
   );

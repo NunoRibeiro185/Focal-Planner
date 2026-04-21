@@ -16,7 +16,7 @@ export function TrialWarningBanner({ expiryDateLabel }: TrialWarningBannerProps)
   return (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-4 text-sm">
       <p className="text-amber-800">
-        <span className="font-medium">Your Focal trial ends on {expiryDateLabel}.</span>{" "}
+        <span className="font-medium">Your Focal Planner trial ends on {expiryDateLabel}.</span>{" "}
         Subscribe now to lock in the launch price of{" "}
         <span className="font-medium">€10/month</span>.{" "}
         <Link href="/pricing" className="underline underline-offset-2 font-medium hover:text-amber-900">

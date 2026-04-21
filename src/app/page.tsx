@@ -34,7 +34,7 @@ export default async function LandingPage() {
           className="text-xl tracking-wide text-foreground"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          Focal
+          Focal Planner
         </span>
         <Link
           href="/login"
@@ -147,7 +147,7 @@ export default async function LandingPage() {
               className="animate-fade-up text-lg md:text-xl leading-relaxed text-muted-foreground max-w-[56ch]"
               style={{ fontFamily: "var(--font-body)", animationDelay: "360ms" }}
             >
-              Focal is a business planner for wedding and portrait photographers.
+              Focal Planner is a business planner for wedding and portrait photographers.
               Bookings, packages, clients, and finances — organized the way you
               actually work, not the way a spreadsheet does.
             </p>
@@ -183,7 +183,7 @@ export default async function LandingPage() {
             className="text-sm tracking-[0.2em] uppercase text-muted-foreground mb-16"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            What Focal does
+            What Focal Planner does
           </p>
 
           <div className="space-y-0">
@@ -301,7 +301,7 @@ export default async function LandingPage() {
             style={{ fontFamily: "var(--font-heading)" }}
           >
             Most photographers didn&apos;t start their business because they
-            love spreadsheets. Focal is built for the way photographers actually
+            love spreadsheets. Focal Planner is built for the way photographers actually
             work —{" "}
             <em>organized enough to scale, simple enough to stay focused</em>{" "}
             on the craft.
@@ -368,7 +368,7 @@ export default async function LandingPage() {
             className="text-sm text-muted-foreground"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            © {new Date().getFullYear()} Focal
+            © {new Date().getFullYear()} Focal Planner
           </span>
           <span
             className="text-sm text-muted-foreground italic"

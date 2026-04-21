@@ -50,7 +50,7 @@ export async function sendInquiryNotification(
 
   const html = `
     <h2>New inquiry from ${clientName}</h2>
-    <p>You received a new inquiry through your Focal form.</p>
+    <p>You received a new inquiry through your Focal Planner form.</p>
     <table cellpadding="4" style="font-family:sans-serif;font-size:14px;">
       <tr><td><strong>Name</strong></td><td>${clientName}</td></tr>
       <tr><td><strong>Email</strong></td><td>${booking.client_email ?? "—"}</td></tr>
@@ -59,7 +59,7 @@ export async function sendInquiryNotification(
       ${booking.venue_name ? `<tr><td><strong>Venue</strong></td><td>${booking.venue_name}</td></tr>` : ""}
       ${booking.notes ? `<tr><td><strong>Notes</strong></td><td>${booking.notes}</td></tr>` : ""}
     </table>
-    <p><a href="${detailUrl}">View inquiry in Focal →</a></p>
+    <p><a href="${detailUrl}">View inquiry in Focal Planner →</a></p>
   `;
 
   try {
@@ -140,10 +140,10 @@ export async function sendTrialWarningEmail(
   const expiryDate = "31 July 2026";
 
   const html = `
-    <h2>Your Focal trial ends on ${expiryDate}</h2>
+    <h2>Your Focal Planner trial ends on ${expiryDate}</h2>
     <p>Hi ${name},</p>
     <p>
-      Your free trial of Focal Pro ends in <strong>7 days</strong> on <strong>${expiryDate}</strong>.
+      Your free trial of Focal Planner Pro ends in <strong>7 days</strong> on <strong>${expiryDate}</strong>.
       After that, you'll move to the free tier and lose access to Pro features like
       Google Calendar sync, Insights, Inquiry Forms, and Second Shooter collaboration.
     </p>
@@ -165,7 +165,7 @@ export async function sendTrialWarningEmail(
     await client.emails.send({
       from: FROM,
       to: photographerEmail,
-      subject: "Your Focal trial ends in 7 days — lock in €10/month",
+      subject: "Your Focal Planner trial ends in 7 days — lock in €10/month",
       html,
     });
   } catch (err) {

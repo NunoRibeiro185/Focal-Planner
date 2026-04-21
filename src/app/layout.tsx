@@ -19,7 +19,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Focal — Photography Business Planner",
+  title: "Focal Planner — Photography Business Planner",
   description: "Manage your photography bookings, packages, and clients",
 };
 

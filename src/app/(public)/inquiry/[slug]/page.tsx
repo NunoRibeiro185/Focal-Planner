@@ -51,7 +51,7 @@ export default async function PublicInquiryPage({ params }: Props) {
         />
 
         <p className="text-center text-xs text-muted-foreground/50 mt-8">
-          Powered by Focal
+          Powered by Focal Planner
         </p>
       </div>
     </div>

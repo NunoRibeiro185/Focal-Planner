@@ -495,7 +495,7 @@ function InviteSection({
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Focal invite
+        Focal Planner invite
       </p>
 
       {status === "accepted" ? (
@@ -536,7 +536,7 @@ function InviteSection({
             <p className="text-xs text-muted-foreground">
               {inviteResult.foundAccount
                 ? "Invite sent — they'll receive an email to accept."
-                : "No Focal account found. They can access the booking via the password page."}
+                : "No Focal Planner account found. They can access the booking via the password page."}
             </p>
           )}
         </>
