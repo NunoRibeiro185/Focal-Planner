@@ -48,7 +48,7 @@ export default async function NewVersionPage({
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="max-w-lg mx-auto px-6 py-8">
       <div className="mb-8">
         <p className="text-sm text-muted-foreground mb-1">{template.name}</p>
         <h1 className="text-2xl font-bold">New Version</h1>

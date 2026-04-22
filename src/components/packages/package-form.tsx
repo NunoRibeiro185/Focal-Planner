@@ -104,7 +104,20 @@ export function PackageForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 max-w-lg">
-      {/* Version name — always first, prominent when creating a new version */}
+
+      {/* Package name — primary identity, always first */}
+      <div className="space-y-1.5">
+        <Label htmlFor="name">Package name</Label>
+        <Input
+          id="name"
+          {...register("name")}
+          placeholder="e.g. Gold Package"
+          autoFocus={!defaultValues?.name}
+        />
+        {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+      </div>
+
+      {/* Version name — subordinate to package, with explanation */}
       <div className="space-y-1.5">
         <Label htmlFor="version_name">
           Version name
@@ -119,8 +132,11 @@ export function PackageForm({
           {...register("version_name")}
           placeholder={isNewVersion ? "Name this version…" : "e.g. Summer 25"}
           className={isNewVersion ? "text-base font-medium" : ""}
-          autoFocus={isNewVersion}
+          autoFocus={!!defaultValues?.name}
         />
+        <p className="text-xs text-muted-foreground">
+          Versions let you update pricing each season — existing bookings stay locked to their original version.
+        </p>
         {errors.version_name && (
           <p className="text-sm text-destructive">{errors.version_name.message}</p>
         )}
@@ -128,14 +144,7 @@ export function PackageForm({
 
       <Separator />
 
-      {/* Package name */}
-      <div className="space-y-1.5">
-        <Label htmlFor="name">Package name</Label>
-        <Input id="name" {...register("name")} placeholder="e.g. Gold Package" />
-        {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-      </div>
-
-      {/* Description */}
+      {/* Description — client-facing pitch, not a deliverables list */}
       <div className="space-y-1.5">
         <Label htmlFor="description">
           Description{" "}
@@ -144,9 +153,12 @@ export function PackageForm({
         <Textarea
           id="description"
           {...register("description")}
-          placeholder="Describe what this package includes…"
-          rows={3}
+          placeholder="A relaxed afternoon from first look through golden hour portraits…"
+          rows={4}
         />
+        <p className="text-xs text-muted-foreground">
+          Appears on client proposals — write it like you&apos;d introduce the package to a couple. Use deliverables below for the specifics.
+        </p>
       </div>
 
       {/* Price + Currency */}
@@ -156,8 +168,10 @@ export function PackageForm({
           <Input
             id="base_price"
             type="number"
+            inputMode="decimal"
             step="0.01"
             min="0"
+            placeholder="e.g. 1500"
             {...register("base_price")}
           />
           {errors.base_price && (
@@ -166,12 +180,12 @@ export function PackageForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Currency</Label>
+          <Label htmlFor="currency">Currency</Label>
           <Select
             value={currency}
             onValueChange={(v) => setValue("currency", v)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="currency">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -194,6 +208,7 @@ export function PackageForm({
           step="0.5"
           min="0.5"
           max="24"
+          placeholder="e.g. 8"
           {...register("hours_of_coverage")}
         />
         {errors.hours_of_coverage && (
@@ -203,7 +218,13 @@ export function PackageForm({
 
       <Separator />
 
-      <p className="text-sm font-medium">Deliverables</p>
+      {/* Deliverables — proper section heading with persistent explanation */}
+      <div className="space-y-0.5">
+        <p className="text-sm font-semibold">Deliverables</p>
+        <p className="text-xs text-muted-foreground">
+          Each item appears as a trackable checkbox on every booking that uses this package.
+        </p>
+      </div>
 
       <div className="space-y-3">
         {localDefinitions.map((field, index) => (
@@ -230,8 +251,11 @@ export function PackageForm({
           </div>
         ))}
 
+        {/* Add deliverable row */}
         <div className="flex items-center gap-2 pt-1">
+          <label htmlFor="new-deliverable" className="sr-only">New deliverable name</label>
           <Input
+            id="new-deliverable"
             placeholder="New deliverable…"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
@@ -247,36 +271,49 @@ export function PackageForm({
             value={newType}
             onValueChange={(v) => setNewType(v as "checkbox" | "text")}
           >
-            <SelectTrigger className="h-8 w-32 text-sm">
+            <SelectTrigger className="h-8 w-32 text-sm" aria-label="Deliverable type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="checkbox">Checkbox</SelectItem>
-              <SelectItem value="text">Text</SelectItem>
+              <SelectItem value="checkbox">
+                <span>Checkbox</span>
+              </SelectItem>
+              <SelectItem value="text">
+                <span>Text field</span>
+              </SelectItem>
             </SelectContent>
           </Select>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 px-2"
+            className="h-8 px-3 text-sm gap-1"
             disabled={!newLabel.trim() || addingField}
             onClick={handleAddField}
+            aria-label="Add deliverable"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
+            Add
           </Button>
         </div>
-        {localDefinitions.length === 0 && !newLabel && (
-          <p className="text-xs text-muted-foreground">
-            Add deliverables that will appear as trackable checkboxes on each booking.
+
+        {localDefinitions.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">
+            No deliverables yet — add items above.
           </p>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="flex items-center gap-4 pt-2">
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : submitLabel}
         </Button>
+        <a
+          href="/packages"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cancel
+        </a>
         {submitError && (
           <p className="text-sm text-destructive">{submitError}</p>
         )}
