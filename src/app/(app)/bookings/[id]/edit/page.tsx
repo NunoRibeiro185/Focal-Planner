@@ -22,12 +22,12 @@ export default async function EditBookingPage({
   ]);
 
   const { booking, bookingExtras, itineraryStops } = data;
-  const v = booking.package_version;
 
-  const originalPackageTemplateId = v?.package_template_id ?? null;
+  const originalPackageVersionId = booking.package_version_id ?? null;
 
   const defaultValues: Partial<BookingFormValues> = {
-    package_template_id: originalPackageTemplateId ?? undefined,
+    package_template_id: booking.package_version?.package_template_id ?? undefined,
+    package_version_id: booking.package_version_id ?? null,
     client_name_primary: booking.client_name_primary,
     client_name_secondary: booking.client_name_secondary,
     client_email: booking.client_email,
@@ -55,7 +55,7 @@ export default async function EditBookingPage({
     itinerary: ItineraryStopInput[]
   ) {
     "use server";
-    await updateBookingFull(id, values, originalPackageTemplateId, itinerary);
+    await updateBookingFull(id, values, originalPackageVersionId, itinerary);
   }
 
   return (
@@ -83,7 +83,7 @@ export default async function EditBookingPage({
           bookingId={id}
           extras={bookingExtras}
           catalogExtras={catalogExtras}
-          currency={v?.currency ?? "EUR"}
+          currency={booking.package_version?.currency ?? "EUR"}
         />
       </div>
     </div>

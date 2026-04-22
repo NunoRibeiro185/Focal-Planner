@@ -11,7 +11,7 @@ import {
   type ItineraryStopInput,
 } from "@/lib/types/forms";
 import { formatCurrency, SUPPORTED_CURRENCIES } from "@/lib/utils/currency";
-import type { Extra, PackageTemplateWithVersion } from "@/lib/types";
+import type { Extra, PackageTemplateForBooking } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, MapPin } from "lucide-react";
 
 interface BookingFormProps {
-  packages: PackageTemplateWithVersion[];
+  packages: PackageTemplateForBooking[];
   onSubmit: (
     values: BookingFormValues,
     extras: BookingExtraValues[],
@@ -89,6 +89,7 @@ export function BookingForm({
     resolver: zodResolver(bookingFormSchema) as any,
     defaultValues: {
       package_template_id: "",
+      package_version_id: null,
       client_name_primary: "",
       client_name_secondary: null,
       client_email: null,
@@ -106,10 +107,18 @@ export function BookingForm({
   });
 
   const selectedPackageId = watch("package_template_id");
+  const selectedVersionId = watch("package_version_id");
   const priceOverride = watch("price_override");
 
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
-  const version = selectedPackage?.current_version;
+  const availableVersions = selectedPackage?.all_versions ?? [];
+  const currentVersionId = selectedPackage?.current_version_id ?? null;
+
+  // Resolve which version to show details for
+  const resolvedVersionId = selectedVersionId ?? currentVersionId;
+  const version = availableVersions.find((v) => v.id === resolvedVersionId)
+    ?? selectedPackage?.current_version
+    ?? null;
 
   const basePrice = version?.base_price ?? 0;
   const packageTotal = basePrice + (priceOverride ?? 0);
@@ -365,29 +374,59 @@ export function BookingForm({
 
       {/* ── Package ─────────────────────────────────────────── */}
       <p className="text-sm font-medium">Package</p>
-      <div className="space-y-1.5">
-        <Select
-          value={selectedPackageId}
-          onValueChange={(v) => setValue("package_template_id", v)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a package…" />
-          </SelectTrigger>
-          <SelectContent>
-            {packages.map((pkg) => (
-              <SelectItem key={pkg.id} value={pkg.id}>
-                {pkg.name}
-                {pkg.current_version && (
-                  <span className="text-muted-foreground ml-2">
-                    — {formatCurrency(pkg.current_version.base_price, pkg.current_version.currency)}
-                  </span>
-                )}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.package_template_id && (
-          <p className="text-sm text-destructive">{errors.package_template_id.message}</p>
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Select
+            value={selectedPackageId}
+            onValueChange={(v) => {
+              setValue("package_template_id", v);
+              setValue("package_version_id", null); // reset to current on template change
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a package…" />
+            </SelectTrigger>
+            <SelectContent>
+              {packages.map((pkg) => (
+                <SelectItem key={pkg.id} value={pkg.id}>
+                  {pkg.name}
+                  {pkg.current_version && (
+                    <span className="text-muted-foreground ml-2">
+                      — {formatCurrency(pkg.current_version.base_price, pkg.current_version.currency)}
+                    </span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.package_template_id && (
+            <p className="text-sm text-destructive">{errors.package_template_id.message}</p>
+          )}
+        </div>
+
+        {/* Version picker — only shown when a package is selected and has multiple versions */}
+        {selectedPackageId && availableVersions.length > 1 && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Version</Label>
+            <Select
+              value={resolvedVersionId ?? ""}
+              onValueChange={(v) => setValue("package_version_id", v)}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableVersions.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.version_name}
+                    {v.id === currentVersionId && (
+                      <span className="text-muted-foreground ml-2">· current</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
 

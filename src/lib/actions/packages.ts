@@ -6,10 +6,6 @@ import { redirect } from "next/navigation";
 import { packageFormSchema, type PackageFormValues } from "@/lib/types/forms";
 import { buildCustomFieldInserts } from "@/lib/utils/custom-fields";
 
-/**
- * Creates a new package template and its first version atomically.
- * The template's current_version_id is updated to point at the new version.
- */
 export async function createPackage(values: PackageFormValues) {
   const parsed = packageFormSchema.safeParse(values);
   if (!parsed.success) throw new Error("Invalid package data");
@@ -22,7 +18,6 @@ export async function createPackage(values: PackageFormValues) {
 
   const data = parsed.data;
 
-  // 1. Insert template (no current_version_id yet)
   const { data: template, error: templateError } = await supabase
     .from("package_templates")
     .insert({ photographer_id: user.id, name: data.name })
@@ -31,13 +26,13 @@ export async function createPackage(values: PackageFormValues) {
 
   if (templateError) throw templateError;
 
-  // 2. Insert first version
   const { data: version, error: versionError } = await supabase
     .from("package_versions")
     .insert({
       package_template_id: template.id,
       photographer_id: user.id,
       version_number: 1,
+      version_name: data.version_name,
       base_price: data.base_price,
       currency: data.currency,
       hours_of_coverage: data.hours_of_coverage,
@@ -48,7 +43,6 @@ export async function createPackage(values: PackageFormValues) {
 
   if (versionError) throw versionError;
 
-  // 3. Snapshot custom field values
   const customFieldRows = buildCustomFieldInserts(
     version.id,
     user.id,
@@ -61,7 +55,7 @@ export async function createPackage(values: PackageFormValues) {
     if (cfError) throw cfError;
   }
 
-  // 4. Point template at the new version
+  // First version auto-promoted to current
   const { error: updateError } = await supabase
     .from("package_templates")
     .update({ current_version_id: version.id })
@@ -74,12 +68,11 @@ export async function createPackage(values: PackageFormValues) {
 }
 
 /**
- * Saves a new version of an existing package template.
- * Never modifies existing version rows — creates a new one and updates
- * current_version_id. Existing bookings reference their original version
- * and are completely unaffected.
+ * Creates a new named version of an existing package template.
+ * Does NOT auto-promote to current — the user must call setCurrentVersion explicitly.
+ * Never modifies existing version rows.
  */
-export async function updatePackage(
+export async function createPackageVersion(
   templateId: string,
   values: PackageFormValues
 ) {
@@ -94,7 +87,6 @@ export async function updatePackage(
 
   const data = parsed.data;
 
-  // Verify ownership and get latest version number
   const { data: template, error: templateError } = await supabase
     .from("package_templates")
     .select("id, photographer_id")
@@ -116,13 +108,13 @@ export async function updatePackage(
 
   const nextVersionNumber = latestVersion.version_number + 1;
 
-  // Insert new version (immutable snapshot)
   const { data: newVersion, error: versionError } = await supabase
     .from("package_versions")
     .insert({
       package_template_id: templateId,
       photographer_id: user.id,
       version_number: nextVersionNumber,
+      version_name: data.version_name,
       base_price: data.base_price,
       currency: data.currency,
       hours_of_coverage: data.hours_of_coverage,
@@ -133,7 +125,6 @@ export async function updatePackage(
 
   if (versionError) throw versionError;
 
-  // Snapshot custom field values for the new version
   const customFieldRows = buildCustomFieldInserts(
     newVersion.id,
     user.id,
@@ -146,10 +137,10 @@ export async function updatePackage(
     if (cfError) throw cfError;
   }
 
-  // Update template name + current_version_id atomically
+  // Only update template name, NOT current_version_id
   const { error: updateError } = await supabase
     .from("package_templates")
-    .update({ name: data.name, current_version_id: newVersion.id })
+    .update({ name: data.name })
     .eq("id", templateId);
 
   if (updateError) throw updateError;
@@ -159,8 +150,75 @@ export async function updatePackage(
 }
 
 /**
- * Toggles the archived state of a package template.
+ * @deprecated Use createPackageVersion instead. Kept for backwards compatibility.
  */
+export async function updatePackage(
+  templateId: string,
+  values: PackageFormValues
+) {
+  return createPackageVersion(templateId, values);
+}
+
+export async function setCurrentVersion(templateId: string, versionId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  // Validate the version belongs to the template and photographer
+  const { data: version, error: versionError } = await supabase
+    .from("package_versions")
+    .select("id")
+    .eq("id", versionId)
+    .eq("package_template_id", templateId)
+    .eq("photographer_id", user.id)
+    .eq("archived", false)
+    .single();
+
+  if (versionError || !version) throw new Error("Version not found");
+
+  const { error } = await supabase
+    .from("package_templates")
+    .update({ current_version_id: versionId })
+    .eq("id", templateId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath("/packages");
+}
+
+export async function toggleVersionArchived(versionId: string, archived: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  // Can't archive the current version — check first
+  if (archived) {
+    const { data: template } = await supabase
+      .from("package_templates")
+      .select("current_version_id")
+      .eq("photographer_id", user.id)
+      .eq("current_version_id", versionId)
+      .maybeSingle();
+
+    if (template) throw new Error("Cannot archive the current version");
+  }
+
+  const { error } = await supabase
+    .from("package_versions")
+    .update({ archived })
+    .eq("id", versionId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath("/packages");
+}
+
 export async function togglePackageArchived(
   templateId: string,
   archived: boolean

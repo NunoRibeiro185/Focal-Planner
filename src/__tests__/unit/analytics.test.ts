@@ -22,6 +22,7 @@ function makeBooking(
     lead_source: null,
     package_version: {
       version_number: 1,
+      version_name: "Version 1",
       currency: "EUR",
       package_template: { name: "Wedding Full" },
     },
@@ -31,16 +32,19 @@ function makeBooking(
 
 const pv1 = {
   version_number: 1,
+  version_name: "Version 1",
   currency: "EUR",
   package_template: { name: "Wedding Full" },
 };
 const pv2 = {
   version_number: 2,
+  version_name: "Version 2",
   currency: "EUR",
   package_template: { name: "Wedding Full" },
 };
 const pv3 = {
   version_number: 1,
+  version_name: "Version 1",
   currency: "EUR",
   package_template: { name: "Portrait Mini" },
 };
@@ -115,7 +119,7 @@ describe("computeYearlyStats", () => {
       makeBooking({ package_version_id: "pv-2", package_version: pv2 }),
     ];
     const { bestSellingPackage } = computeYearlyStats(bookings);
-    expect(bestSellingPackage).toBe("Wedding Full v1");
+    expect(bestSellingPackage).toBe("Wedding Full / Version 1");
   });
 
   it("excludes cancelled and inquiry bookings from best-selling calculation", () => {
@@ -128,7 +132,7 @@ describe("computeYearlyStats", () => {
       makeBooking({ status: "confirmed", package_version: pv1 }),
     ];
     const { bestSellingPackage } = computeYearlyStats(bookings);
-    expect(bestSellingPackage).toBe("Wedding Full v1");
+    expect(bestSellingPackage).toBe("Wedding Full / Version 1");
   });
 
   it("uses currency from the first qualifying booking", () => {
@@ -214,16 +218,16 @@ describe("computePackageBreakdown", () => {
       makeBooking({ package_version: pv2 }),
     ];
     const result = computePackageBreakdown(bookings);
-    const wv1 = result.find((s) => s.label === "Wedding Full v1")!;
-    const wv2 = result.find((s) => s.label === "Wedding Full v2")!;
+    const wv1 = result.find((s) => s.label === "Wedding Full / Version 1")!;
+    const wv2 = result.find((s) => s.label === "Wedding Full / Version 2")!;
     expect(wv1.count).toBe(2);
     expect(wv2.count).toBe(1);
   });
 
-  it("labels slices as '{template name} v{version_number}'", () => {
+  it("labels slices as '{template name} / {version_name}'", () => {
     const bookings = [makeBooking({ package_version: pv3 })];
     const result = computePackageBreakdown(bookings);
-    expect(result[0].label).toBe("Portrait Mini v1");
+    expect(result[0].label).toBe("Portrait Mini / Version 1");
   });
 
   it("excludes cancelled and inquiry bookings", () => {
@@ -241,8 +245,8 @@ describe("computePackageBreakdown", () => {
       makeBooking({ package_version: pv1 }),
     ];
     const result = computePackageBreakdown(bookings);
-    expect(result[0].label).toBe("Wedding Full v1");
-    expect(result[1].label).toBe("Portrait Mini v1");
+    expect(result[0].label).toBe("Wedding Full / Version 1");
+    expect(result[1].label).toBe("Portrait Mini / Version 1");
   });
 });
 

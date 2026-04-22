@@ -496,7 +496,11 @@ export function PackageExtrasCard({
           <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Package &amp; Extras
           </CardTitle>
-          {v && <Badge variant="outline" className="text-xs">v{v.version_number}</Badge>}
+          {v?.version_name && (
+            <Badge variant="outline" className="text-xs font-normal">
+              {v.version_name}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

@@ -26,9 +26,7 @@ interface PackageFormProps {
   defaultValues?: Partial<PackageFormValues>;
   onSubmit: (values: PackageFormValues) => Promise<void>;
   submitLabel?: string;
-  /** Version number to display as read-only info when editing */
-  currentVersionNumber?: number;
-  /** Active custom field definitions to render as deliverables */
+  isNewVersion?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
 }
 
@@ -36,7 +34,7 @@ export function PackageForm({
   defaultValues,
   onSubmit,
   submitLabel = "Save Package",
-  currentVersionNumber,
+  isNewVersion = false,
   customFieldDefinitions = [],
 }: PackageFormProps) {
   const [pending, setPending] = useState(false);
@@ -57,6 +55,7 @@ export function PackageForm({
     resolver: zodResolver(packageFormSchema) as any,
     defaultValues: {
       name: "",
+      version_name: "",
       description: null,
       base_price: 0,
       currency: "EUR",
@@ -105,16 +104,31 @@ export function PackageForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 max-w-lg">
-      {/* Version badge */}
-      {currentVersionNumber !== undefined && (
-        <p className="text-sm text-muted-foreground">
-          Saving will create{" "}
-          <span className="font-medium">v{currentVersionNumber + 1}</span>.
-          Existing bookings will keep their current snapshot.
-        </p>
-      )}
+      {/* Version name — always first, prominent when creating a new version */}
+      <div className="space-y-1.5">
+        <Label htmlFor="version_name">
+          Version name
+          {isNewVersion && (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              e.g. Summer 25, Base Winter, Elopement
+            </span>
+          )}
+        </Label>
+        <Input
+          id="version_name"
+          {...register("version_name")}
+          placeholder={isNewVersion ? "Name this version…" : "e.g. Summer 25"}
+          className={isNewVersion ? "text-base font-medium" : ""}
+          autoFocus={isNewVersion}
+        />
+        {errors.version_name && (
+          <p className="text-sm text-destructive">{errors.version_name.message}</p>
+        )}
+      </div>
 
-      {/* Name */}
+      <Separator />
+
+      {/* Package name */}
       <div className="space-y-1.5">
         <Label htmlFor="name">Package name</Label>
         <Input id="name" {...register("name")} placeholder="e.g. Gold Package" />
@@ -189,7 +203,6 @@ export function PackageForm({
 
       <Separator />
 
-      {/* Deliverables (custom fields) */}
       <p className="text-sm font-medium">Deliverables</p>
 
       <div className="space-y-3">
@@ -217,7 +230,6 @@ export function PackageForm({
           </div>
         ))}
 
-        {/* Inline add-field row */}
         <div className="flex items-center gap-2 pt-1">
           <Input
             placeholder="New deliverable…"

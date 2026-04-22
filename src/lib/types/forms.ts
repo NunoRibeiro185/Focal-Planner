@@ -9,6 +9,7 @@ import { z } from "zod";
 
 export const packageFormSchema = z.object({
   name: z.string().min(1, "Package name is required"),
+  version_name: z.string().min(1, "Version name is required").max(50, "Maximum 50 characters"),
   description: z.string().nullable(),
   base_price: z.coerce.number().positive("Price must be positive"),
   currency: z.string().length(3, "Select a currency"),
@@ -43,6 +44,7 @@ export const LEAD_SOURCE_OPTIONS = [
 
 export const bookingFormSchema = z.object({
   package_template_id: z.string().uuid("Select a package"),
+  package_version_id: z.string().uuid().nullable().optional(),
   client_name_primary: z.string().min(1, "Primary client name is required"),
   client_name_secondary: z.string().nullable(),
   client_email: z.string().email("Invalid email").or(z.literal("")).nullable(),

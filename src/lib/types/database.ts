@@ -80,10 +80,12 @@ export interface PackageVersion {
   package_template_id: string;
   photographer_id: string;
   version_number: number;
+  version_name: string;
   base_price: number;
   currency: string;
   hours_of_coverage: number;
   description: string | null;
+  archived: boolean;
   created_at: string;
 }
 
@@ -236,6 +238,20 @@ export interface PackageVersionWithCustomFields extends PackageVersion {
 export interface PackageTemplateWithVersionAndCustomFields
   extends PackageTemplate {
   current_version: PackageVersionWithCustomFields | null;
+}
+
+export interface PackageVersionWithBookingCount extends PackageVersion {
+  booking_count: number;
+}
+
+export interface PackageTemplateForList extends PackageTemplate {
+  current_version: PackageVersionWithCustomFields | null;
+  all_versions: PackageVersionWithBookingCount[];
+}
+
+export interface PackageTemplateForBooking extends PackageTemplate {
+  current_version: PackageVersion | null;
+  all_versions: PackageVersion[];
 }
 
 export interface BookingWithVersion extends Booking {

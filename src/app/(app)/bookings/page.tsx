@@ -201,7 +201,8 @@ export default async function BookingsPage({ searchParams }: Props) {
                     </span>
                     {booking.package_name && (
                       <span className="text-xs text-muted-foreground">
-                        {booking.package_name} v{booking.package_version?.version_number}
+                        {booking.package_name}
+                        {booking.package_version?.version_name && ` / ${booking.package_version.version_name}`}
                       </span>
                     )}
                     <BookingStatusBadge status={booking.status} />
@@ -244,7 +245,7 @@ export default async function BookingsPage({ searchParams }: Props) {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {booking.package_name
-                        ? `${booking.package_name} v${booking.package_version?.version_number}`
+                        ? `${booking.package_name}${booking.package_version?.version_name ? ` / ${booking.package_version.version_name}` : ""}`
                         : "—"}
                     </td>
                     <td className="px-4 py-3">

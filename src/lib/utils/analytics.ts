@@ -13,6 +13,7 @@ export interface AnalyticsBooking {
   lead_source: LeadSource | null;
   package_version: {
     version_number: number;
+    version_name?: string;
     currency: string;
     package_template: {
       name: string;
@@ -64,8 +65,8 @@ function qualifying(bookings: AnalyticsBooking[]): AnalyticsBooking[] {
 
 function packageLabel(b: AnalyticsBooking): string {
   const name = b.package_version?.package_template?.name ?? "Unknown";
-  const version = b.package_version?.version_number ?? 0;
-  return `${name} v${version}`;
+  const versionLabel = b.package_version?.version_name ?? `v${b.package_version?.version_number ?? 0}`;
+  return `${name} / ${versionLabel}`;
 }
 
 // ---------------------------------------------------------------------------

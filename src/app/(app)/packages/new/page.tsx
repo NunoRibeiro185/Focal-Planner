@@ -17,6 +17,7 @@ export default async function NewPackagePage() {
       <PackageForm
         onSubmit={handleCreate}
         submitLabel="Create Package"
+        isNewVersion
         customFieldDefinitions={customFieldDefinitions}
       />
     </div>

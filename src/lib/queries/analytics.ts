@@ -64,6 +64,7 @@ export async function getAnalyticsBookings(
       lead_source,
       package_version:package_versions(
         version_number,
+        version_name,
         currency,
         package_template:package_templates!package_versions_package_template_id_fkey(name)
       )

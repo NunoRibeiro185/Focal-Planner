@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Clock, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils/currency";
-import { Check } from "lucide-react";
 import { DeletePackageButton } from "./delete-package-button";
-import type { PackageTemplateWithVersionAndCustomFields } from "@/lib/types";
+import { VersionHistorySection } from "./version-history-section";
+import type { PackageTemplateForList } from "@/lib/types";
 
 interface PackageCardProps {
-  pkg: PackageTemplateWithVersionAndCustomFields;
+  pkg: PackageTemplateForList;
 }
 
 export function PackageCard({ pkg }: PackageCardProps) {
@@ -21,8 +21,8 @@ export function PackageCard({ pkg }: PackageCardProps) {
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">{pkg.name}</CardTitle>
           {v && (
-            <Badge variant="outline" className="shrink-0 text-xs">
-              v{v.version_number}
+            <Badge variant="outline" className="shrink-0 text-xs font-normal">
+              {v.version_name}
             </Badge>
           )}
         </div>
@@ -46,7 +46,6 @@ export function PackageCard({ pkg }: PackageCardProps) {
               <span>{v.hours_of_coverage}h coverage</span>
             </div>
 
-            {/* Custom fields */}
             {v.custom_fields && v.custom_fields.length > 0 && (
               <div className="space-y-1">
                 {v.custom_fields.map((cf) => (
@@ -68,26 +67,22 @@ export function PackageCard({ pkg }: PackageCardProps) {
                 ))}
               </div>
             )}
-
           </>
         )}
 
         <div className="flex flex-col gap-2 mt-2">
           <Button variant="outline" size="sm" className="w-full" asChild>
-            <Link href={`/packages/${pkg.id}/edit`}>Edit</Link>
+            <Link href={`/packages/${pkg.id}/edit`}>New Version</Link>
           </Button>
           <DeletePackageButton templateId={pkg.id} />
         </div>
+
+        <VersionHistorySection
+          templateId={pkg.id}
+          currentVersionId={pkg.current_version_id}
+          versions={pkg.all_versions}
+        />
       </CardContent>
     </Card>
-  );
-}
-
-function DeliverablePill({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">
-      {icon}
-      {label}
-    </span>
   );
 }

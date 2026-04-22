@@ -1,4 +1,4 @@
-import { getPackageTemplates } from "@/lib/queries/packages";
+import { getPackageTemplatesForBooking } from "@/lib/queries/packages";
 import { getExtras } from "@/lib/queries/extras";
 import { BookingForm } from "@/components/bookings/booking-form";
 import { createBooking } from "@/lib/actions/bookings";
@@ -6,7 +6,7 @@ import type { BookingFormValues, BookingExtraValues, ItineraryStopInput } from "
 
 export default async function NewBookingPage() {
   const [packages, catalogExtras] = await Promise.all([
-    getPackageTemplates(),
+    getPackageTemplatesForBooking(),
     getExtras(),
   ]);
 

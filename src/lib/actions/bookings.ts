@@ -111,20 +111,39 @@ export async function createBooking(
 
   const data = parsed.data;
 
-  // Re-fetch the current version server-side (race-condition guard)
-  const { data: template, error: templateError } = await supabase
-    .from("package_templates")
-    .select("current_version_id, package_versions!fk_current_version(*)")
-    .eq("id", data.package_template_id)
-    .eq("photographer_id", user.id)
-    .single();
+  let packageVersionId: string;
+  let version: any;
 
-  if (templateError || !template?.current_version_id) {
-    throw new Error("Package not found or has no version");
+  if (data.package_version_id) {
+    // User explicitly selected a version — validate it belongs to the template
+    const { data: selectedVersion, error: versionError } = await supabase
+      .from("package_versions")
+      .select("*")
+      .eq("id", data.package_version_id)
+      .eq("package_template_id", data.package_template_id)
+      .eq("photographer_id", user.id)
+      .eq("archived", false)
+      .single();
+
+    if (versionError || !selectedVersion) throw new Error("Selected version not found");
+    packageVersionId = selectedVersion.id;
+    version = selectedVersion;
+  } else {
+    // Default: use the current version (re-fetched server-side to close race condition)
+    const { data: template, error: templateError } = await supabase
+      .from("package_templates")
+      .select("current_version_id, package_versions!fk_current_version(*)")
+      .eq("id", data.package_template_id)
+      .eq("photographer_id", user.id)
+      .single();
+
+    if (templateError || !template?.current_version_id) {
+      throw new Error("Package not found or has no version");
+    }
+    packageVersionId = template.current_version_id;
+    version = (template as any).package_versions;
+    if (!version) throw new Error("Package version not found");
   }
-
-  const version = (template as any).package_versions;
-  if (!version) throw new Error("Package version not found");
 
   const totalPrice = version.base_price + (data.price_override ?? 0);
 
@@ -149,7 +168,7 @@ export async function createBooking(
     "create_booking_atomic",
     {
       p_photographer_id: user.id,
-      p_package_version_id: template.current_version_id,
+      p_package_version_id: packageVersionId,
       p_client_name_primary: data.client_name_primary,
       p_client_name_secondary: data.client_name_secondary ?? null,
       p_client_email: data.client_email ?? null,
@@ -189,7 +208,7 @@ export async function createBooking(
   }
 
   await Promise.all([
-    seedDeliverableProgress(supabase, bid, template.current_version_id, user.id),
+    seedDeliverableProgress(supabase, bid, packageVersionId, user.id),
     replaceItineraryStops(supabase, bid, user.id, itinerary),
     extras.length > 0
       ? supabase.from("booking_extras").insert(
@@ -226,7 +245,7 @@ export async function createBooking(
 export async function updateBookingFull(
   bookingId: string,
   values: BookingFormValues,
-  originalPackageTemplateId: string | null,
+  originalPackageVersionId: string | null,
   itinerary: ItineraryStopInput[] = []
 ) {
   const parsed = bookingFormSchema.safeParse(values);
@@ -239,27 +258,46 @@ export async function updateBookingFull(
   if (!user) throw new Error("Unauthenticated");
 
   const data = parsed.data;
-  const packageChanged = data.package_template_id !== originalPackageTemplateId;
 
-  if (packageChanged) {
+  // Resolve the new version: explicit selection or current version of the template
+  let newVersionId: string;
+  let newVersionBasePrice: number;
+
+  if (data.package_version_id) {
+    const { data: selectedVersion, error } = await supabase
+      .from("package_versions")
+      .select("id, base_price")
+      .eq("id", data.package_version_id)
+      .eq("package_template_id", data.package_template_id)
+      .eq("photographer_id", user.id)
+      .eq("archived", false)
+      .single();
+    if (error || !selectedVersion) throw new Error("Selected version not found");
+    newVersionId = selectedVersion.id;
+    newVersionBasePrice = selectedVersion.base_price;
+  } else {
     const { data: template, error: templateError } = await supabase
       .from("package_templates")
       .select("current_version_id, package_versions!fk_current_version(base_price)")
       .eq("id", data.package_template_id)
       .eq("photographer_id", user.id)
       .single();
-
     if (templateError || !template?.current_version_id) {
       throw new Error("Package not found or has no version");
     }
+    newVersionId = template.current_version_id;
+    newVersionBasePrice = (template as any).package_versions?.base_price ?? 0;
+  }
 
-    const newVersion = (template as any).package_versions;
-    const newTotalPrice = newVersion.base_price + (data.price_override ?? 0);
+  const packageChanged = newVersionId !== originalPackageVersionId;
+
+  if (packageChanged) {
+    const newTotalPrice = newVersionBasePrice + (data.price_override ?? 0);
 
     const { error: rpcError } = await supabase.rpc("reassign_booking_package", {
       p_booking_id: bookingId,
       p_photographer_id: user.id,
-      p_new_package_version_id: template.current_version_id,
+      p_new_package_version_id: newVersionId,
       p_new_total_price: newTotalPrice,
     });
 
@@ -271,7 +309,7 @@ export async function updateBookingFull(
       .eq("booking_id", bookingId)
       .eq("photographer_id", user.id);
 
-    await seedDeliverableProgress(supabase, bookingId, template.current_version_id, user.id);
+    await seedDeliverableProgress(supabase, bookingId, newVersionId, user.id);
   }
 
   const firstStop = itinerary[0];
