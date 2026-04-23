@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Photographer } from "@/lib/types/database";
@@ -41,7 +42,7 @@ export interface PublicInquiryFormData {
  * Uses the service-role client since the visitor is unauthenticated.
  * Returns null when the slug doesn't exist or the form is disabled.
  */
-export async function getPublicInquiryFormData(
+async function _getPublicInquiryFormData(
   slug: string
 ): Promise<PublicInquiryFormData | null> {
   const supabase = createServiceRoleClient();
@@ -93,3 +94,5 @@ export async function getPublicInquiryFormData(
 
   return { photographer, packages };
 }
+
+export const getPublicInquiryFormData = cache(_getPublicInquiryFormData);
