@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPackageTemplateById } from "@/lib/queries/packages";
 import { getCustomFieldDefinitions, getCustomFieldsForVersion } from "@/lib/queries/custom-fields";
@@ -48,15 +49,29 @@ export default async function NewVersionPage({
   }
 
   return (
-    <div className="max-w-lg mx-auto px-6 py-8">
+    <div className="max-w-xl mx-auto px-6 py-10">
       <div className="mb-8">
-        <p className="text-sm text-muted-foreground mb-1">{template.name}</p>
-        <h1 className="text-2xl font-bold">New Version</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Pre-filled from the current version. Give this version a name, adjust the details, then save.
+        <Link
+          href="/packages"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors mb-4 inline-block"
+        >
+          ← Packages
+        </Link>
+        <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mt-1 mb-1">
+          {template.name}
+        </p>
+        <h1
+          className="text-3xl font-semibold tracking-[-0.02em]"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          New Version
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-[44ch]">
+          Pre-filled from the current version. Name this version, adjust the details, and save.
           Existing bookings are never affected.
         </p>
       </div>
+
       <PackageForm
         defaultValues={defaultValues}
         onSubmit={handleCreate}

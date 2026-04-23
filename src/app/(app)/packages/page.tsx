@@ -4,8 +4,6 @@ import { getExtras } from "@/lib/queries/extras";
 import { PackageCard } from "@/components/packages/package-card";
 import { ExtrasCatalog } from "@/components/extras/extras-catalog";
 import { NewPackageButton } from "@/components/paywall/new-package-button";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -36,57 +34,59 @@ export default async function PackagesPage({
     (photographer.data as { default_currency: string } | null)?.default_currency ?? "EUR";
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-4xl mx-auto px-6 py-10">
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Packages</h1>
-          <p className="hidden sm:block text-muted-foreground text-sm mt-1">
+          <h1
+            className="text-3xl font-semibold tracking-[-0.02em]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {activeTab === "packages" ? "Packages" : "Extras"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-[52ch] leading-relaxed">
             {activeTab === "packages"
-              ? "Manage your service packages. Editing creates a new version — existing bookings are never affected."
-              : "Define reusable add-ons to attach to bookings."}
+              ? "Your service offerings. Each package keeps a full version history — update pricing any time without touching existing bookings."
+              : "Reusable add-ons you can attach to any booking — drone footage, second shooters, rush editing."}
           </p>
         </div>
-        {activeTab === "packages" && (
-          <NewPackageButton currentCount={packageCount} />
+        {activeTab === "packages" && packages.length > 0 && (
+          <div className="shrink-0 pt-1">
+            <NewPackageButton currentCount={packageCount} />
+          </div>
         )}
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-6 border-b">
+      <div className="flex gap-6 border-b mb-8">
         <Link
           href="/packages"
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`pb-2.5 text-sm transition-colors border-b-2 -mb-px ${
             activeTab === "packages"
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "text-foreground font-medium border-primary"
+              : "text-muted-foreground hover:text-foreground border-transparent"
           }`}
         >
           Packages
         </Link>
         <Link
           href="/packages?tab=extras"
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`pb-2.5 text-sm transition-colors border-b-2 -mb-px ${
             activeTab === "extras"
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "text-foreground font-medium border-primary"
+              : "text-muted-foreground hover:text-foreground border-transparent"
           }`}
         >
           Extras
         </Link>
       </div>
 
-      {/* Tab content */}
+      {/* Content */}
       {activeTab === "packages" ? (
         packages.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-lg font-medium">No packages yet</p>
-            <p className="text-sm mt-1">Create your first package to get started.</p>
-            <div className="mt-4">
-              <NewPackageButton currentCount={packageCount} />
-            </div>
-          </div>
+          <PackagesEmptyState packageCount={packageCount} />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="divide-y">
             {packages.map((pkg) => (
               <PackageCard key={pkg.id} pkg={pkg} />
             ))}
@@ -95,6 +95,75 @@ export default async function PackagesPage({
       ) : (
         <ExtrasCatalog extras={extras} defaultCurrency={defaultCurrency} />
       )}
+    </div>
+  );
+}
+
+function PackagesEmptyState({ packageCount }: { packageCount: number }) {
+  return (
+    <div className="py-12 max-w-[500px]">
+      <h2
+        className="text-xl font-semibold mb-3"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        No packages yet
+      </h2>
+      <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+        A package is your core offering — a name clients recognize, with pricing
+        and coverage that you can update each season. Here&apos;s how they work:
+      </p>
+
+      <div className="space-y-5 mb-8">
+        <div className="flex items-start gap-4">
+          <span
+            className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            01
+          </span>
+          <div>
+            <p className="text-sm font-medium text-foreground">Package</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              The name that stays constant — &ldquo;Gold Package&rdquo;, &ldquo;Elopement Session&rdquo;,
+              &ldquo;Half Day&rdquo;. This is what clients see on proposals.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-4">
+          <span
+            className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            02
+          </span>
+          <div>
+            <p className="text-sm font-medium text-foreground">Version</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              The specific pricing period — &ldquo;Summer 2025&rdquo;, &ldquo;Winter Base&rdquo;.
+              Each version holds the price, hours, and deliverables for that period.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-4">
+          <span
+            className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            03
+          </span>
+          <div>
+            <p className="text-sm font-medium text-foreground">Bookings are locked</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              Every booking is tied to a specific version. Create a new version to update
+              your rates — existing bookings are never changed.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <NewPackageButton currentCount={packageCount} />
     </div>
   );
 }

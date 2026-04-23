@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2, Plus, Pencil, Check, X } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,13 +15,14 @@ import {
 import { SUPPORTED_CURRENCIES, formatCurrency } from "@/lib/utils/currency";
 import { createExtra, updateExtra, deleteExtra } from "@/lib/actions/extras";
 import type { Extra } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface ExtrasCatalogProps {
   extras: Extra[];
   defaultCurrency: string;
 }
 
-interface EditState {
+interface FieldState {
   name: string;
   description: string;
   price: string;
@@ -30,7 +30,7 @@ interface EditState {
   errors: Record<string, string>;
 }
 
-function makeEditState(extra: Extra): EditState {
+function makeEditState(extra: Extra): FieldState {
   return {
     name: extra.name,
     description: extra.description ?? "",
@@ -40,36 +40,35 @@ function makeEditState(extra: Extra): EditState {
   };
 }
 
+function emptyState(defaultCurrency: string): FieldState {
+  return { name: "", description: "", price: "", currency: defaultCurrency, errors: {} };
+}
+
 export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState(defaultCurrency);
   const [isPending, startTransition] = useTransition();
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editState, setEditState] = useState<EditState | null>(null);
+  const [editState, setEditState] = useState<FieldState | null>(null);
+  const [adding, setAdding] = useState(extras.length === 0);
+  const [addState, setAddState] = useState<FieldState>(emptyState(defaultCurrency));
 
   function handleAdd() {
-    const newErrors: Record<string, string> = {};
-    if (!name.trim()) newErrors.name = "Name is required";
-    if (!price || isNaN(Number(price)) || Number(price) < 0)
-      newErrors.price = "Enter a valid price";
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const errors: Record<string, string> = {};
+    if (!addState.name.trim()) errors.name = "Name is required";
+    if (!addState.price || isNaN(Number(addState.price)) || Number(addState.price) < 0)
+      errors.price = "Enter a valid price";
+    if (Object.keys(errors).length > 0) {
+      setAddState({ ...addState, errors });
       return;
     }
-    setErrors({});
     startTransition(async () => {
       await createExtra({
-        name: name.trim(),
-        description: description.trim() || null,
-        price: Number(price),
-        currency,
+        name: addState.name.trim(),
+        description: addState.description.trim() || null,
+        price: Number(addState.price),
+        currency: addState.currency,
       });
-      setName("");
-      setDescription("");
-      setPrice("");
+      setAddState(emptyState(defaultCurrency));
+      setAdding(false);
     });
   }
 
@@ -91,12 +90,12 @@ export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
 
   function handleSave(extraId: string) {
     if (!editState) return;
-    const newErrors: Record<string, string> = {};
-    if (!editState.name.trim()) newErrors.name = "Name is required";
+    const errors: Record<string, string> = {};
+    if (!editState.name.trim()) errors.name = "Name is required";
     if (!editState.price || isNaN(Number(editState.price)) || Number(editState.price) < 0)
-      newErrors.price = "Enter a valid price";
-    if (Object.keys(newErrors).length > 0) {
-      setEditState({ ...editState, errors: newErrors });
+      errors.price = "Enter a valid price";
+    if (Object.keys(errors).length > 0) {
+      setEditState({ ...editState, errors });
       return;
     }
     startTransition(async () => {
@@ -111,209 +110,246 @@ export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
     });
   }
 
+  if (extras.length === 0 && !adding) {
+    return (
+      <div className="py-12 max-w-[500px]">
+        <h2
+          className="text-xl font-semibold mb-3"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          No extras yet
+        </h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+          Extras are optional add-ons clients can choose — drone footage, a second shooter,
+          rush editing. Once defined here, they can be attached to any booking individually.
+        </p>
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+        >
+          <Plus className="h-4 w-4" />
+          Add your first extra
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Existing extras */}
-      {extras.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div>
+      {extras.length > 0 && (
+        <div className="divide-y">
           {extras.map((extra) =>
             editingId === extra.id && editState ? (
-              <Card key={extra.id} className="flex flex-col">
-                <CardContent className="pt-4 pb-3 flex-1 flex flex-col gap-3">
-                  <div className="space-y-1.5">
-                    <Label>Name</Label>
-                    <Input
-                      value={editState.name}
-                      onChange={(e) =>
-                        setEditState({ ...editState, name: e.target.value, errors: {} })
-                      }
-                    />
-                    {editState.errors.name && (
-                      <p className="text-xs text-destructive">{editState.errors.name}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                    <Input
-                      value={editState.description}
-                      onChange={(e) =>
-                        setEditState({ ...editState, description: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1.5">
-                      <Label>Price</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={editState.price}
-                        onChange={(e) =>
-                          setEditState({ ...editState, price: e.target.value, errors: {} })
-                        }
-                      />
-                      {editState.errors.price && (
-                        <p className="text-xs text-destructive">{editState.errors.price}</p>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Currency</Label>
-                      <Select
-                        value={editState.currency}
-                        onValueChange={(v) =>
-                          setEditState({ ...editState, currency: v })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SUPPORTED_CURRENCIES.map((c) => (
-                            <SelectItem key={c.code} value={c.code}>
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSave(extra.id)}
-                      disabled={isPending}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                      Save
-                    </button>
-                    <button
-                      onClick={cancelEdit}
-                      disabled={isPending}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                      Cancel
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={extra.id} className="py-6">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium mb-4">
+                  Editing
+                </p>
+                <ExtraForm
+                  state={editState}
+                  onChange={setEditState}
+                  onSave={() => handleSave(extra.id)}
+                  onCancel={cancelEdit}
+                  isPending={isPending}
+                  saveLabel="Save changes"
+                />
+              </div>
             ) : (
-              <Card key={extra.id} className="flex flex-col">
-                <CardContent className="pt-4 pb-3 flex-1 flex flex-col gap-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{extra.name}</p>
-                      {extra.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {extra.description}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-primary shrink-0">
-                      {formatCurrency(extra.price, extra.currency)}
+              <div key={extra.id} className="flex items-start justify-between gap-4 py-4 group">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{extra.name}</p>
+                  {extra.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      {extra.description}
                     </p>
-                  </div>
-                  <div className="flex gap-3">
+                  )}
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span
+                    className="text-sm font-medium text-primary tabular-nums"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    {formatCurrency(extra.price, extra.currency)}
+                  </span>
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => startEdit(extra)}
                       disabled={isPending}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors self-start disabled:opacity-50"
+                      className="text-xs text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-50"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleDelete(extra.id)}
-                      disabled={isPending}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors self-start disabled:opacity-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
+                    <span className="text-muted-foreground/20">·</span>
+                    <DeleteExtraButton
+                      onDelete={() => handleDelete(extra.id)}
+                      isPending={isPending}
+                    />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           )}
         </div>
-      ) : (
-        <p className="text-muted-foreground text-sm">
-          No extras in your catalog yet. Add one below.
-        </p>
       )}
 
-      {/* Add new extra */}
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle className="text-base">Add Extra</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="extra-name">Name</Label>
-            <Input
-              id="extra-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Drone footage"
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name}</p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="extra-description">
-              Description{" "}
-              <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Input
-              id="extra-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short description"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="extra-price">Price</Label>
-              <Input
-                id="extra-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
-              />
-              {errors.price && (
-                <p className="text-sm text-destructive">{errors.price}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUPPORTED_CURRENCIES.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Button onClick={handleAdd} disabled={isPending} size="sm">
-            <Plus className="h-4 w-4" />
-            {isPending ? "Adding…" : "Add to catalog"}
-          </Button>
-        </CardContent>
-      </Card>
+      {adding ? (
+        <div className={cn("py-6", extras.length > 0 && "border-t mt-2")}>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium mb-4">
+            New extra
+          </p>
+          <ExtraForm
+            state={addState}
+            onChange={setAddState}
+            onSave={handleAdd}
+            onCancel={() => {
+              setAdding(false);
+              setAddState(emptyState(defaultCurrency));
+            }}
+            isPending={isPending}
+            saveLabel="Add to catalog"
+          />
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
+        >
+          <Plus className="h-4 w-4" />
+          Add extra
+        </button>
+      )}
     </div>
+  );
+}
+
+interface ExtraFormProps {
+  state: FieldState;
+  onChange: (state: FieldState) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+  saveLabel: string;
+}
+
+function ExtraForm({ state, onChange, onSave, onCancel, isPending, saveLabel }: ExtraFormProps) {
+  return (
+    <div className="space-y-4 max-w-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="extra-name" className="text-xs">Name</Label>
+          <Input
+            id="extra-name"
+            value={state.name}
+            autoFocus
+            onChange={(e) => onChange({ ...state, name: e.target.value, errors: {} })}
+            placeholder="e.g. Drone footage"
+          />
+          {state.errors.name && (
+            <p className="text-xs text-destructive">{state.errors.name}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="extra-price" className="text-xs">Price</Label>
+          <div className="flex gap-2">
+            <Input
+              id="extra-price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={state.price}
+              onChange={(e) => onChange({ ...state, price: e.target.value, errors: {} })}
+              placeholder="0.00"
+              className="w-28"
+            />
+            <Select
+              value={state.currency}
+              onValueChange={(v) => onChange({ ...state, currency: v })}
+            >
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {state.errors.price && (
+            <p className="text-xs text-destructive">{state.errors.price}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="extra-desc" className="text-xs">
+          Description{" "}
+          <span className="text-muted-foreground font-normal">(optional)</span>
+        </Label>
+        <Input
+          id="extra-desc"
+          value={state.description}
+          onChange={(e) => onChange({ ...state, description: e.target.value })}
+          placeholder="Brief description for your reference…"
+        />
+      </div>
+
+      <div className="flex items-center gap-4 pt-1">
+        <Button onClick={onSave} disabled={isPending} size="sm">
+          {isPending ? "Saving…" : saveLabel}
+        </Button>
+        <button
+          onClick={onCancel}
+          disabled={isPending}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DeleteExtraButton({
+  onDelete,
+  isPending,
+}: {
+  onDelete: () => void;
+  isPending: boolean;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (confirming) {
+    return (
+      <span className="flex items-center gap-1.5">
+        <button
+          onClick={onDelete}
+          disabled={isPending}
+          className="text-xs text-destructive hover:text-destructive/70 transition-colors disabled:opacity-50"
+        >
+          Confirm
+        </button>
+        <span className="text-muted-foreground/20">·</span>
+        <button
+          onClick={() => setConfirming(false)}
+          disabled={isPending}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cancel
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      disabled={isPending}
+      className="text-xs text-muted-foreground/50 hover:text-destructive transition-colors disabled:opacity-50"
+    >
+      Delete
+    </button>
   );
 }

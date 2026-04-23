@@ -1,8 +1,5 @@
 import Link from "next/link";
 import { Clock, Check } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils/currency";
 import { DeletePackageButton } from "./delete-package-button";
 import { VersionHistorySection } from "./version-history-section";
@@ -16,73 +13,83 @@ export function PackageCard({ pkg }: PackageCardProps) {
   const v = pkg.current_version;
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base">{pkg.name}</CardTitle>
-          {v && (
-            <Badge variant="outline" className="shrink-0 text-xs font-normal">
-              {v.version_name}
-            </Badge>
-          )}
-        </div>
-        {v && (
-          <>
-            <p className="text-2xl font-bold text-primary">
-              {formatCurrency(v.base_price, v.currency)}
-            </p>
-            {v.description && (
-              <p className="text-sm text-muted-foreground mt-1">{v.description}</p>
+    <article className="py-7">
+      <div className="flex items-start justify-between gap-6 flex-col sm:flex-row">
+        {/* Identity */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
+            <h2
+              className="text-xl font-semibold tracking-[-0.01em]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {pkg.name}
+            </h2>
+            {v && (
+              <span className="text-xs text-muted-foreground">{v.version_name}</span>
             )}
-          </>
-        )}
-      </CardHeader>
+          </div>
 
-      <CardContent className="flex-1 space-y-4">
-        {v && (
-          <>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 shrink-0" />
-              <span>{v.hours_of_coverage}h coverage</span>
-            </div>
+          {v?.description && (
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-[55ch] mt-1 mb-3">
+              {v.description}
+            </p>
+          )}
 
-            {v.custom_fields && v.custom_fields.length > 0 && (
-              <div className="space-y-1">
-                {v.custom_fields.map((cf) => (
-                  <div key={cf.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {cf.definition.field_type === "checkbox" ? (
-                      <>
-                        {cf.value_bool ? (
-                          <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                        ) : null}
-                        <span>{cf.definition.label}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-medium text-foreground">{cf.definition.label}:</span>
-                        <span>{cf.value_text}</span>
-                      </>
-                    )}
+          {v && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 shrink-0" />
+                <span>{v.hours_of_coverage}h coverage</span>
+              </div>
+              {v.custom_fields
+                ?.filter((cf) => cf.definition.field_type === "checkbox" && cf.value_bool)
+                .map((cf) => (
+                  <div key={cf.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{cf.definition.label}</span>
                   </div>
                 ))}
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="flex flex-col gap-2 mt-2">
-          <Button variant="outline" size="sm" className="w-full" asChild>
-            <Link href={`/packages/${pkg.id}/edit`}>New Version</Link>
-          </Button>
-          <DeletePackageButton templateId={pkg.id} />
+              {v.custom_fields
+                ?.filter((cf) => cf.definition.field_type === "text" && cf.value_text)
+                .map((cf) => (
+                  <span key={cf.id} className="text-xs text-muted-foreground">
+                    {cf.definition.label}: {cf.value_text}
+                  </span>
+                ))}
+            </div>
+          )}
         </div>
 
-        <VersionHistorySection
-          templateId={pkg.id}
-          currentVersionId={pkg.current_version_id}
-          versions={pkg.all_versions}
-        />
-      </CardContent>
-    </Card>
+        {/* Price + actions */}
+        <div className="flex sm:flex-col sm:items-end items-center justify-between w-full sm:w-auto sm:shrink-0 sm:pt-0.5">
+          {v ? (
+            <p
+              className="text-2xl font-semibold text-primary leading-none"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {formatCurrency(v.base_price, v.currency)}
+            </p>
+          ) : (
+            <span className="text-sm text-muted-foreground">—</span>
+          )}
+
+          <div className="flex items-center gap-4 sm:mt-4">
+            <Link
+              href={`/packages/${pkg.id}/edit`}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              New version
+            </Link>
+            <DeletePackageButton templateId={pkg.id} />
+          </div>
+        </div>
+      </div>
+
+      <VersionHistorySection
+        templateId={pkg.id}
+        currentVersionId={pkg.current_version_id}
+        versions={pkg.all_versions}
+      />
+    </article>
   );
 }

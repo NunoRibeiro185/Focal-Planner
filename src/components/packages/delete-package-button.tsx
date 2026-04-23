@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { togglePackageArchived } from "@/lib/actions/packages";
 
 interface DeletePackageButtonProps {
@@ -13,14 +11,6 @@ export function DeletePackageButton({ templateId }: DeletePackageButtonProps) {
   const [confirming, setConfirming] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  function handleDeleteClick() {
-    setConfirming(true);
-  }
-
-  function handleCancel() {
-    setConfirming(false);
-  }
-
   function handleConfirm() {
     startTransition(async () => {
       await togglePackageArchived(templateId, true);
@@ -29,37 +19,32 @@ export function DeletePackageButton({ templateId }: DeletePackageButtonProps) {
 
   if (confirming) {
     return (
-      <div className="flex gap-2">
-        <Button
-          variant="destructive"
-          size="sm"
-          className="flex-1"
+      <span className="flex items-center gap-2 text-xs">
+        <button
           onClick={handleConfirm}
           disabled={isPending}
+          className="text-destructive hover:text-destructive/70 transition-colors disabled:opacity-50"
         >
-          {isPending ? "Deleting…" : "Confirm delete"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCancel}
+          {isPending ? "Deleting…" : "Confirm"}
+        </button>
+        <span className="text-muted-foreground/30">·</span>
+        <button
+          onClick={() => setConfirming(false)}
           disabled={isPending}
+          className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
         >
           Cancel
-        </Button>
-      </div>
+        </button>
+      </span>
     );
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-      onClick={handleDeleteClick}
+    <button
+      onClick={() => setConfirming(true)}
+      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
     >
-      <Trash2 className="h-3.5 w-3.5" />
       Delete
-    </Button>
+    </button>
   );
 }
