@@ -10,11 +10,13 @@ import "./globals.css";
 const geistSans = Montserrat({
   variable: "--font-body",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-heading",
   subsets: ["latin"],
+  display: "swap",
   // weight: ["400", "500", "600", "700"], // uncomment to restrict weights
 });
 

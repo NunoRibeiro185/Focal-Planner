@@ -30,8 +30,12 @@ export async function getBookings(): Promise<BookingListItem[]> {
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `*,
-       package_version:package_versions(*, template:package_templates!package_versions_package_template_id_fkey(id, name)),
+      `id, client_name_primary, client_name_secondary, event_date, venue_name, status,
+       total_price, payment_due_date, is_archived, photographer_id, second_shooter_id,
+       package_version:package_versions(
+         id, version_name, hours_of_coverage, currency,
+         template:package_templates!package_versions_package_template_id_fkey(id, name)
+       ),
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
@@ -65,7 +69,12 @@ export async function getArchivedBookings(): Promise<BookingListItem[]> {
 
   const { data: bookings, error } = await supabase
     .from("bookings")
-    .select(`*, package_version:package_versions(*), payment_log_entries(amount)`)
+    .select(
+      `id, client_name_primary, client_name_secondary, event_date, status,
+       total_price, payment_due_date, is_archived, photographer_id, second_shooter_id,
+       package_version:package_versions(id, version_name, hours_of_coverage, currency),
+       payment_log_entries(amount)`
+    )
     .eq("photographer_id", user.id)
     .eq("is_archived", true)
     .order("event_date", { ascending: false });
@@ -287,51 +296,49 @@ export async function getBookingById(id: string) {
     )
     .eq("id", id)
     .eq("photographer_id", user.id)
+    .order("sort_order", { referencedTable: "booking_tasks", ascending: true })
+    .order("created_at", { referencedTable: "booking_deliverable_progress", ascending: true })
+    .order("paid_date", { referencedTable: "payment_log_entries", ascending: true })
+    .order("created_at", { referencedTable: "booking_extras", ascending: true })
+    .order("sort_order", { referencedTable: "booking_itinerary_stops", ascending: true })
+    .order("sort_order", { referencedTable: "booking_editing_stages", ascending: true })
+    .order("expense_date", { referencedTable: "expenses", ascending: false })
     .single();
 
   if (error) throw error;
 
   const {
-    booking_tasks: rawTasks,
-    booking_deliverable_progress: rawDeliverables,
-    payment_log_entries: rawPayments,
-    booking_extras: rawExtras,
-    booking_itinerary_stops: rawItinerary,
-    booking_editing_stages: rawEditingStages,
-    expenses: rawExpenses,
+    booking_tasks: tasks,
+    booking_deliverable_progress: deliverableProgress,
+    payment_log_entries: payments,
+    booking_extras: bookingExtras,
+    booking_itinerary_stops: itineraryStops,
+    booking_editing_stages: editingStages,
+    expenses: bookingExpenses,
     ...bookingData
   } = raw as any;
 
   const booking = bookingData as BookingWithVersion;
 
-  const tasks = ((rawTasks ?? []) as BookingTask[])
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const deliverableProgress = ((rawDeliverables ?? []) as BookingDeliverableProgress[])
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const payments = ((rawPayments ?? []) as PaymentLogEntry[])
-    .sort((a, b) => a.paid_date.localeCompare(b.paid_date));
-  const bookingExtras = ((rawExtras ?? []) as BookingExtra[])
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const itineraryStops = ((rawItinerary ?? []) as BookingItineraryStop[])
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const editingStages = ((rawEditingStages ?? []) as BookingEditingStage[])
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const bookingExpenses = ((rawExpenses ?? []) as Expense[])
-    .sort((a, b) => b.expense_date.localeCompare(a.expense_date));
-
-  const amountPaid = computeAmountPaid(payments.map((p) => p.amount));
-  const grandTotal = computeGrandTotal(booking.total_price, bookingExtras, bookingExpenses);
+  const amountPaid = computeAmountPaid(
+    ((payments ?? []) as PaymentLogEntry[]).map((p) => p.amount)
+  );
+  const grandTotal = computeGrandTotal(
+    booking.total_price,
+    (bookingExtras ?? []) as BookingExtra[],
+    (bookingExpenses ?? []) as Expense[]
+  );
   const balance = computeBalance(grandTotal, amountPaid);
 
   return {
     booking,
-    tasks,
-    deliverableProgress,
-    itineraryStops,
-    editingStages,
-    payments,
-    bookingExtras,
-    bookingExpenses,
+    tasks: (tasks ?? []) as BookingTask[],
+    deliverableProgress: (deliverableProgress ?? []) as BookingDeliverableProgress[],
+    itineraryStops: (itineraryStops ?? []) as BookingItineraryStop[],
+    editingStages: (editingStages ?? []) as BookingEditingStage[],
+    payments: (payments ?? []) as PaymentLogEntry[],
+    bookingExtras: (bookingExtras ?? []) as BookingExtra[],
+    bookingExpenses: (bookingExpenses ?? []) as Expense[],
     amountPaid,
     grandTotal,
     balance,
