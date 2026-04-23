@@ -31,7 +31,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
     .from("bookings")
     .select(
       `*,
-       package_version:package_versions(*, template:package_templates(id, name)),
+       package_version:package_versions(*, template:package_templates!package_versions_package_template_id_fkey(id, name)),
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
@@ -104,7 +104,7 @@ export async function getAllBookingsByDateRange(
     .from("bookings")
     .select(
       `*,
-       package_version:package_versions(*, template:package_templates(id, name)),
+       package_version:package_versions(*, template:package_templates!package_versions_package_template_id_fkey(id, name)),
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
