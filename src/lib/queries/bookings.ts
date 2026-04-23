@@ -31,7 +31,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
     .from("bookings")
     .select(
       `*,
-       package_version:package_versions(*),
+       package_version:package_versions(*, template:package_templates(id, name)),
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
@@ -40,19 +40,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
 
   if (error) throw error;
 
-  const rows = bookings ?? [];
-
-  const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
-  const templateMap = new Map<string, string>();
-  if (templateIds.length > 0) {
-    const { data: templates } = await supabase
-      .from("package_templates")
-      .select("id, name")
-      .in("id", templateIds);
-    templates?.forEach((t: any) => templateMap.set(t.id, t.name));
-  }
-
-  return rows.map((b: any) => {
+  return (bookings ?? []).map((b: any) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -60,7 +48,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
     return {
       ...b,
       package_version: b.package_version,
-      package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
+      package_name: b.package_version?.template?.name ?? null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
@@ -116,7 +104,7 @@ export async function getAllBookingsByDateRange(
     .from("bookings")
     .select(
       `*,
-       package_version:package_versions(*),
+       package_version:package_versions(*, template:package_templates(id, name)),
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
@@ -126,19 +114,7 @@ export async function getAllBookingsByDateRange(
 
   if (error) throw error;
 
-  const rows = bookings ?? [];
-
-  const templateIds = [...new Set(rows.map((b: any) => b.package_version?.package_template_id).filter(Boolean))];
-  const templateMap = new Map<string, string>();
-  if (templateIds.length > 0) {
-    const { data: templates } = await supabase
-      .from("package_templates")
-      .select("id, name")
-      .in("id", templateIds);
-    templates?.forEach((t: any) => templateMap.set(t.id, t.name));
-  }
-
-  return rows.map((b: any) => {
+  return (bookings ?? []).map((b: any) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -146,7 +122,7 @@ export async function getAllBookingsByDateRange(
     return {
       ...b,
       package_version: b.package_version,
-      package_name: templateMap.get(b.package_version?.package_template_id) ?? null,
+      package_name: b.package_version?.template?.name ?? null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
