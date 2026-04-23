@@ -32,33 +32,20 @@ export async function getPackageTemplates(): Promise<PackageTemplateForList[]> {
 
   const templateIds = (templates ?? []).map((t) => t.id);
 
-  let allVersions: PackageVersion[] = [];
+  let allVersions: (PackageVersion & { bookings: { count: number }[] })[] = [];
   if (templateIds.length > 0) {
     const { data: versions } = await supabase
       .from("package_versions")
-      .select("*")
+      .select("*, bookings(count)")
       .in("package_template_id", templateIds)
       .order("version_number", { ascending: false });
-    allVersions = (versions ?? []) as PackageVersion[];
-  }
-
-  const bookingCountMap = new Map<string, number>();
-  if (allVersions.length > 0) {
-    const versionIds = allVersions.map((v) => v.id);
-    const { data: bookingRows } = await supabase
-      .from("bookings")
-      .select("package_version_id")
-      .in("package_version_id", versionIds);
-    (bookingRows ?? []).forEach((b: any) => {
-      const id = b.package_version_id;
-      bookingCountMap.set(id, (bookingCountMap.get(id) ?? 0) + 1);
-    });
+    allVersions = (versions ?? []) as typeof allVersions;
   }
 
   const versionsByTemplate = new Map<string, PackageVersionWithBookingCount[]>();
   allVersions.forEach((v) => {
     const list = versionsByTemplate.get(v.package_template_id) ?? [];
-    list.push({ ...v, booking_count: bookingCountMap.get(v.id) ?? 0 });
+    list.push({ ...v, booking_count: Number(v.bookings?.[0]?.count ?? 0) });
     versionsByTemplate.set(v.package_template_id, list);
   });
 
