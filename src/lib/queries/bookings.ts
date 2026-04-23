@@ -30,8 +30,12 @@ export async function getBookings(): Promise<BookingListItem[]> {
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `*,
-       package_version:package_versions(*, template:package_templates!package_versions_package_template_id_fkey(id, name)),
+      `id, client_name_primary, client_name_secondary, event_date, venue_name, status,
+       total_price, payment_due_date, is_archived, photographer_id, second_shooter_id,
+       package_version:package_versions(
+         id, version_name, hours_of_coverage, currency,
+         template:package_templates!package_versions_package_template_id_fkey(id, name)
+       ),
        payment_log_entries(amount)`
     )
     .eq("photographer_id", user.id)
@@ -65,7 +69,12 @@ export async function getArchivedBookings(): Promise<BookingListItem[]> {
 
   const { data: bookings, error } = await supabase
     .from("bookings")
-    .select(`*, package_version:package_versions(*), payment_log_entries(amount)`)
+    .select(
+      `id, client_name_primary, client_name_secondary, event_date, status,
+       total_price, payment_due_date, is_archived, photographer_id, second_shooter_id,
+       package_version:package_versions(id, version_name, hours_of_coverage, currency),
+       payment_log_entries(amount)`
+    )
     .eq("photographer_id", user.id)
     .eq("is_archived", true)
     .order("event_date", { ascending: false });
