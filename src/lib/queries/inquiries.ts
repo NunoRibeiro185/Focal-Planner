@@ -47,52 +47,42 @@ async function _getPublicInquiryFormData(
 ): Promise<PublicInquiryFormData | null> {
   const supabase = createServiceRoleClient();
 
+  // Single round-trip: photographer + non-archived templates + their current versions.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: photographerRaw } = await (supabase as any)
+  const { data: raw } = await (supabase as any)
     .from("photographers")
     .select(
-      "id, full_name, slug, inquiry_form_enabled, inquiry_show_packages, inquiry_show_prices, inquiry_show_phone, inquiry_show_secondary_name, inquiry_show_event_date, inquiry_show_venue, inquiry_show_location, inquiry_show_notes"
+      `id, full_name, slug, inquiry_form_enabled,
+       inquiry_show_packages, inquiry_show_prices,
+       inquiry_show_phone, inquiry_show_secondary_name,
+       inquiry_show_event_date, inquiry_show_venue,
+       inquiry_show_location, inquiry_show_notes,
+       package_templates!package_templates_photographer_id_fkey(
+         id, name, current_version_id,
+         current_version:package_versions!package_templates_current_version_id_fkey(
+           id, base_price, currency, description
+         )
+       )`
     )
     .eq("slug", slug)
-    .single() as { data: (Pick<Photographer, "full_name" | "slug" | "inquiry_form_enabled" | "inquiry_show_packages" | "inquiry_show_prices" | "inquiry_show_phone" | "inquiry_show_secondary_name" | "inquiry_show_event_date" | "inquiry_show_venue" | "inquiry_show_location" | "inquiry_show_notes"> & { id: string }) | null };
+    .eq("package_templates.archived", false)
+    .single() as { data: any | null };
 
-  if (!photographerRaw || !photographerRaw.inquiry_form_enabled) return null;
-  const photographer = photographerRaw;
+  if (!raw || !raw.inquiry_form_enabled) return null;
 
-  const { data: templates } = await supabase
-    .from("package_templates")
-    .select("id, name, current_version_id")
-    .eq("photographer_id", photographer.id)
-    .eq("archived", false)
-    .not("current_version_id", "is", null);
+  const { package_templates: rawTemplates, ...photographerFields } = raw;
 
-  const versionIds = (templates ?? [])
-    .map((t: any) => t.current_version_id as string)
-    .filter(Boolean);
-
-  const { data: versions } = versionIds.length > 0
-    ? await supabase
-        .from("package_versions")
-        .select("id, base_price, currency, description")
-        .in("id", versionIds)
-    : { data: [] as { id: string; base_price: number; currency: string; description: string | null }[] };
-
-  const versionMap = new Map(
-    (versions ?? []).map((v: any) => [v.id, v])
-  );
-
-  const packages = (templates ?? []).map((t: any) => {
-    const version = versionMap.get(t.current_version_id) as any;
-    return {
+  const packages = ((rawTemplates ?? []) as any[])
+    .filter((t) => t.current_version_id !== null && t.current_version !== null)
+    .map((t) => ({
       id: t.id as string,
       name: t.name as string,
-      base_price: (version?.base_price ?? 0) as number,
-      currency: (version?.currency ?? "EUR") as string,
-      description: (version?.description ?? null) as string | null,
-    };
-  });
+      base_price: (t.current_version?.base_price ?? 0) as number,
+      currency: (t.current_version?.currency ?? "EUR") as string,
+      description: (t.current_version?.description ?? null) as string | null,
+    }));
 
-  return { photographer, packages };
+  return { photographer: photographerFields, packages };
 }
 
 export const getPublicInquiryFormData = cache(_getPublicInquiryFormData);
