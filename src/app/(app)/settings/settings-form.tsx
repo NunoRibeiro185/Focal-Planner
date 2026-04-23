@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SettingsFormProps {
   defaultValues: SettingsValues;
@@ -48,44 +47,37 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profile</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="full_name">Display name</Label>
-            <Input id="full_name" {...register("full_name")} />
-            {errors.full_name && (
-              <p className="text-sm text-destructive">{errors.full_name.message}</p>
-            )}
-          </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="full_name">Display name</Label>
+        <Input id="full_name" {...register("full_name")} />
+        {errors.full_name && (
+          <p className="text-sm text-destructive">{errors.full_name.message}</p>
+        )}
+      </div>
 
-          <div className="space-y-1.5">
-            <Label>Default currency</Label>
-            <Select
-              value={currency}
-              onValueChange={(v) => setValue("default_currency", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="space-y-1.5">
+        <Label>Default currency</Label>
+        <Select
+          value={currency}
+          onValueChange={(v) => setValue("default_currency", v)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <SelectItem key={c.code} value={c.code}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-          <Button type="submit" disabled={pending}>
-            {saved ? "Saved!" : pending ? "Saving…" : "Save"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <Button type="submit" disabled={pending}>
+        {saved ? "Saved!" : pending ? "Saving…" : "Save"}
+      </Button>
+    </form>
   );
 }

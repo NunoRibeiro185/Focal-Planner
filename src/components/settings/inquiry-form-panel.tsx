@@ -3,12 +3,10 @@
 import { useState, useTransition } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { updateInquirySettings } from "@/lib/actions/inquiries";
 import {
   inquirySettingsSchema,
@@ -29,12 +27,12 @@ const FIELD_TOGGLES: Array<{
   name: keyof InquirySettingsValues;
   label: string;
 }> = [
-  { name: "inquiry_show_phone",          label: "Phone number" },
+  { name: "inquiry_show_phone", label: "Phone number" },
   { name: "inquiry_show_secondary_name", label: "Partner's name" },
-  { name: "inquiry_show_event_date",     label: "Event date" },
-  { name: "inquiry_show_venue",          label: "Venue" },
-  { name: "inquiry_show_location",       label: "Location / city" },
-  { name: "inquiry_show_notes",          label: "Additional notes" },
+  { name: "inquiry_show_event_date", label: "Event date" },
+  { name: "inquiry_show_venue", label: "Venue" },
+  { name: "inquiry_show_location", label: "Location / city" },
+  { name: "inquiry_show_notes", label: "Additional notes" },
 ];
 
 export function InquiryFormPanel({ defaultValues }: InquiryFormPanelProps) {
@@ -58,10 +56,10 @@ export function InquiryFormPanel({ defaultValues }: InquiryFormPanelProps) {
   const formEnabled = watch("inquiry_form_enabled");
   const showPackages = watch("inquiry_show_packages");
 
+  void formEnabled;
+
   const publicUrl =
-    slug && slug.length >= 3
-      ? `${APP_URL}/inquiry/${slug}`
-      : null;
+    slug && slug.length >= 3 ? `${APP_URL}/inquiry/${slug}` : null;
 
   const embedSnippet = publicUrl
     ? `<iframe src="${publicUrl}" width="100%" height="700" frameborder="0" title="Photography inquiry form"></iframe>`
@@ -89,172 +87,184 @@ export function InquiryFormPanel({ defaultValues }: InquiryFormPanelProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Inquiry Form</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Share a link or embed a form so clients can send inquiries directly into your CRM.
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+          Inquiry form
         </p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Share a link or embed a form so clients can reach you directly.
+        </p>
+      </div>
 
-          {/* ── Enable toggle ── */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="inquiry_form_enabled" className="text-sm font-medium">
-                Enable inquiry form
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                When off, your form URL will return a &ldquo;not available&rdquo; page.
-              </p>
-            </div>
-            <Controller
-              control={control}
-              name="inquiry_form_enabled"
-              render={({ field }) => (
-                <Switch
-                  id="inquiry_form_enabled"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Enable toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label
+              htmlFor="inquiry_form_enabled"
+              className="text-sm font-medium"
+            >
+              Enable inquiry form
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              When off, your form URL returns a &ldquo;not available&rdquo;
+              page.
+            </p>
+          </div>
+          <Controller
+            control={control}
+            name="inquiry_form_enabled"
+            render={({ field }) => (
+              <Switch
+                id="inquiry_form_enabled"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
+        </div>
+
+        <div className="h-px bg-border/60" />
+
+        {/* Slug */}
+        <div className="space-y-1.5">
+          <Label htmlFor="slug">Your form URL</Label>
+          <div className="flex gap-2">
+            <span className="flex items-center text-sm text-muted-foreground bg-muted px-3 rounded-l-md border border-r-0 border-input whitespace-nowrap">
+              focalplanner.com/inquiry/
+            </span>
+            <Input
+              id="slug"
+              {...register("slug")}
+              placeholder="your-name"
+              className="rounded-l-none"
             />
           </div>
+          {errors.slug && (
+            <p className="text-xs text-destructive">{errors.slug.message}</p>
+          )}
+        </div>
 
-          <Separator />
-
-          {/* ── Slug ── */}
-          <div className="space-y-1.5">
-            <Label htmlFor="slug">Your form URL slug</Label>
-            <div className="flex gap-2">
-              <span className="flex items-center text-sm text-muted-foreground bg-muted px-3 rounded-l-md border border-r-0 border-input whitespace-nowrap">
-                focalplanner.com/inquiry/
+        {/* URL + embed share */}
+        {publicUrl && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2">
+              <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground truncate flex-1">
+                {publicUrl}
               </span>
-              <Input
-                id="slug"
-                {...register("slug")}
-                placeholder="your-name"
-                className="rounded-l-none"
-              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs shrink-0"
+                onClick={() => copyToClipboard(publicUrl, "url")}
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                {copied === "url" ? "Copied!" : "Copy link"}
+              </Button>
             </div>
-            {errors.slug && (
-              <p className="text-xs text-destructive">{errors.slug.message}</p>
+
+            {embedSnippet && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+                onClick={() => copyToClipboard(embedSnippet, "embed")}
+              >
+                <Copy className="h-3 w-3 mr-1.5" />
+                {copied === "embed"
+                  ? "Copied!"
+                  : "Copy embed code for your website"}
+              </Button>
             )}
           </div>
+        )}
 
-          {/* ── URL + embed share ── */}
-          {publicUrl && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2">
-                <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs text-muted-foreground truncate flex-1">
-                  {publicUrl}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs shrink-0"
-                  onClick={() => copyToClipboard(publicUrl, "url")}
+        <div className="h-px bg-border/60" />
+
+        {/* Field visibility */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium">Fields to collect</p>
+          <div className="space-y-3">
+            {FIELD_TOGGLES.map(({ name, label }) => (
+              <div key={name} className="flex items-center justify-between">
+                <Label
+                  htmlFor={name}
+                  className="text-sm font-normal text-muted-foreground cursor-pointer"
                 >
-                  <Copy className="h-3 w-3 mr-1" />
-                  {copied === "url" ? "Copied!" : "Copy link"}
-                </Button>
+                  {label}
+                </Label>
+                <Controller
+                  control={control}
+                  name={name}
+                  render={({ field }) => (
+                    <Switch
+                      id={name}
+                      checked={!!field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+            ))}
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="inquiry_show_packages"
+                  className="text-sm font-normal text-muted-foreground cursor-pointer"
+                >
+                  Package selection
+                </Label>
+                <Controller
+                  control={control}
+                  name="inquiry_show_packages"
+                  render={({ field }) => (
+                    <Switch
+                      id="inquiry_show_packages"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
               </div>
 
-              {embedSnippet && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => copyToClipboard(embedSnippet, "embed")}
-                >
-                  <Copy className="h-3 w-3 mr-1.5" />
-                  {copied === "embed" ? "Copied!" : "Copy embed code for your website"}
-                </Button>
-              )}
-            </div>
-          )}
-
-          <Separator />
-
-          {/* ── Field visibility ── */}
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Show on form</p>
-            <div className="space-y-3">
-              {FIELD_TOGGLES.map(({ name, label }) => (
-                <div key={name} className="flex items-center justify-between">
-                  <Label htmlFor={name} className="text-sm font-normal text-muted-foreground cursor-pointer">
-                    {label}
+              {showPackages && (
+                <div className="flex items-center justify-between pl-4">
+                  <Label
+                    htmlFor="inquiry_show_prices"
+                    className="text-xs font-normal text-muted-foreground/70 cursor-pointer"
+                  >
+                    Show prices in package list
                   </Label>
                   <Controller
                     control={control}
-                    name={name}
+                    name="inquiry_show_prices"
                     render={({ field }) => (
                       <Switch
-                        id={name}
-                        checked={!!field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                </div>
-              ))}
-
-              {/* Package select (with nested price toggle) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="inquiry_show_packages" className="text-sm font-normal text-muted-foreground cursor-pointer">
-                    Package selection
-                  </Label>
-                  <Controller
-                    control={control}
-                    name="inquiry_show_packages"
-                    render={({ field }) => (
-                      <Switch
-                        id="inquiry_show_packages"
+                        id="inquiry_show_prices"
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
                     )}
                   />
                 </div>
-
-                {showPackages && (
-                  <div className="flex items-center justify-between pl-4">
-                    <Label htmlFor="inquiry_show_prices" className="text-xs font-normal text-muted-foreground/70 cursor-pointer">
-                      Show prices in package list
-                    </Label>
-                    <Controller
-                      control={control}
-                      name="inquiry_show_prices"
-                      render={({ field }) => (
-                        <Switch
-                          id="inquiry_show_prices"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {saveError && (
-            <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">
-              {saveError}
-            </p>
-          )}
+        {saveError && (
+          <p className="text-sm text-destructive">{saveError}</p>
+        )}
 
-          <Button type="submit" disabled={isPending} className="w-full">
-            {isPending ? "Saving…" : saved ? "Saved!" : "Save changes"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving…" : saved ? "Saved!" : "Save changes"}
+        </Button>
+      </form>
+    </div>
   );
 }

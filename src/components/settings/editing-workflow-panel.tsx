@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { Trash2, Plus, GripVertical } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,14 +86,16 @@ function SortableStage({
   );
 }
 
-export function EditingWorkflowPanel({ stages: initialStages }: EditingWorkflowPanelProps) {
+export function EditingWorkflowPanel({
+  stages: initialStages,
+}: EditingWorkflowPanelProps) {
   const [stages, setStages] = useState(initialStages);
   const [title, setTitle] = useState("");
 
-  // Sync server-rendered props into local state after revalidation
   useEffect(() => {
     setStages(initialStages);
   }, [initialStages]);
+
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -132,7 +133,6 @@ export function EditingWorkflowPanel({ stages: initialStages }: EditingWorkflowP
     const reordered = arrayMove(stages, oldIndex, newIndex);
     setStages(reordered);
 
-    // Persist new sort orders
     startTransition(async () => {
       await Promise.all(
         reordered.map((s, i) =>
@@ -143,65 +143,63 @@ export function EditingWorkflowPanel({ stages: initialStages }: EditingWorkflowP
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Editing Workflow</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Define the stages of your post-production pipeline. These will be
-          copied to each booking when it moves to{" "}
-          <span className="font-medium">Editing</span> status.
-        </p>
+    <div className="space-y-4">
+      <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+        Editing workflow
+      </p>
+      <p className="text-sm text-muted-foreground">
+        Define your post-production stages. These are copied to each booking
+        when it moves to{" "}
+        <span className="font-medium text-foreground">Editing</span> status.
+      </p>
 
-        {stages.length > 0 && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+      {stages.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={stages.map((s) => s.id)}
+            strategy={verticalListSortingStrategy}
           >
-            <SortableContext
-              items={stages.map((s) => s.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <ul className="space-y-2">
-                {stages.map((stage) => (
-                  <SortableStage
-                    key={stage.id}
-                    stage={stage}
-                    onDelete={handleDelete}
-                    isPending={isPending}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        )}
+            <ul className="space-y-2">
+              {stages.map((stage) => (
+                <SortableStage
+                  key={stage.id}
+                  stage={stage}
+                  onDelete={handleDelete}
+                  isPending={isPending}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      )}
 
-        <div className="space-y-3 pt-2 border-t">
-          <div className="space-y-1.5">
-            <Label htmlFor="stage-title">New stage</Label>
-            <Input
-              id="stage-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Culling, Color Grade…"
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </div>
-          <Button
-            type="button"
-            onClick={handleAdd}
-            disabled={isPending}
-            variant="outline"
-            size="sm"
-          >
-            <Plus className="h-4 w-4" />
-            Add stage
-          </Button>
+      <div className="space-y-3 pt-2 border-t border-border/60">
+        <div className="space-y-1.5">
+          <Label htmlFor="stage-title">New stage</Label>
+          <Input
+            id="stage-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Culling, Color Grade…"
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
-      </CardContent>
-    </Card>
+        <Button
+          type="button"
+          onClick={handleAdd}
+          disabled={isPending}
+          variant="outline"
+          size="sm"
+        >
+          <Plus className="h-4 w-4" />
+          Add stage
+        </Button>
+      </div>
+    </div>
   );
 }

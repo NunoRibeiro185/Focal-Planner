@@ -107,6 +107,65 @@ export async function createCheckoutSession(
   return url;
 }
 
+// ─── Subscription management ─────────────────────────────────
+
+export async function cancelSubscription(subscriptionId: string): Promise<void> {
+  const apiKey = getEnv("LEMONSQUEEZY_API_KEY");
+  const res = await fetch(
+    `https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/vnd.api+json",
+      },
+    }
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`LemonSqueezy cancel error ${res.status}: ${body}`);
+  }
+}
+
+export async function switchSubscriptionVariant(
+  subscriptionId: string,
+  newPlan: SubscriptionPlan,
+  priceLocked: boolean
+): Promise<void> {
+  const apiKey = getEnv("LEMONSQUEEZY_API_KEY");
+  const variantId =
+    newPlan === "monthly"
+      ? priceLocked
+        ? getEnv("LEMONSQUEEZY_VARIANT_LAUNCH_MONTHLY")
+        : getEnv("LEMONSQUEEZY_VARIANT_REGULAR_MONTHLY")
+      : priceLocked
+      ? getEnv("LEMONSQUEEZY_VARIANT_LAUNCH_ANNUAL")
+      : getEnv("LEMONSQUEEZY_VARIANT_REGULAR_ANNUAL");
+
+  const res = await fetch(
+    `https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+      },
+      body: JSON.stringify({
+        data: {
+          type: "subscriptions",
+          id: subscriptionId,
+          attributes: { variant_id: parseInt(variantId) },
+        },
+      }),
+    }
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`LemonSqueezy switch error ${res.status}: ${body}`);
+  }
+}
+
 // ─── Webhook signature verification ──────────────────────────
 
 export function verifyWebhookSignature(

@@ -86,10 +86,9 @@ export function InquiryForm({
     },
   });
 
-  // Render Turnstile widget once the script loads
-  function onTurnstileLoad() {
-    if (!turnstileRef.current || !turnstileSiteKey) return;
-    if (widgetIdRef.current) return; // already rendered
+  function renderTurnstile() {
+    if (!turnstileRef.current || !turnstileSiteKey || widgetIdRef.current) return;
+    if (!(window as any).turnstile) return;
 
     widgetIdRef.current = (window as any).turnstile.render(turnstileRef.current, {
       sitekey: turnstileSiteKey,
@@ -100,6 +99,28 @@ export function InquiryForm({
         setValue("turnstile_token", "", { shouldValidate: false });
       },
     });
+  }
+
+  // Handle case where Turnstile script is already cached/loaded before onLoad fires
+  useEffect(() => {
+    if (!turnstileSiteKey) return;
+    if ((window as any).turnstile) {
+      renderTurnstile();
+      return;
+    }
+    // Poll briefly in case the script loads slightly after mount
+    const interval = setInterval(() => {
+      if ((window as any).turnstile) {
+        renderTurnstile();
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnstileSiteKey]);
+
+  function onTurnstileLoad() {
+    renderTurnstile();
   }
 
   async function onSubmit(values: InquiryFormValues) {
@@ -134,7 +155,7 @@ export function InquiryForm({
       {turnstileSiteKey && (
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-          strategy="lazyOnload"
+          strategy="afterInteractive"
           onLoad={onTurnstileLoad}
         />
       )}
