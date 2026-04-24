@@ -95,7 +95,7 @@ export function VersionHistorySection({
               <span className="w-14 shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/40 hidden md:block pl-2">
                 Created
               </span>
-              <span className="w-32 shrink-0" />
+              <span className="w-40 shrink-0" />
             </div>
 
             <div className="space-y-0.5">
@@ -150,7 +150,7 @@ export function VersionHistorySection({
                     </span>
 
                     {/* Actions — revealed on hover */}
-                    <div className="w-32 shrink-0 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-40 shrink-0 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!isCurrent && !version.archived && (
                         <button
                           type="button"
