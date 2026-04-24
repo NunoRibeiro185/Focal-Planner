@@ -66,7 +66,7 @@ async function _getPublicInquiryFormData(
   // Round-trip 1: photographer + non-archived templates + their current versions.
   // Custom fields are fetched separately — triple-nested joins fail in PostgREST.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: raw } = await (supabase as any)
+  const { data: raw, error: rawError } = await (supabase as any)
     .from("photographers")
     .select(
       `id, full_name, slug, inquiry_form_enabled,
@@ -76,16 +76,23 @@ async function _getPublicInquiryFormData(
        inquiry_show_location, inquiry_show_notes,
        package_templates!package_templates_photographer_id_fkey(
          id, name, current_version_id,
-         current_version:package_versions!package_templates_current_version_id_fkey(
+         current_version:package_versions!fk_current_version(
            id, base_price, currency, description, hours_of_coverage
          )
        )`
     )
     .eq("slug", slug)
     .eq("package_templates.archived", false)
-    .single() as { data: any | null };
+    .single() as { data: any | null; error: any | null };
 
-  if (!raw || !raw.inquiry_form_enabled) return null;
+  if (rawError) {
+    console.error("[inquiry] photographer query error:", JSON.stringify(rawError));
+  }
+
+  if (!raw || !raw.inquiry_form_enabled) {
+    console.error("[inquiry] null or disabled:", JSON.stringify({ slug: raw?.slug ?? null, enabled: raw?.inquiry_form_enabled ?? null }));
+    return null;
+  }
 
   const { package_templates: rawTemplates, ...photographerFields } = raw;
 
