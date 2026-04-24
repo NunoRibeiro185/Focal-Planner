@@ -17,26 +17,21 @@ export function PackageCard({ pkg }: PackageCardProps) {
       <div className="flex items-start justify-between gap-6 flex-col sm:flex-row">
         {/* Identity */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
-            <h2
-              className="text-xl font-semibold tracking-[-0.01em]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {pkg.name}
-            </h2>
-            {v && (
-              <span className="text-xs text-muted-foreground">{v.version_name}</span>
-            )}
-          </div>
+          <h2
+            className="text-xl font-semibold tracking-[-0.01em]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {pkg.name}
+          </h2>
 
           {v?.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-[55ch] mt-1 mb-3">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-[55ch] mt-1.5 mb-3">
               {v.description}
             </p>
           )}
 
           {v && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5 shrink-0" />
                 <span>{v.hours_of_coverage}h coverage</span>
@@ -63,17 +58,20 @@ export function PackageCard({ pkg }: PackageCardProps) {
         {/* Price + actions */}
         <div className="flex sm:flex-col sm:items-end items-center justify-between w-full sm:w-auto sm:shrink-0 sm:pt-0.5">
           {v ? (
-            <p
-              className="text-2xl font-semibold text-primary leading-none"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {formatCurrency(v.base_price, v.currency)}
-            </p>
+            <div className="sm:text-right">
+              <p
+                className="text-2xl font-semibold text-primary leading-none"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {formatCurrency(v.base_price, v.currency)}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1.5">{v.version_name}</p>
+            </div>
           ) : (
             <span className="text-sm text-muted-foreground">—</span>
           )}
 
-          <div className="flex items-center gap-4 sm:mt-4">
+          <div className="flex items-center gap-4 sm:mt-5">
             <Link
               href={`/packages/${pkg.id}/edit`}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
