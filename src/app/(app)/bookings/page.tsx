@@ -12,6 +12,8 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 
+export const revalidate = 300;
+
 interface Props {
   searchParams: Promise<{ filter?: string }>;
 }

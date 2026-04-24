@@ -111,6 +111,7 @@ export async function getCommandCenterTasks(): Promise<{
     .select(`*, booking:bookings(client_name_primary, client_name_secondary)`)
     .eq("photographer_id", user.id)
     .eq("done", false)
+    .or(`due_date.gte.${today},due_date.is.null`)
     .order("due_date", { ascending: true, nullsFirst: false });
 
   if (error) throw error;

@@ -16,6 +16,8 @@ import { getEffectiveTier } from "@/lib/services/entitlements";
 import { DeleteAccountPanel } from "@/components/settings/delete-account-panel";
 import type { Photographer } from "@/lib/types";
 
+export const revalidate = 600;
+
 export default async function SettingsPage({
   searchParams,
 }: {
