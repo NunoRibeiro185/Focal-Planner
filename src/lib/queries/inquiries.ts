@@ -63,7 +63,8 @@ async function _getPublicInquiryFormData(
 ): Promise<PublicInquiryFormData | null> {
   const supabase = createServiceRoleClient();
 
-  // Single round-trip: photographer + non-archived templates + their current versions.
+  // Round-trip 1: photographer + non-archived templates + their current versions.
+  // Custom fields are fetched separately — triple-nested joins fail in PostgREST.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: raw } = await (supabase as any)
     .from("photographers")
@@ -76,11 +77,7 @@ async function _getPublicInquiryFormData(
        package_templates!package_templates_photographer_id_fkey(
          id, name, current_version_id,
          current_version:package_versions!package_templates_current_version_id_fkey(
-           id, base_price, currency, description, hours_of_coverage,
-           custom_fields:package_version_custom_fields(
-             id, value_bool, value_text,
-             definition:custom_field_definitions(label, field_type)
-           )
+           id, base_price, currency, description, hours_of_coverage
          )
        )`
     )
@@ -92,23 +89,40 @@ async function _getPublicInquiryFormData(
 
   const { package_templates: rawTemplates, ...photographerFields } = raw;
 
-  const packages: PackageForInquiry[] = ((rawTemplates ?? []) as any[])
-    .filter((t) => t.current_version_id !== null && t.current_version !== null)
-    .map((t) => ({
-      id: t.id as string,
-      name: t.name as string,
-      base_price: (t.current_version?.base_price ?? 0) as number,
-      currency: (t.current_version?.currency ?? "EUR") as string,
-      description: (t.current_version?.description ?? null) as string | null,
-      hours_of_coverage: (t.current_version?.hours_of_coverage ?? 0) as number,
-      custom_fields: ((t.current_version?.custom_fields ?? []) as any[]).map((cf) => ({
-        id: cf.id as string,
-        label: (cf.definition?.label ?? "") as string,
-        field_type: (cf.definition?.field_type ?? "text") as string,
-        value_bool: (cf.value_bool ?? null) as boolean | null,
-        value_text: (cf.value_text ?? null) as string | null,
-      })),
-    }));
+  const validTemplates = ((rawTemplates ?? []) as any[]).filter(
+    (t) => t.current_version_id !== null && t.current_version !== null
+  );
+
+  // Round-trip 2: custom fields for all current version IDs.
+  const versionIds = validTemplates.map((t) => t.current_version.id as string);
+  const customFieldsByVersion: Record<string, any[]> = {};
+
+  if (versionIds.length > 0) {
+    const { data: cfRows } = await (supabase as any)
+      .from("package_version_custom_fields")
+      .select("id, package_version_id, value_bool, value_text, definition:custom_field_definitions(label, field_type)")
+      .in("package_version_id", versionIds) as { data: any[] | null };
+
+    for (const cf of cfRows ?? []) {
+      (customFieldsByVersion[cf.package_version_id] ??= []).push(cf);
+    }
+  }
+
+  const packages: PackageForInquiry[] = validTemplates.map((t) => ({
+    id: t.id as string,
+    name: t.name as string,
+    base_price: (t.current_version.base_price ?? 0) as number,
+    currency: (t.current_version.currency ?? "EUR") as string,
+    description: (t.current_version.description ?? null) as string | null,
+    hours_of_coverage: (t.current_version.hours_of_coverage ?? 0) as number,
+    custom_fields: (customFieldsByVersion[t.current_version.id] ?? []).map((cf) => ({
+      id: cf.id as string,
+      label: (cf.definition?.label ?? "") as string,
+      field_type: (cf.definition?.field_type ?? "text") as string,
+      value_bool: (cf.value_bool ?? null) as boolean | null,
+      value_text: (cf.value_text ?? null) as string | null,
+    })),
+  }));
 
   return { photographer: photographerFields, packages };
 }
