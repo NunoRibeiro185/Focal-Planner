@@ -34,7 +34,7 @@ export default async function PackagesPage({
     (photographer.data as { default_currency: string } | null)?.default_currency ?? "EUR";
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
+    <div className="max-w-5xl mx-auto px-6 py-10">
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
@@ -86,7 +86,13 @@ export default async function PackagesPage({
         packages.length === 0 ? (
           <PackagesEmptyState packageCount={packageCount} />
         ) : (
-          <div className="divide-y">
+          <div
+            className="grid gap-5"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              alignItems: "start",
+            }}
+          >
             {packages.map((pkg) => (
               <PackageCard key={pkg.id} pkg={pkg} />
             ))}

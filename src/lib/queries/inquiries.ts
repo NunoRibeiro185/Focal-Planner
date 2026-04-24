@@ -32,9 +32,25 @@ export async function getInquirySettings(): Promise<Pick<
   return data ?? null;
 }
 
+export interface PackageForInquiry {
+  id: string;
+  name: string;
+  base_price: number;
+  currency: string;
+  description: string | null;
+  hours_of_coverage: number;
+  custom_fields: Array<{
+    id: string;
+    label: string;
+    field_type: string;
+    value_bool: boolean | null;
+    value_text: string | null;
+  }>;
+}
+
 export interface PublicInquiryFormData {
   photographer: Pick<Photographer, "full_name" | "slug" | "inquiry_show_packages" | "inquiry_show_prices" | "inquiry_show_phone" | "inquiry_show_secondary_name" | "inquiry_show_event_date" | "inquiry_show_venue" | "inquiry_show_location" | "inquiry_show_notes">;
-  packages: Array<{ id: string; name: string; base_price: number; currency: string; description: string | null }>;
+  packages: PackageForInquiry[];
 }
 
 /**
@@ -60,7 +76,11 @@ async function _getPublicInquiryFormData(
        package_templates!package_templates_photographer_id_fkey(
          id, name, current_version_id,
          current_version:package_versions!package_templates_current_version_id_fkey(
-           id, base_price, currency, description
+           id, base_price, currency, description, hours_of_coverage,
+           custom_fields:package_version_custom_fields(
+             id, value_bool, value_text,
+             definition:custom_field_definitions(label, field_type)
+           )
          )
        )`
     )
@@ -72,7 +92,7 @@ async function _getPublicInquiryFormData(
 
   const { package_templates: rawTemplates, ...photographerFields } = raw;
 
-  const packages = ((rawTemplates ?? []) as any[])
+  const packages: PackageForInquiry[] = ((rawTemplates ?? []) as any[])
     .filter((t) => t.current_version_id !== null && t.current_version !== null)
     .map((t) => ({
       id: t.id as string,
@@ -80,6 +100,14 @@ async function _getPublicInquiryFormData(
       base_price: (t.current_version?.base_price ?? 0) as number,
       currency: (t.current_version?.currency ?? "EUR") as string,
       description: (t.current_version?.description ?? null) as string | null,
+      hours_of_coverage: (t.current_version?.hours_of_coverage ?? 0) as number,
+      custom_fields: ((t.current_version?.custom_fields ?? []) as any[]).map((cf) => ({
+        id: cf.id as string,
+        label: (cf.definition?.label ?? "") as string,
+        field_type: (cf.definition?.field_type ?? "text") as string,
+        value_bool: (cf.value_bool ?? null) as boolean | null,
+        value_text: (cf.value_text ?? null) as string | null,
+      })),
     }));
 
   return { photographer: photographerFields, packages };

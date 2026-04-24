@@ -23,10 +23,11 @@ export default async function PublicInquiryPage({ params }: Props) {
   if (!data) notFound();
 
   const { photographer, packages } = data;
+  const showPackageGrid = photographer.inquiry_show_packages && packages.length > 0;
 
   return (
     <div className="min-h-screen bg-background flex items-start justify-center py-12 px-4">
-      <div className="w-full max-w-lg">
+      <div className={`w-full ${showPackageGrid ? "max-w-4xl" : "max-w-lg"}`}>
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">
             {photographer.full_name ?? "Inquiry"}
