@@ -7,17 +7,12 @@ import {
   type CustomFieldDefinitionValues,
 } from "@/lib/types/forms";
 
-/**
- * Creates a new custom field definition for the current photographer.
- */
 export async function createCustomField(values: CustomFieldDefinitionValues) {
   const parsed = customFieldDefinitionSchema.safeParse(values);
   if (!parsed.success) throw new Error("Invalid custom field data");
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthenticated");
 
   const { data, error } = await supabase
@@ -25,7 +20,8 @@ export async function createCustomField(values: CustomFieldDefinitionValues) {
     .insert({
       photographer_id: user.id,
       label: parsed.data.label,
-      field_type: parsed.data.field_type,
+      description: parsed.data.description ?? null,
+      field_type: "checkbox",
     })
     .select()
     .single();
@@ -38,15 +34,29 @@ export async function createCustomField(values: CustomFieldDefinitionValues) {
   return data;
 }
 
-/**
- * Soft-deletes a custom field definition.
- * Existing package version snapshots referencing this field are unaffected.
- */
+export async function updateCustomField(
+  fieldId: string,
+  values: { label: string; description: string | null }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("custom_field_definitions")
+    .update({ label: values.label, description: values.description })
+    .eq("id", fieldId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath("/settings");
+  revalidatePath("/packages");
+}
+
 export async function softDeleteCustomField(fieldId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthenticated");
 
   const { error } = await supabase
