@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
   // Redirect authenticated users away from the login page
   if ((user || devBypass) && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/bookings";
+    url.pathname = "/command-center";
     return NextResponse.redirect(url);
   }
 
