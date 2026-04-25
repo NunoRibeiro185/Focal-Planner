@@ -7,14 +7,7 @@ import type { PackageTemplateForList } from "@/lib/types";
 
 export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
   const v = pkg.current_version;
-  const checkboxFields =
-    v?.custom_fields?.filter(
-      (cf) => cf.definition.field_type === "checkbox" && cf.value_bool
-    ) ?? [];
-  const textFields =
-    v?.custom_fields?.filter(
-      (cf) => cf.definition.field_type === "text" && cf.value_text
-    ) ?? [];
+  const deliverables = v?.custom_fields?.filter((cf) => cf.value_bool) ?? [];
 
   return (
     <article className="group overflow-hidden rounded-sm border border-border/60 bg-card flex flex-col">
@@ -61,24 +54,15 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
             </div>
 
             {/* Deliverables */}
-            {(checkboxFields.length > 0 || textFields.length > 0) && (
+            {deliverables.length > 0 && (
               <ul className="flex flex-col gap-1 mt-3">
-                {checkboxFields.map((cf) => (
+                {deliverables.map((cf) => (
                   <li
                     key={cf.id}
                     className="flex items-start gap-2 text-xs text-muted-foreground"
                   >
                     <span className="mt-[5px] w-1 h-1 rounded-full bg-primary/40 shrink-0" />
                     {cf.definition.label}
-                  </li>
-                ))}
-                {textFields.map((cf) => (
-                  <li
-                    key={cf.id}
-                    className="flex items-start gap-2 text-xs text-muted-foreground"
-                  >
-                    <span className="mt-[5px] w-1 h-1 rounded-full bg-primary/40 shrink-0" />
-                    {cf.definition.label}: {cf.value_text}
                   </li>
                 ))}
               </ul>
