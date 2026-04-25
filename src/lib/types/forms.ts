@@ -35,7 +35,6 @@ export type PackageFormValues = z.infer<typeof packageFormSchema>;
 export const LEAD_SOURCE_OPTIONS = [
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
-  { value: "weddingwire", label: "WeddingWire / WUN" },
   { value: "google", label: "Google" },
   { value: "referral", label: "Referral" },
   { value: "inquiry_form", label: "Inquiry Form" },
@@ -50,7 +49,7 @@ export const bookingFormSchema = z.object({
   client_email: z.string().email("Invalid email").or(z.literal("")).nullable(),
   client_phone: z.string().nullable(),
   lead_source: z
-    .enum(["instagram", "facebook", "weddingwire", "google", "referral", "other", "inquiry_form"])
+    .enum(["instagram", "facebook", "google", "referral",  "inquiry_form", "other"])
     .nullable(),
   event_date: z.string().min(1, "Event date is required"),
   location: z.string().nullable(),

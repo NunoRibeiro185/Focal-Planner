@@ -42,7 +42,7 @@ export function OnboardingHint() {
             >
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-[11px] font-bold">2</span>
               <CalendarPlus className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" strokeWidth={1.5} />
-              <span>Add your first booking</span>
+              <span>Create your first booking</span>
               <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">→</span>
             </Link>
           </div>

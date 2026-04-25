@@ -58,4 +58,5 @@ export async function softDeleteCustomField(fieldId: string) {
   if (error) throw error;
 
   revalidatePath("/settings");
+  revalidatePath("/packages");
 }

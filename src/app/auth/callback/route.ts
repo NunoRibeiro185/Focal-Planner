@@ -49,6 +49,13 @@ export async function GET(request: NextRequest) {
   // handle_new_user trigger didn't fire (e.g. user existed before migration)
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
+    // Check if this is a brand-new account before upserting
+    const { data: existing } = await supabase
+      .from("photographers")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+
     await supabase.from("photographers").upsert(
       {
         id: user.id,
@@ -57,6 +64,11 @@ export async function GET(request: NextRequest) {
       },
       { onConflict: "id", ignoreDuplicates: true }
     );
+
+    // New users go through the onboarding tour first
+    if (!existing) {
+      return NextResponse.redirect(`${origin}/onboarding`);
+    }
   }
 
   return response;

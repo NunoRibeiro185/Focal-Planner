@@ -1,19 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
-import { CustomFieldsPanel } from "@/components/settings/custom-fields-panel";
 import { GoogleCalendarPanel } from "@/components/settings/google-calendar-panel";
 import { EditingWorkflowPanel } from "@/components/settings/editing-workflow-panel";
 import { InquiryFormPanel } from "@/components/settings/inquiry-form-panel";
 import { PlanBillingPanel } from "@/components/settings/plan-billing-panel";
 import { FeatureGate } from "@/components/paywall/feature-gate";
-import { getCustomFieldDefinitions } from "@/lib/queries/custom-fields";
 import { getGoogleCalendarToken } from "@/lib/queries/google-calendar";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
 import { getInquirySettings } from "@/lib/queries/inquiries";
 import { getSubscription } from "@/lib/queries/subscription";
 import { getEffectiveTier } from "@/lib/services/entitlements";
 import { DeleteAccountPanel } from "@/components/settings/delete-account-panel";
+import { OnboardingPanel } from "@/components/onboarding/onboarding-panel";
 import type { Photographer } from "@/lib/types";
 
 export const revalidate = 600;
@@ -39,7 +38,6 @@ export default async function SettingsPage({
 
   const [
     photographerResult,
-    customFields,
     googleToken,
     editingStages,
     inquirySettings,
@@ -50,7 +48,6 @@ export default async function SettingsPage({
       .select("full_name, default_currency")
       .eq("id", user.id)
       .single(),
-    getCustomFieldDefinitions(),
     getGoogleCalendarToken(),
     getEditingStageTemplates(),
     getInquirySettings(),
@@ -136,9 +133,14 @@ export default async function SettingsPage({
           </FeatureGate>
           <div className="h-px bg-border/60 my-8" />
           <EditingWorkflowPanel stages={editingStages} />
-          <div className="h-px bg-border/60 my-8" />
-          <CustomFieldsPanel fields={customFields} />
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Onboarding & tutorials"
+        description="Review the getting-started tour at any time."
+      >
+        <OnboardingPanel />
       </SettingsSection>
 
       <SettingsSection title="Account" description="Permanently delete your account and all your data.">

@@ -47,7 +47,7 @@ export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
   const [isPending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editState, setEditState] = useState<FieldState | null>(null);
-  const [adding, setAdding] = useState(extras.length === 0);
+  const [adding, setAdding] = useState(false);
   const [addState, setAddState] = useState<FieldState>(emptyState(defaultCurrency));
 
   function handleAdd() {
@@ -119,15 +119,31 @@ export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
           No extras yet
         </h2>
         <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-          Extras are optional add-ons clients can choose — drone footage, a second shooter,
-          rush editing. Once defined here, they can be attached to any booking individually.
+          Extras are optional add-ons you can offer clients on top of a package — drone
+          footage, a second shooter, rush editing. Here&apos;s how they work:
         </p>
+
+        <div className="space-y-5 mb-8">
+          <EmptyStep number="01" title="Define your extras">
+            Give each add-on a name, description, and price. They live here as a reusable
+            catalog — not tied to any single package.
+          </EmptyStep>
+          <EmptyStep number="02" title="Attach to bookings">
+            When creating or editing a booking, you pick which extras apply. Each one is
+            priced individually and adds to the booking total.
+          </EmptyStep>
+          <EmptyStep number="03" title="Keep it flexible">
+            A client can request drone footage for one wedding and skip it for another.
+            Extras let you price that cleanly without duplicating packages.
+          </EmptyStep>
+        </div>
+
         <button
           onClick={() => setAdding(true)}
           className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
         >
           <Plus className="h-4 w-4" />
-          Add your first extra
+          Create your first extra
         </button>
       </div>
     );
@@ -387,5 +403,30 @@ function DeleteExtraButton({
     >
       Delete
     </button>
+  );
+}
+
+function EmptyStep({
+  number,
+  title,
+  children,
+}: {
+  number: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <span
+        className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        {number}
+      </span>
+      <div>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{children}</p>
+      </div>
+    </div>
   );
 }

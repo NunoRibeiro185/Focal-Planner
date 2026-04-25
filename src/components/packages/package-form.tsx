@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { packageFormSchema, type PackageFormValues } from "@/lib/types/forms";
-import { createCustomField } from "@/lib/actions/custom-fields";
 import { SUPPORTED_CURRENCIES } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import Link from "next/link";
 import type { CustomFieldDefinition } from "@/lib/types";
 
 interface PackageFormProps {
@@ -39,10 +38,6 @@ export function PackageForm({
 }: PackageFormProps) {
   const [pending, setPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [localDefinitions, setLocalDefinitions] = useState<CustomFieldDefinition[]>(customFieldDefinitions);
-  const [newLabel, setNewLabel] = useState("");
-  const [newType, setNewType] = useState<"checkbox" | "text">("checkbox");
-  const [addingField, setAddingField] = useState(false);
 
   const {
     register,
@@ -72,25 +67,6 @@ export function PackageForm({
   const currency = watch("currency");
   const customFields = watch("custom_fields");
 
-  async function handleAddField() {
-    const label = newLabel.trim();
-    if (!label) return;
-    setAddingField(true);
-    try {
-      const newDef = await createCustomField({ label, field_type: newType });
-      const typedDef = newDef as CustomFieldDefinition;
-      setLocalDefinitions((prev) => [...prev, typedDef]);
-      setValue("custom_fields", [
-        ...(customFields ?? []),
-        { field_definition_id: typedDef.id, value_text: null, value_bool: null },
-      ]);
-      setNewLabel("");
-      setNewType("checkbox");
-    } finally {
-      setAddingField(false);
-    }
-  }
-
   async function handleFormSubmit(values: PackageFormValues) {
     setPending(true);
     setSubmitError(null);
@@ -105,7 +81,6 @@ export function PackageForm({
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 max-w-lg">
 
-      {/* Package name — primary identity, always first */}
       <div className="space-y-1.5">
         <Label htmlFor="name">Package name</Label>
         <Input
@@ -117,7 +92,6 @@ export function PackageForm({
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
 
-      {/* Version name — subordinate to package, with explanation */}
       <div className="space-y-1.5">
         <Label htmlFor="version_name">
           Version name
@@ -144,7 +118,6 @@ export function PackageForm({
 
       <Separator />
 
-      {/* Description — client-facing pitch, not a deliverables list */}
       <div className="space-y-1.5">
         <Label htmlFor="description">
           Description{" "}
@@ -161,7 +134,6 @@ export function PackageForm({
         </p>
       </div>
 
-      {/* Price + Currency */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="base_price">Base price</Label>
@@ -199,7 +171,6 @@ export function PackageForm({
         </div>
       </div>
 
-      {/* Hours */}
       <div className="space-y-1.5">
         <Label htmlFor="hours_of_coverage">Hours of coverage</Label>
         <Input
@@ -218,21 +189,20 @@ export function PackageForm({
 
       <Separator />
 
-      {/* Deliverables — proper section heading with persistent explanation */}
       <div className="space-y-0.5">
         <p className="text-sm font-semibold">Deliverables</p>
         <p className="text-xs text-muted-foreground">
-          Each item appears as a trackable checkbox on every booking that uses this package.
+          Select which deliverables are included in this package. Each checked item appears as a trackable field on every booking.
         </p>
       </div>
 
       <div className="space-y-3">
-        {localDefinitions.map((field, index) => (
+        {customFieldDefinitions.map((field, index) => (
           <div key={field.id}>
             {field.field_type === "checkbox" ? (
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={!!watch(`custom_fields.${index}.value_bool`)}
+                  checked={!!customFields?.[index]?.value_bool}
                   onCheckedChange={(checked) =>
                     setValue(`custom_fields.${index}.value_bool`, !!checked)
                   }
@@ -251,55 +221,26 @@ export function PackageForm({
           </div>
         ))}
 
-        {/* Add deliverable row */}
-        <div className="flex items-center gap-2 pt-1">
-          <label htmlFor="new-deliverable" className="sr-only">New deliverable name</label>
-          <Input
-            id="new-deliverable"
-            placeholder="New deliverable…"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleAddField();
-              }
-            }}
-            className="h-8 text-sm"
-          />
-          <Select
-            value={newType}
-            onValueChange={(v) => setNewType(v as "checkbox" | "text")}
-          >
-            <SelectTrigger className="h-8 w-32 text-sm" aria-label="Deliverable type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="checkbox">
-                <span>Checkbox</span>
-              </SelectItem>
-              <SelectItem value="text">
-                <span>Text field</span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 px-3 text-sm gap-1"
-            disabled={!newLabel.trim() || addingField}
-            onClick={handleAddField}
-            aria-label="Add deliverable"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add
-          </Button>
-        </div>
-
-        {localDefinitions.length === 0 && (
-          <p className="text-xs text-muted-foreground italic">
-            No deliverables yet — add items above.
+        {customFieldDefinitions.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No deliverables defined yet.{" "}
+            <Link
+              href="/packages?tab=deliverables"
+              className="text-primary hover:text-primary/80 transition-colors"
+            >
+              Go to Deliverables
+            </Link>{" "}
+            to add them, then come back here.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground pt-1">
+            Need to add or remove deliverable types?{" "}
+            <Link
+              href="/packages?tab=deliverables"
+              className="text-primary hover:text-primary/80 transition-colors"
+            >
+              Manage deliverables
+            </Link>
           </p>
         )}
       </div>

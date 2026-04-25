@@ -1,13 +1,17 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { getPackageTemplates, getPackageTemplatesCount } from "@/lib/queries/packages";
 import { getExtras } from "@/lib/queries/extras";
+import { getCustomFieldDefinitions } from "@/lib/queries/custom-fields";
 import { PackageCard } from "@/components/packages/package-card";
 import { ExtrasCatalog } from "@/components/extras/extras-catalog";
+import { DeliverablesCatalog } from "@/components/deliverables/deliverables-catalog";
 import { NewPackageButton } from "@/components/paywall/new-package-button";
+import { UsageLimit } from "@/components/paywall/usage-limit";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-type Tab = "packages" | "extras";
+type Tab = "packages" | "extras" | "deliverables";
 
 export default async function PackagesPage({
   searchParams,
@@ -15,7 +19,8 @@ export default async function PackagesPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab } = await searchParams;
-  const activeTab: Tab = tab === "extras" ? "extras" : "packages";
+  const activeTab: Tab =
+    tab === "extras" ? "extras" : tab === "deliverables" ? "deliverables" : "packages";
 
   const supabase = await createClient();
   const {
@@ -23,31 +28,53 @@ export default async function PackagesPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [packages, extras, photographer, packageCount] = await Promise.all([
+  const photographerPromise = supabase
+    .from("photographers")
+    .select("default_currency")
+    .eq("id", user.id)
+    .single();
+
+  const [packages, extras, deliverables, photographer, packageCount] = await Promise.all([
     activeTab === "packages" ? getPackageTemplates() : Promise.resolve([]),
     activeTab === "extras" ? getExtras() : Promise.resolve([]),
-    supabase.from("photographers").select("default_currency").eq("id", user.id).single(),
+    activeTab === "deliverables" ? getCustomFieldDefinitions() : Promise.resolve([]),
+    photographerPromise,
     getPackageTemplatesCount(),
   ]);
 
   const defaultCurrency =
     (photographer.data as { default_currency: string } | null)?.default_currency ?? "EUR";
 
+  const headings: Record<Tab, { title: string; description: string }> = {
+    packages: {
+      title: "Packages",
+      description:
+        "Your service offerings. Each package keeps a full version history — update pricing any time without touching existing bookings.",
+    },
+    extras: {
+      title: "Extras",
+      description:
+        "Reusable add-ons you can attach to any booking — drone footage, second shooters, rush editing.",
+    },
+    deliverables: {
+      title: "Deliverables",
+      description:
+        "The items you promise to every client. Define them once here and they'll appear as trackable fields on each booking.",
+    },
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
-      {/* Page header */}
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
           <h1
             className="text-3xl font-semibold tracking-[-0.02em]"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            {activeTab === "packages" ? "Packages" : "Extras"}
+            {headings[activeTab].title}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-[52ch] leading-relaxed">
-            {activeTab === "packages"
-              ? "Your service offerings. Each package keeps a full version history — update pricing any time without touching existing bookings."
-              : "Reusable add-ons you can attach to any booking — drone footage, second shooters, rush editing."}
+            {headings[activeTab].description}
           </p>
         </div>
         {activeTab === "packages" && packages.length > 0 && (
@@ -57,31 +84,18 @@ export default async function PackagesPage({
         )}
       </div>
 
-      {/* Tab bar */}
       <div className="flex gap-6 border-b mb-8">
-        <Link
-          href="/packages"
-          className={`pb-2.5 text-sm transition-colors border-b-2 -mb-px ${
-            activeTab === "packages"
-              ? "text-foreground font-medium border-primary"
-              : "text-muted-foreground hover:text-foreground border-transparent"
-          }`}
-        >
+        <TabLink href="/packages" active={activeTab === "packages"}>
           Packages
-        </Link>
-        <Link
-          href="/packages?tab=extras"
-          className={`pb-2.5 text-sm transition-colors border-b-2 -mb-px ${
-            activeTab === "extras"
-              ? "text-foreground font-medium border-primary"
-              : "text-muted-foreground hover:text-foreground border-transparent"
-          }`}
-        >
+        </TabLink>
+        <TabLink href="/packages?tab=deliverables" active={activeTab === "deliverables"}>
+          Deliverables
+        </TabLink>
+        <TabLink href="/packages?tab=extras" active={activeTab === "extras"}>
           Extras
-        </Link>
+        </TabLink>
       </div>
 
-      {/* Content */}
       {activeTab === "packages" ? (
         packages.length === 0 ? (
           <PackagesEmptyState packageCount={packageCount} />
@@ -98,10 +112,35 @@ export default async function PackagesPage({
             ))}
           </div>
         )
-      ) : (
+      ) : activeTab === "extras" ? (
         <ExtrasCatalog extras={extras} defaultCurrency={defaultCurrency} />
+      ) : (
+        <DeliverablesCatalog fields={deliverables} />
       )}
     </div>
+  );
+}
+
+function TabLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`pb-2.5 text-sm transition-colors border-b-2 -mb-px ${
+        active
+          ? "text-foreground font-medium border-primary"
+          : "text-muted-foreground hover:text-foreground border-transparent"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -120,56 +159,54 @@ function PackagesEmptyState({ packageCount }: { packageCount: number }) {
       </p>
 
       <div className="space-y-5 mb-8">
-        <div className="flex items-start gap-4">
-          <span
-            className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            01
-          </span>
-          <div>
-            <p className="text-sm font-medium text-foreground">Package</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              The name that stays constant — &ldquo;Gold Package&rdquo;, &ldquo;Elopement Session&rdquo;,
-              &ldquo;Half Day&rdquo;. This is what clients see on proposals.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-4">
-          <span
-            className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            02
-          </span>
-          <div>
-            <p className="text-sm font-medium text-foreground">Version</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              The specific pricing period — &ldquo;Summer 2025&rdquo;, &ldquo;Winter Base&rdquo;.
-              Each version holds the price, hours, and deliverables for that period.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-4">
-          <span
-            className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            03
-          </span>
-          <div>
-            <p className="text-sm font-medium text-foreground">Bookings are locked</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Every booking is tied to a specific version. Create a new version to update
-              your rates — existing bookings are never changed.
-            </p>
-          </div>
-        </div>
+        <TutorialStep number="01" title="Package">
+          The name that stays constant — &ldquo;Gold Package&rdquo;, &ldquo;Elopement
+          Session&rdquo;, &ldquo;Half Day&rdquo;. This is what clients see on proposals.
+        </TutorialStep>
+        <TutorialStep number="02" title="Version">
+          The specific pricing period — &ldquo;Summer 2025&rdquo;, &ldquo;Winter Base&rdquo;.
+          Each version holds the price, hours, and deliverables for that period.
+        </TutorialStep>
+        <TutorialStep number="03" title="Bookings are locked">
+          Every booking is tied to a specific version. Create a new version to update your
+          rates — existing bookings are never changed.
+        </TutorialStep>
       </div>
 
-      <NewPackageButton currentCount={packageCount} />
+      <UsageLimit resource="packagesTotal" currentCount={packageCount} resourceLabel="packages">
+        <Link
+          href="/packages/new"
+          className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+        >
+          <Plus className="h-4 w-4" />
+          Create your first package
+        </Link>
+      </UsageLimit>
+    </div>
+  );
+}
+
+export function TutorialStep({
+  number,
+  title,
+  children,
+}: {
+  number: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <span
+        className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        {number}
+      </span>
+      <div>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{children}</p>
+      </div>
     </div>
   );
 }

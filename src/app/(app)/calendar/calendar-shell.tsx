@@ -222,6 +222,23 @@ export function CalendarShell({
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
+              {(() => {
+                const today = new Date();
+                const isCurrentMonth =
+                  currentMonth.getFullYear() === today.getFullYear() &&
+                  currentMonth.getMonth() === today.getMonth();
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => jumpToMonth(today.getFullYear(), today.getMonth())}
+                    disabled={isCurrentMonth}
+                    className="ml-1 text-xs px-2 h-7"
+                  >
+                    Today
+                  </Button>
+                );
+              })()}
             </>
           )}
           {view === "agenda" && (

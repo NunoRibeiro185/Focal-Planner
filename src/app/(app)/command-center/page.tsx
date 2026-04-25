@@ -131,7 +131,7 @@ async function NextWeddingSection({ promise }: { promise: Promise<NextWeddingDat
               href="/bookings/new"
               className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
             >
-              Add your first booking →
+              Create your first booking →
             </Link>
           </div>
         )}
