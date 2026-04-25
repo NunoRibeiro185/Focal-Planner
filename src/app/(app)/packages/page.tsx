@@ -173,6 +173,17 @@ function PackagesEmptyState({ packageCount }: { packageCount: number }) {
         </TutorialStep>
       </div>
 
+      <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
+        Before creating a package, consider{" "}
+        <Link
+          href="/packages?tab=deliverables"
+          className="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+        >
+          setting up your deliverables first
+        </Link>
+        {" "}— you can include them in the package right away.
+      </p>
+
       <UsageLimit resource="packagesTotal" currentCount={packageCount} resourceLabel="packages">
         <Link
           href="/packages/new"

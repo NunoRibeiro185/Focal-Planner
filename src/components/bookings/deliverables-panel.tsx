@@ -43,16 +43,24 @@ export function DeliverablesPanel({
         {deliverableProgress.map((d) => (
           <label
             key={d.id}
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-start gap-3 cursor-pointer"
           >
             <Checkbox
               checked={d.done}
               disabled={isPending}
               onCheckedChange={(checked) => handleToggle(d.id, !!checked)}
+              className="mt-0.5"
             />
-            <span className={`text-sm ${d.done ? "line-through text-muted-foreground" : ""}`}>
-              {d.label}
-            </span>
+            <div>
+              <span className={`text-sm ${d.done ? "line-through text-muted-foreground" : ""}`}>
+                {d.label}
+              </span>
+              {d.description && (
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  {d.description}
+                </p>
+              )}
+            </div>
           </label>
         ))}
       </CardContent>

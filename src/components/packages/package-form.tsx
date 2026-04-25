@@ -199,25 +199,21 @@ export function PackageForm({
       <div className="space-y-3">
         {customFieldDefinitions.map((field, index) => (
           <div key={field.id}>
-            {field.field_type === "checkbox" ? (
-              <label className="flex items-center gap-3 cursor-pointer">
-                <Checkbox
-                  checked={!!customFields?.[index]?.value_bool}
-                  onCheckedChange={(checked) =>
-                    setValue(`custom_fields.${index}.value_bool`, !!checked)
-                  }
-                />
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={!!customFields?.[index]?.value_bool}
+                onCheckedChange={(checked) =>
+                  setValue(`custom_fields.${index}.value_bool`, !!checked)
+                }
+                className="mt-0.5"
+              />
+              <div>
                 <span className="text-sm">{field.label}</span>
-              </label>
-            ) : (
-              <div className="space-y-1.5">
-                <Label htmlFor={`cf-${field.id}`}>{field.label}</Label>
-                <Input
-                  id={`cf-${field.id}`}
-                  {...register(`custom_fields.${index}.value_text`)}
-                />
+                {field.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>
+                )}
               </div>
-            )}
+            </label>
           </div>
         ))}
 
@@ -234,7 +230,7 @@ export function PackageForm({
           </p>
         ) : (
           <p className="text-xs text-muted-foreground pt-1">
-            Need to add or remove deliverable types?{" "}
+            Need to add or remove deliverables?{" "}
             <Link
               href="/packages?tab=deliverables"
               className="text-primary hover:text-primary/80 transition-colors"
