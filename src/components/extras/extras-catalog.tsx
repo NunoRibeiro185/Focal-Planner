@@ -15,7 +15,6 @@ import {
 import { SUPPORTED_CURRENCIES, formatCurrency } from "@/lib/utils/currency";
 import { createExtra, updateExtra, deleteExtra } from "@/lib/actions/extras";
 import type { Extra } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 interface ExtrasCatalogProps {
   extras: Extra[];
@@ -136,11 +135,20 @@ export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
 
   return (
     <div>
-      {extras.length > 0 && (
-        <div className="divide-y">
-          {extras.map((extra) =>
-            editingId === extra.id && editState ? (
-              <div key={extra.id} className="py-6">
+      <div
+        className="grid gap-5"
+        style={{
+          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+          alignItems: "start",
+        }}
+      >
+        {extras.map((extra) =>
+          editingId === extra.id && editState ? (
+            <article
+              key={extra.id}
+              className="overflow-hidden rounded-sm border border-primary/40 bg-card flex flex-col"
+            >
+              <div className="px-5 pt-5 pb-5">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium mb-4">
                   Editing
                 </p>
@@ -153,71 +161,101 @@ export function ExtrasCatalog({ extras, defaultCurrency }: ExtrasCatalogProps) {
                   saveLabel="Save changes"
                 />
               </div>
-            ) : (
-              <div key={extra.id} className="flex items-start justify-between gap-4 py-4 group">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{extra.name}</p>
-                  {extra.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                      {extra.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  <span
-                    className="text-sm font-medium text-primary tabular-nums"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    {formatCurrency(extra.price, extra.currency)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => startEdit(extra)}
-                      disabled={isPending}
-                      className="text-xs text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-50"
-                    >
-                      Edit
-                    </button>
-                    <span className="text-muted-foreground/20">·</span>
-                    <DeleteExtraButton
-                      onDelete={() => handleDelete(extra.id)}
-                      isPending={isPending}
-                    />
-                  </div>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-      )}
+            </article>
+          ) : (
+            <ExtraCard
+              key={extra.id}
+              extra={extra}
+              isPending={isPending}
+              onEdit={() => startEdit(extra)}
+              onDelete={() => handleDelete(extra.id)}
+            />
+          )
+        )}
 
-      {adding ? (
-        <div className={cn("py-6", extras.length > 0 && "border-t mt-2")}>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium mb-4">
-            New extra
-          </p>
-          <ExtraForm
-            state={addState}
-            onChange={setAddState}
-            onSave={handleAdd}
-            onCancel={() => {
-              setAdding(false);
-              setAddState(emptyState(defaultCurrency));
-            }}
-            isPending={isPending}
-            saveLabel="Add to catalog"
-          />
-        </div>
-      ) : (
+        {adding && (
+          <article className="overflow-hidden rounded-sm border border-primary/40 bg-card flex flex-col">
+            <div className="px-5 pt-5 pb-5">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium mb-4">
+                New extra
+              </p>
+              <ExtraForm
+                state={addState}
+                onChange={setAddState}
+                onSave={handleAdd}
+                onCancel={() => {
+                  setAdding(false);
+                  setAddState(emptyState(defaultCurrency));
+                }}
+                isPending={isPending}
+                saveLabel="Add to catalog"
+              />
+            </div>
+          </article>
+        )}
+      </div>
+
+      {!adding && (
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-6"
         >
           <Plus className="h-4 w-4" />
           Add extra
         </button>
       )}
     </div>
+  );
+}
+
+function ExtraCard({
+  extra,
+  isPending,
+  onEdit,
+  onDelete,
+}: {
+  extra: Extra;
+  isPending: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <article className="group overflow-hidden rounded-sm border border-border/60 bg-card flex flex-col">
+      <div className="flex flex-col flex-1 px-5 pt-6 pb-3">
+        <h2
+          className="text-lg font-semibold tracking-[-0.01em] leading-snug"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {extra.name}
+        </h2>
+
+        {extra.description && (
+          <p className="text-sm text-muted-foreground leading-relaxed mt-2 max-w-[48ch]">
+            {extra.description}
+          </p>
+        )}
+
+        <hr className="border-border/50 my-4" />
+
+        <p
+          className="text-2xl font-semibold text-primary leading-none"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {formatCurrency(extra.price, extra.currency)}
+        </p>
+      </div>
+
+      <div className="border-t border-border/40 px-5 py-3 flex items-center gap-5 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-150">
+        <button
+          onClick={onEdit}
+          disabled={isPending}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          Edit
+        </button>
+        <DeleteExtraButton onDelete={onDelete} isPending={isPending} />
+      </div>
+    </article>
   );
 }
 
@@ -232,55 +270,19 @@ interface ExtraFormProps {
 
 function ExtraForm({ state, onChange, onSave, onCancel, isPending, saveLabel }: ExtraFormProps) {
   return (
-    <div className="space-y-4 max-w-lg">
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="extra-name" className="text-xs">Name</Label>
-          <Input
-            id="extra-name"
-            value={state.name}
-            autoFocus
-            onChange={(e) => onChange({ ...state, name: e.target.value, errors: {} })}
-            placeholder="e.g. Drone footage"
-          />
-          {state.errors.name && (
-            <p className="text-xs text-destructive">{state.errors.name}</p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="extra-price" className="text-xs">Price</Label>
-          <div className="flex gap-2">
-            <Input
-              id="extra-price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={state.price}
-              onChange={(e) => onChange({ ...state, price: e.target.value, errors: {} })}
-              placeholder="0.00"
-              className="w-28"
-            />
-            <Select
-              value={state.currency}
-              onValueChange={(v) => onChange({ ...state, currency: v })}
-            >
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {state.errors.price && (
-            <p className="text-xs text-destructive">{state.errors.price}</p>
-          )}
-        </div>
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="extra-name" className="text-xs">Name</Label>
+        <Input
+          id="extra-name"
+          value={state.name}
+          autoFocus
+          onChange={(e) => onChange({ ...state, name: e.target.value, errors: {} })}
+          placeholder="e.g. Drone footage"
+        />
+        {state.errors.name && (
+          <p className="text-xs text-destructive">{state.errors.name}</p>
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -292,8 +294,42 @@ function ExtraForm({ state, onChange, onSave, onCancel, isPending, saveLabel }: 
           id="extra-desc"
           value={state.description}
           onChange={(e) => onChange({ ...state, description: e.target.value })}
-          placeholder="Brief description for your reference…"
+          placeholder="Brief description…"
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="extra-price" className="text-xs">Price</Label>
+        <div className="flex gap-2">
+          <Input
+            id="extra-price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={state.price}
+            onChange={(e) => onChange({ ...state, price: e.target.value, errors: {} })}
+            placeholder="0.00"
+            className="flex-1"
+          />
+          <Select
+            value={state.currency}
+            onValueChange={(v) => onChange({ ...state, currency: v })}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {state.errors.price && (
+          <p className="text-xs text-destructive">{state.errors.price}</p>
+        )}
       </div>
 
       <div className="flex items-center gap-4 pt-1">

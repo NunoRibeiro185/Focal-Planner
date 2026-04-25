@@ -147,9 +147,9 @@ export default async function LandingPage() {
               className="animate-fade-up text-lg md:text-xl leading-relaxed text-muted-foreground max-w-[56ch]"
               style={{ fontFamily: "var(--font-body)", animationDelay: "360ms" }}
             >
-              Focal Planner is a business planner for wedding and portrait photographers.
-              Bookings, packages, clients, and finances — organized the way you
-              actually work, not the way a spreadsheet does.
+              Focal Planner is a business planner for photographers.
+              Bookings, packages, clients, and finances — organized the way YOU
+              work, not the way a spreadsheet does.
             </p>
 
             <div
@@ -310,9 +310,8 @@ export default async function LandingPage() {
             className="mt-10 text-base leading-relaxed text-muted-foreground max-w-[58ch]"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            We built the system we wished existed when running our own studio.
-            One tool that handles the business side — so you can spend more time
-            behind the lens.
+            I built this tool for my girlfriend and now I am sharing it with you.
+            So you can spend more time behind the lens.
           </p>
         </div>
       </section>

@@ -18,14 +18,8 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
 
   return (
     <article className="group overflow-hidden rounded-sm border border-border/60 bg-card flex flex-col">
-      {/* Image — 3:4 placeholder */}
-      <div
-        className="w-full shrink-0"
-        style={{ aspectRatio: "3 / 4", backgroundColor: "oklch(91% 0.012 75)" }}
-      />
-
       {/* Main content */}
-      <div className="flex flex-col flex-1 px-5 pt-5 pb-3">
+      <div className="flex flex-col flex-1 px-5 pt-6 pb-3">
         {/* Version name */}
         {v && (
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground/35 font-medium mb-2">
