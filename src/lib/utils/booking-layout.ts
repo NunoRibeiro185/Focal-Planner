@@ -71,18 +71,18 @@ export interface BookingLayoutConfig {
 const INQUIRY_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [
-      { panel: "availability_calendar", weight: 2 },
-      { panel: "notes", forceShow: true, weight: 1 },
+      { panel: "availability_calendar"},
+      { panel: "notes", forceShow: true },
     ]},
     { slots: [
       { panel: "client_info" },
       { panel: "itinerary" },
+      { panel: "tasks" },
     ]},
     { slots: [
-      { panel: "package_extras", weight: 2 },
-      { panel: "payment", weight: 1 },
+      { panel: "package_extras" },
+      { panel: "payment" },
     ]},
-    { slots: [{ panel: "tasks" }] },
   ],
 };
 
@@ -99,19 +99,19 @@ const INQUIRY_LAYOUT: BookingLayoutConfig = {
 const CONFIRMED_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [
-      { panel: "notes", forceShow: true, weight: 2 },
-      { panel: "availability_calendar", weight: 1 },
+      { panel: "availability_calendar" },
+      { panel: "notes", forceShow: true },
     ]},
     { slots: [
-      { panel: "itinerary", weight: 2 },
-      { panel: "client_info", weight: 1 },
+      { panel: "client_info" },
+      { panel: "itinerary" },
+      { panel: "tasks" },
     ]},
     { slots: [
-      { panel: "tasks", weight: 2 },
-      { panel: "payment", weight: 1 },
+      { panel: "payment"},
+      { panel: "package_extras"},
     ]},
     { slots: [
-      { panel: "package_extras" },
       { panel: "second_shooter" },
     ]},
   ],
@@ -128,17 +128,14 @@ const CONFIRMED_LAYOUT: BookingLayoutConfig = {
 const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [
-      { panel: "tasks", weight: 2 },
-      { panel: "payment", weight: 1 },
-    ]},
-    { slots: [
-      { panel: "package_extras", weight: 2 },
-      { panel: "client_info", weight: 1 },
-    ]},
-    { slots: [
+      { panel: "tasks" },
       { panel: "notes" },
-      { panel: "second_shooter" },
     ]},
+    { slots: [
+      { panel: "payment" },
+      { panel: "package_extras" },
+      { panel: "client_info" },
+    ]}
   ],
 };
 
@@ -152,13 +149,17 @@ const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
  */
 const EDITING_LAYOUT: BookingLayoutConfig = {
   sections: [
-    { slots: [{ panel: "editing_pipeline" }] },
     { slots: [
-      { panel: "tasks", weight: 2 },
-      { panel: "payment", weight: 1 },
+      { panel: "editing_pipeline" },
+      { panel: "tasks" },
+      { panel: "notes" },
+    ] },
+    { slots: [
+      { panel: "client_info" },
+      { panel: "deliverables" },
     ]},
     { slots: [
-      { panel: "notes" },
+      { panel: "payment" },
       { panel: "package_extras" },
     ]},
   ],
@@ -177,13 +178,15 @@ const EDITING_LAYOUT: BookingLayoutConfig = {
  */
 const DELIVERED_LAYOUT: BookingLayoutConfig = {
   sections: [
-    { slots: [{ panel: "payment" }] },
+    { slots: [
+      { panel: "payment" },
+      { panel: "package_extras" },
+    ] },
     { slots: [
       { panel: "deliverables" },
       { panel: "client_info" },
     ]},
     { slots: [
-      { panel: "package_extras", weight: 2 },
       { panel: "tasks", weight: 1 },
     ]},
     { slots: [{ panel: "notes" }] },
