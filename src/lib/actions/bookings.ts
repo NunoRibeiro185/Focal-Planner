@@ -34,20 +34,19 @@ async function seedDeliverableProgress(
 ) {
   const { data: fields } = await supabase
     .from("package_version_custom_fields")
-    .select("id, field_definition:custom_field_definitions(label, field_type)")
+    .select("id, value_bool, field_definition:custom_field_definitions(label, description)")
     .eq("package_version_id", packageVersionId);
 
-  const checkboxFields = (fields ?? []).filter(
-    (f: any) => f.field_definition?.field_type === "checkbox"
-  );
+  const includedFields = (fields ?? []).filter((f: any) => f.value_bool === true);
 
-  if (checkboxFields.length === 0) return;
+  if (includedFields.length === 0) return;
 
-  const rows = checkboxFields.map((f: any) => ({
+  const rows = includedFields.map((f: any) => ({
     booking_id: bookingId,
     photographer_id: photographerId,
     package_version_custom_field_id: f.id,
     label: f.field_definition.label as string,
+    description: (f.field_definition.description ?? null) as string | null,
     done: false,
   }));
 

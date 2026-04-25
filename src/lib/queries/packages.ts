@@ -20,7 +20,7 @@ export async function getPackageTemplates(): Promise<PackageTemplateForList[]> {
         *,
         custom_fields:package_version_custom_fields(
           *,
-          definition:custom_field_definitions(label, field_type)
+          definition:custom_field_definitions(label, field_type, description)
         )
       )`
     )
