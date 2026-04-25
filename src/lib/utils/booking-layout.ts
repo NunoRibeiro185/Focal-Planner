@@ -129,7 +129,7 @@ const SHOOT_COMPLETED_LAYOUT: BookingLayoutConfig = {
   sections: [
     { slots: [
       { panel: "tasks" },
-      { panel: "notes" },
+      { panel: "notes", forceShow: true },
     ]},
     { slots: [
       { panel: "payment" },
@@ -152,11 +152,11 @@ const EDITING_LAYOUT: BookingLayoutConfig = {
     { slots: [
       { panel: "editing_pipeline" },
       { panel: "tasks" },
-      { panel: "notes" },
+      { panel: "notes", forceShow: true },
     ] },
     { slots: [
       { panel: "client_info" },
-      { panel: "deliverables" },
+      { panel: "deliverables", forceShow: true },
     ]},
     { slots: [
       { panel: "payment" },

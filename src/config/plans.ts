@@ -25,7 +25,7 @@ const FREE: TierConfig = {
   },
   limits: {
     bookingsPerMonth: 5,
-    packagesTotal: 2,
+    packagesTotal: 3,
     expensesPerMonth: 3,
   },
 };
