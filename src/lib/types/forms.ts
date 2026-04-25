@@ -106,7 +106,7 @@ export type BookingExtraValues = z.infer<typeof bookingExtraSchema>;
 
 export const customFieldDefinitionSchema = z.object({
   label: z.string().min(1, "Label is required"),
-  field_type: z.enum(["checkbox", "text"]),
+  description: z.string().nullable().optional(),
 });
 
 export type CustomFieldDefinitionValues = z.infer<typeof customFieldDefinitionSchema>;
