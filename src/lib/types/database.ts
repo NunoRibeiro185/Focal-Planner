@@ -14,7 +14,6 @@ export type BookingStatus =
 export type LeadSource =
   | "instagram"
   | "facebook"
-  | "weddingwire"
   | "google"
   | "referral"
   | "other"

@@ -91,9 +91,9 @@ function DeliverablesDiagram() {
             <span className="text-[10px] font-bold text-primary">1</span>
           </div>
           <div>
-            <p className="text-sm font-medium">Define your deliverable types in Settings</p>
+            <p className="text-sm font-medium">Define your deliverable types</p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Go to{" "}<span className="text-foreground font-medium">Settings → Booking setup</span>{" "}to create your deliverable catalog — edited photos, albums, video, prints, and anything else you offer.
+              Go to{" "}<span className="text-foreground font-medium">Packages → Deliverables</span>{" "}to create your deliverable catalog — edited photos, albums, video, prints, and anything else you offer.
             </p>
           </div>
         </div>
@@ -329,7 +329,7 @@ const chapters = [
           This short tour covers the things that matter most: how packages and versions work, what extras are, how a booking moves from first inquiry to final delivery, and how your second shooter and inquiry pages fit in.
         </p>
         <div className="pt-2 space-y-3">
-          {["Packages & versions", "Extras", "Deliverables", "Booking lifecycle", "Second shooter", "Calendar", "Your inquiry page"].map((item, i) => (
+          {["Packages & versions", "Deliverables", "Extras", "Booking lifecycle", "Second shooter", "Calendar", "Your inquiry page"].map((item, i) => (
             <div key={item} className="flex items-center gap-4">
               <span className="text-sm font-medium text-primary/50 tabular-nums w-6 shrink-0" style={{ fontFamily: "var(--font-heading)" }}>
                 {String(i + 1).padStart(2, "0")}
@@ -360,6 +360,20 @@ const chapters = [
   },
   {
     id: 2,
+    shortLabel: "Deliverables",
+    title: "Deliverables.",
+    subtitle: "What your clients receive — set up once, tracked per booking.",
+    body: (
+      <div className="space-y-5 max-w-2xl">
+        <p className="text-base text-muted-foreground leading-relaxed">
+          Deliverables are the tangible things you hand over at the end of a job — edited photos, albums, video reels, prints. Focal gives you a three-step workflow for managing them across all your work.
+        </p>
+        <DeliverablesDiagram />
+      </div>
+    ),
+  },
+  {
+    id: 3,
     shortLabel: "Extras",
     title: "Extras.",
     subtitle: "Reusable add-ons, attached to any booking.",
@@ -372,20 +386,6 @@ const chapters = [
           Each extra has its own price. When attached to a booking, it contributes to the total automatically.
         </p>
         <ExtrasDiagram />
-      </div>
-    ),
-  },
-  {
-    id: 3,
-    shortLabel: "Deliverables",
-    title: "Deliverables.",
-    subtitle: "What your clients receive — set up once, tracked per booking.",
-    body: (
-      <div className="space-y-5 max-w-2xl">
-        <p className="text-base text-muted-foreground leading-relaxed">
-          Deliverables are the tangible things you hand over at the end of a job — edited photos, albums, video reels, prints. Focal gives you a three-step workflow for managing them across all your work.
-        </p>
-        <DeliverablesDiagram />
       </div>
     ),
   },
