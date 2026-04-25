@@ -192,6 +192,7 @@ export interface CustomFieldDefinition {
   id: string;
   photographer_id: string;
   label: string;
+  description: string | null;
   field_type: "checkbox" | "text";
   sort_order: number;
   deleted_at: string | null;
@@ -227,7 +228,7 @@ export interface PackageTemplateWithVersion extends PackageTemplate {
 
 export interface PackageVersionCustomFieldWithDefinition
   extends PackageVersionCustomField {
-  definition: Pick<CustomFieldDefinition, "label" | "field_type">;
+  definition: Pick<CustomFieldDefinition, "label" | "field_type" | "description">;
 }
 
 export interface PackageVersionWithCustomFields extends PackageVersion {
@@ -397,6 +398,7 @@ export interface BookingDeliverableProgress {
   photographer_id: string;
   package_version_custom_field_id: string;
   label: string;
+  description: string | null;
   done: boolean;
   created_at: string;
 }
