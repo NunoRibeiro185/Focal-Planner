@@ -45,6 +45,18 @@ function buildSchema(fields: InquiryFormField[]) {
   return z.object(shape);
 }
 
+function buildDefaultValues(fields: InquiryFormField[]): Record<string, string | string[]> {
+  const defaults: Record<string, string | string[]> = {
+    client_name_primary: "",
+    client_email: "",
+    turnstile_token: "",
+  };
+  for (const field of fields) {
+    defaults[field.id] = field.field_type === "multiple_choice" ? [] : "";
+  }
+  return defaults;
+}
+
 export function DynamicInquiryForm({ photographerUrl, formUrl, formDefinition, turnstileSiteKey }: Props) {
   const { fields, packages } = formDefinition;
   const schema = buildSchema(fields);
@@ -58,11 +70,7 @@ export function DynamicInquiryForm({ photographerUrl, formUrl, formDefinition, t
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      client_name_primary: "",
-      client_email: "",
-      turnstile_token: "",
-    },
+    defaultValues: buildDefaultValues(fields) as Record<string, unknown>,
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -252,8 +260,10 @@ function DynamicField({ field, packages, register, setValue, watch, error }: {
 }) {
   const label = `${field.label}${field.is_required ? " *" : ""}`;
 
-  // Package selector
-  if (field.field_mapping === "package_template_id" && packages.length > 0) {
+  // Package selector — hidden when no packages exist to prevent a required field
+  // from falling through to a plain text input (which can't hold a valid UUID).
+  if (field.field_mapping === "package_template_id") {
+    if (packages.length === 0) return null;
     const selected = watch(field.id);
     return (
       <div className="space-y-2">
