@@ -40,6 +40,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
     )
     .eq("photographer_id", user.id)
     .eq("is_archived", false)
+    .neq("status", "inquiry")
     .order("event_date", { ascending: true });
 
   if (error) throw error;
