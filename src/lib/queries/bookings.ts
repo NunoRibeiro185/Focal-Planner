@@ -347,12 +347,17 @@ export async function getBookingById(id: string) {
 }
 
 export async function getInquiryAnswers(bookingId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const supabase = await createClient();
-  const { data } = await (supabase as any)
+  const { data, error } = await (supabase as any)
     .from("inquiry_answers")
     .select("*")
     .eq("booking_id", bookingId)
     .order("sort_order", { ascending: true });
+
+  if (error) throw error;
   return (data ?? []) as import("@/lib/types/database").InquiryAnswer[];
 }
 
