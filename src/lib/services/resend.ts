@@ -32,6 +32,7 @@ export interface InquiryEmailPayload {
   };
   photographerName: string;
   photographerEmail: string;
+  formName?: string;
 }
 
 /** Notifies the photographer that a new inquiry was submitted. */
@@ -41,16 +42,17 @@ export async function sendInquiryNotification(
   const client = getClient();
   if (!client) return;
 
-  const { booking, photographerName, photographerEmail } = payload;
+  const { booking, photographerName, photographerEmail, formName } = payload;
   const clientName = [booking.client_name_primary, booking.client_name_secondary]
     .filter(Boolean)
     .join(" & ");
 
   const detailUrl = `${APP_URL}/bookings/${booking.id}`;
+  const formLabel = formName ? ` via your "${formName}" form` : "";
 
   const html = `
     <h2>New inquiry from ${clientName}</h2>
-    <p>You received a new inquiry through your Focal Planner form.</p>
+    <p>You received a new inquiry${formLabel} through Focal Planner.</p>
     <table cellpadding="4" style="font-family:sans-serif;font-size:14px;">
       <tr><td><strong>Name</strong></td><td>${clientName}</td></tr>
       <tr><td><strong>Email</strong></td><td>${booking.client_email ?? "—"}</td></tr>
@@ -66,7 +68,7 @@ export async function sendInquiryNotification(
     await client.emails.send({
       from: FROM,
       to: photographerEmail,
-      subject: `New inquiry from ${clientName}`,
+      subject: `New inquiry from ${clientName}${formLabel}`,
       html,
     });
   } catch (err) {
