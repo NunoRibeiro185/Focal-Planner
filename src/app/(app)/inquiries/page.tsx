@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getInquiryForms } from "@/lib/queries/inquiry-forms";
 import { getPackageTemplates } from "@/lib/queries/packages";
@@ -9,6 +10,7 @@ import { IncomingList } from "@/components/inquiry-forms/incoming-list";
 
 export default async function InquiriesPage() {
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
+  if (!user) redirect("/login");
 
   const [forms, packageTemplates, subResult, incomingResult] = await Promise.all([
     getInquiryForms(),
