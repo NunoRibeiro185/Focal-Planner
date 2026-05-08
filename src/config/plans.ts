@@ -8,7 +8,7 @@ export type FeatureKey =
   | "inquiryForms"
   | "contractSigning";
 
-export type UsageLimitKey = "bookingsPerMonth" | "packagesTotal" | "expensesPerMonth";
+export type UsageLimitKey = "bookingsPerMonth" | "packagesTotal" | "expensesPerMonth" | "inquiryFormsTotal";
 
 export interface TierConfig {
   features: Record<FeatureKey, boolean>;
@@ -27,6 +27,7 @@ const FREE: TierConfig = {
     bookingsPerMonth: 5,
     packagesTotal: 3,
     expensesPerMonth: 3,
+    inquiryFormsTotal: 1,
   },
 };
 
@@ -42,6 +43,7 @@ const PRO: TierConfig = {
     bookingsPerMonth: null,
     packagesTotal: null,
     expensesPerMonth: null,
+    inquiryFormsTotal: null,
   },
 };
 
