@@ -204,24 +204,6 @@ export const settingsSchema = z.object({
 
 export type SettingsValues = z.infer<typeof settingsSchema>;
 
-// ─── Inquiry form (public-facing) ────────────────────────────
-
-export const inquiryFormSchema = z.object({
-  client_name_primary:   z.string().min(1, "Name is required"),
-  client_email:          z.string().email("Invalid email address"),
-  client_phone:          z.string().nullable(),
-  client_name_secondary: z.string().nullable(),
-  event_date:            z.string().nullable(),
-  venue_name:            z.string().nullable(),
-  venue_address:         z.string().nullable(),
-  location:              z.string().nullable(),
-  package_template_id:   z.string().uuid().nullable(),
-  notes:                 z.string().nullable(),
-  turnstile_token:       z.string().min(1, "Please complete the CAPTCHA"),
-});
-
-export type InquiryFormValues = z.infer<typeof inquiryFormSchema>;
-
 // ─── Expenses ────────────────────────────────────────────────
 
 export const EXPENSE_CATEGORY_OPTIONS = [
@@ -267,24 +249,3 @@ export const secondShooterPasswordSchema = z.object({
 
 export type SecondShooterPasswordValues = z.infer<typeof secondShooterPasswordSchema>;
 
-// ─── Inquiry settings (photographer settings panel) ──────────
-
-export const inquirySettingsSchema = z.object({
-  slug: z
-    .string()
-    .min(3, "Minimum 3 characters")
-    .max(50, "Maximum 50 characters")
-    .regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens")
-    .or(z.literal("")),
-  inquiry_form_enabled:        z.boolean(),
-  inquiry_show_packages:       z.boolean(),
-  inquiry_show_prices:         z.boolean(),
-  inquiry_show_phone:          z.boolean(),
-  inquiry_show_secondary_name: z.boolean(),
-  inquiry_show_event_date:     z.boolean(),
-  inquiry_show_venue:          z.boolean(),
-  inquiry_show_location:       z.boolean(),
-  inquiry_show_notes:          z.boolean(),
-});
-
-export type InquirySettingsValues = z.infer<typeof inquirySettingsSchema>;

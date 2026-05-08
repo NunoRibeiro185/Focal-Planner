@@ -78,7 +78,7 @@ export function computeYearlyStats(
   totalPhotographerExpenses: number = 0
 ): YearlyStats {
   const booked = qualifying(bookings);
-  const inquiryCount = bookings.length;
+  const inquiryCount = bookings.filter((b) => b.status === "inquiry").length;
   const bookedCount = booked.length;
 
   const projectedRevenue = booked.reduce((sum, b) => sum + b.total_price, 0);

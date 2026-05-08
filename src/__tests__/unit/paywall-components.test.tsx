@@ -182,7 +182,7 @@ describe("UsageLimit", () => {
   it("applies packages limit correctly", () => {
     mockTier("free");
     render(
-      <UsageLimit resource="packagesTotal" currentCount={2} resourceLabel="packages">
+      <UsageLimit resource="packagesTotal" currentCount={3} resourceLabel="packages">
         <button>New Package</button>
       </UsageLimit>
     );

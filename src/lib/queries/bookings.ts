@@ -40,6 +40,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
     )
     .eq("photographer_id", user.id)
     .eq("is_archived", false)
+    .neq("status", "inquiry")
     .order("event_date", { ascending: true });
 
   if (error) throw error;
@@ -344,6 +345,21 @@ export async function getBookingById(id: string) {
     balance,
     overdue: isOverdue(booking.payment_due_date, balance),
   };
+}
+
+export async function getInquiryAnswers(bookingId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any)
+    .from("inquiry_answers")
+    .select("*")
+    .eq("booking_id", bookingId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as import("@/lib/types/database").InquiryAnswer[];
 }
 
 export async function getBookingsThisMonthCount(): Promise<number> {

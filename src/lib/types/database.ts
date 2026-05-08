@@ -124,9 +124,51 @@ export interface Booking {
   second_shooter_invite_token: string | null;
   second_shooter_invite_status: SecondShooterInviteStatus | null;
   second_shooter_show_client_contact: boolean;
+  inquiry_form_id: string | null;
+  inquiry_form_name_snapshot: string | null;
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface InquiryForm {
+  id: string;
+  photographer_id: string;
+  name: string;
+  form_url: string;
+  is_active: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InquiryFormField {
+  id: string;
+  form_id: string;
+  photographer_id: string;
+  field_type: string;
+  label: string;
+  helper_text: string | null;
+  is_required: boolean;
+  sort_order: number;
+  field_mapping: string | null;
+  created_at: string;
+}
+
+export interface InquiryFormFieldOption {
+  id: string;
+  field_id: string;
+  label: string;
+  sort_order: number;
+}
+
+export interface InquiryAnswer {
+  id: string;
+  booking_id: string;
+  question_text: string;
+  answer_value: string;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface SecondShooterNote {

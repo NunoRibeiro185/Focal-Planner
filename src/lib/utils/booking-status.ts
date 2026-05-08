@@ -90,8 +90,10 @@ export function isForwardStepperTransition(
 /**
  * Returns the target status when a step in the progress stepper is clicked.
  *
- * Simple model: clicking any step navigates directly to that step.
- * Clicking the current step is a no-op (returns null → not clickable).
+ * Forward click (N > current): navigate directly to STATUS_STEPS[N].
+ * Backward/self click (N <= current): "uncheck" behavior — go to STATUS_STEPS[N-1].
+ *   Clicking step 0 while already at step 0 (inquiry self-click) is a no-op → null.
+ *   Clicking step 0 from any later step goes back to inquiry (can't go before it).
  */
 export function getStepperTargetStatus(
   currentStatus: BookingStatus,
@@ -102,7 +104,11 @@ export function getStepperTargetStatus(
   const currentIndex = STATUS_STEPS.indexOf(currentStatus);
   if (currentIndex === -1) return null;
 
-  if (clickedStepIndex === currentIndex) return null;
+  if (clickedStepIndex > currentIndex) {
+    return STATUS_STEPS[clickedStepIndex] ?? null;
+  }
 
-  return STATUS_STEPS[clickedStepIndex] ?? null;
+  // Backward or self: uncheck the clicked step → go one step before it
+  if (clickedStepIndex === 0 && currentIndex === 0) return null;
+  return STATUS_STEPS[Math.max(clickedStepIndex - 1, 0)] ?? null;
 }

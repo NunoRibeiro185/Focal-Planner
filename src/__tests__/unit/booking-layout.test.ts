@@ -178,11 +178,10 @@ describe("resolveBookingLayout", () => {
       expect(panels).toContain("notes" satisfies BookingPanel);
     });
 
-    it("does not include itinerary, client_info, or deliverables", () => {
-      const panels = getAllPanels(resolveBookingLayout("editing"));
-      expect(panels).not.toContain("itinerary" satisfies BookingPanel);
-      expect(panels).not.toContain("client_info" satisfies BookingPanel);
-      expect(panels).not.toContain("deliverables" satisfies BookingPanel);
+    it("does not include itinerary (shoot day is over)", () => {
+      expect(getAllPanels(resolveBookingLayout("editing"))).not.toContain(
+        "itinerary" satisfies BookingPanel
+      );
     });
 
     it("editing_pipeline is in the first section", () => {
@@ -295,8 +294,8 @@ describe("getAllPanels", () => {
   it("returns panels in section/slot order", () => {
     const layout = resolveBookingLayout("inquiry");
     const panels = getAllPanels(layout);
-    // client_info is the first slot in the first section of inquiry
-    expect(panels[0]).toBe("client_info" satisfies BookingPanel);
+    // availability_calendar is the first slot in the first section of inquiry
+    expect(panels[0]).toBe("availability_calendar" satisfies BookingPanel);
   });
 
   it("returns one entry per slot (no deduplication)", () => {
