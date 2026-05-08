@@ -14,7 +14,7 @@ export function ChoiceOptionsEditor({ options, onChange }: Props) {
   function addOption() {
     onChange([
       ...options,
-      { id: `new-${Date.now()}`, field_id: "", label: "", sort_order: options.length },
+      { id: crypto.randomUUID(), field_id: "", label: "", sort_order: options.length },
     ]);
   }
 

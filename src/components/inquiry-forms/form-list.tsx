@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { toggleInquiryFormActive, archiveInquiryForm } from "@/lib/actions/inquiry-forms";
 import { Switch } from "@/components/ui/switch";
@@ -76,6 +77,7 @@ function FormCard({ form, photographerSlug, onEdit }: {
   onEdit: () => void;
 }) {
   const [active, setActive] = useState(form.is_active);
+  const router = useRouter();
 
   async function handleToggle() {
     const next = !active;
@@ -90,7 +92,11 @@ function FormCard({ form, photographerSlug, onEdit }: {
   async function handleArchive() {
     if (!confirm(`Archive "${form.name}"? Existing submissions will not be affected.`)) return;
     const result = await archiveInquiryForm(form.id);
-    if (!result.success) toast.error(result.error ?? "Failed to archive form");
+    if (!result.success) {
+      toast.error(result.error ?? "Failed to archive form");
+    } else {
+      router.refresh();
+    }
   }
 
   const fullUrl = photographerSlug ? `${photographerSlug}/${form.form_url}` : form.form_url;

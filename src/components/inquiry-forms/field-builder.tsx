@@ -33,7 +33,7 @@ export function FieldBuilder({ fields, onChange }: Props) {
 
   function handleAdd(fieldType: InquiryFieldType, fieldMapping?: InquiryFieldMapping) {
     const newField: InquiryFormField = {
-      id: `new-${Date.now()}`,
+      id: crypto.randomUUID(),
       form_id: "",
       photographer_id: "",
       field_type: fieldType,
