@@ -346,6 +346,16 @@ export async function getBookingById(id: string) {
   };
 }
 
+export async function getInquiryAnswers(bookingId: string) {
+  const supabase = await createClient();
+  const { data } = await (supabase as any)
+    .from("inquiry_answers")
+    .select("*")
+    .eq("booking_id", bookingId)
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as import("@/lib/types/database").InquiryAnswer[];
+}
+
 export async function getBookingsThisMonthCount(): Promise<number> {
   const user = await getUser();
   if (!user) return 0;

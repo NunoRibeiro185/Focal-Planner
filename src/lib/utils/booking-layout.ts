@@ -14,7 +14,8 @@ export type BookingPanel =
   | "tasks"
   | "deliverables"
   | "editing_pipeline"
-  | "second_shooter";
+  | "second_shooter"
+  | "inquiry_qa";
 
 /**
  * A single widget slot within a layout row.
@@ -74,6 +75,7 @@ const INQUIRY_LAYOUT: BookingLayoutConfig = {
       { panel: "availability_calendar"},
       { panel: "notes", forceShow: true },
     ]},
+    { slots: [{ panel: "inquiry_qa" }] },
     { slots: [
       { panel: "client_info" },
       { panel: "itinerary" },
@@ -102,6 +104,7 @@ const CONFIRMED_LAYOUT: BookingLayoutConfig = {
       { panel: "availability_calendar" },
       { panel: "notes", forceShow: true },
     ]},
+    { slots: [{ panel: "inquiry_qa" }] },
     { slots: [
       { panel: "client_info" },
       { panel: "itinerary" },

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { FeatureGate } from "@/components/paywall/feature-gate";
-import { getBookingById } from "@/lib/queries/bookings";
+import { getBookingById, getInquiryAnswers } from "@/lib/queries/bookings";
 import { getExtras } from "@/lib/queries/extras";
 import { getPackageTemplates } from "@/lib/queries/packages";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
@@ -36,6 +36,7 @@ import {
   ItineraryCard,
   NotesCard,
 } from "@/components/bookings/booking-detail-cards";
+import { InquiryQAPanel } from "@/components/bookings/inquiry-qa-panel";
 import { format } from "date-fns";
 import { MapPin, Calendar, Clock, Archive, CheckCircle2 } from "lucide-react";
 import { BookingArchiveDeleteActions } from "@/components/bookings/booking-archive-delete-actions";
@@ -80,12 +81,13 @@ export default async function BookingDetailPage({
 
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
 
-  const [data, catalogExtras, stageTemplates, packageTemplates, photographerResult] = await Promise.all([
+  const [data, catalogExtras, stageTemplates, packageTemplates, photographerResult, inquiryAnswers] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
     getExtras(),
     getEditingStageTemplates(),
     getPackageTemplates(),
     supabase.from("photographers").select("default_currency").eq("id", user!.id).single(),
+    getInquiryAnswers(id),
   ]);
 
   const {
@@ -231,6 +233,17 @@ export default async function BookingDetailPage({
               bookingId={id}
             />
           </FeatureGate>
+        );
+
+      case "inquiry_qa":
+        if (inquiryAnswers.length === 0) return null;
+        return (
+          <InquiryQAPanel
+            key={panel}
+            answers={inquiryAnswers}
+            formName={booking.inquiry_form_name_snapshot ?? null}
+            submittedAt={booking.created_at}
+          />
         );
 
       default:
