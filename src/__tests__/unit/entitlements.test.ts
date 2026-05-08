@@ -315,3 +315,23 @@ describe("plans config", () => {
     }
   });
 });
+
+// ── inquiryFormsTotal ─────────────────────────────────────────
+
+describe("hasReachedLimit for inquiryFormsTotal", () => {
+  it("free tier: allows first form (count 0)", () => {
+    expect(hasReachedLimit("free", "inquiryFormsTotal", 0)).toBe(false);
+  });
+
+  it("free tier: blocks second form (count 1)", () => {
+    expect(hasReachedLimit("free", "inquiryFormsTotal", 1)).toBe(true);
+  });
+
+  it("trial tier: never blocks regardless of count", () => {
+    expect(hasReachedLimit("trial", "inquiryFormsTotal", 100)).toBe(false);
+  });
+
+  it("pro tier: never blocks regardless of count", () => {
+    expect(hasReachedLimit("pro", "inquiryFormsTotal", 100)).toBe(false);
+  });
+});
