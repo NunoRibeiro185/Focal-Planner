@@ -3,12 +3,10 @@ import { redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
 import { GoogleCalendarPanel } from "@/components/settings/google-calendar-panel";
 import { EditingWorkflowPanel } from "@/components/settings/editing-workflow-panel";
-import { InquiryFormPanel } from "@/components/settings/inquiry-form-panel";
 import { PlanBillingPanel } from "@/components/settings/plan-billing-panel";
 import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getGoogleCalendarToken } from "@/lib/queries/google-calendar";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
-import { getInquirySettings } from "@/lib/queries/inquiries";
 import { getSubscription } from "@/lib/queries/subscription";
 import { getEffectiveTier } from "@/lib/services/entitlements";
 import { DeleteAccountPanel } from "@/components/settings/delete-account-panel";
@@ -40,7 +38,6 @@ export default async function SettingsPage({
     photographerResult,
     googleToken,
     editingStages,
-    inquirySettings,
     subscription,
   ] = await Promise.all([
     supabase
@@ -50,7 +47,6 @@ export default async function SettingsPage({
       .single(),
     getGoogleCalendarToken(),
     getEditingStageTemplates(),
-    getInquirySettings(),
     getSubscription(supabase, user.id),
   ]);
 
@@ -100,40 +96,9 @@ export default async function SettingsPage({
 
       <SettingsSection
         title="Booking setup"
-        description="How clients reach you, your post-production workflow, and what you track per booking."
+        description="Your post-production workflow and what you track per booking."
       >
-        <div className="space-y-0">
-          <FeatureGate
-            feature="inquiryForms"
-            description="Upgrade to Pro to publish a public inquiry form and receive leads directly."
-          >
-            <InquiryFormPanel
-              defaultValues={{
-                slug: inquirySettings?.slug ?? "",
-                inquiry_form_enabled:
-                  inquirySettings?.inquiry_form_enabled ?? false,
-                inquiry_show_packages:
-                  inquirySettings?.inquiry_show_packages ?? true,
-                inquiry_show_prices:
-                  inquirySettings?.inquiry_show_prices ?? true,
-                inquiry_show_phone:
-                  inquirySettings?.inquiry_show_phone ?? true,
-                inquiry_show_secondary_name:
-                  inquirySettings?.inquiry_show_secondary_name ?? true,
-                inquiry_show_event_date:
-                  inquirySettings?.inquiry_show_event_date ?? true,
-                inquiry_show_venue:
-                  inquirySettings?.inquiry_show_venue ?? true,
-                inquiry_show_location:
-                  inquirySettings?.inquiry_show_location ?? true,
-                inquiry_show_notes:
-                  inquirySettings?.inquiry_show_notes ?? true,
-              }}
-            />
-          </FeatureGate>
-          <div className="h-px bg-border/60 my-8" />
-          <EditingWorkflowPanel stages={editingStages} />
-        </div>
+        <EditingWorkflowPanel stages={editingStages} />
       </SettingsSection>
 
       <SettingsSection
