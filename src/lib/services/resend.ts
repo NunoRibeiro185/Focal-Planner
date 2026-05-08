@@ -19,6 +19,11 @@ function getClient(): Resend | null {
 const FROM = process.env.RESEND_FROM_ADDRESS ?? "noreply@focal.app";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://focal.app";
 
+function esc(s: string | null | undefined): string {
+  if (!s) return "";
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 export interface InquiryEmailPayload {
   booking: {
     id: string;
@@ -47,19 +52,19 @@ export async function sendInquiryNotification(
     .filter(Boolean)
     .join(" & ");
 
-  const detailUrl = `${APP_URL}/bookings/${booking.id}`;
-  const formLabel = formName ? ` via your "${formName}" form` : "";
+  const detailUrl = `${APP_URL}/bookings/${esc(booking.id)}`;
+  const formLabel = formName ? ` via your "${esc(formName)}" form` : "";
 
   const html = `
-    <h2>New inquiry from ${clientName}</h2>
+    <h2>New inquiry from ${esc(clientName)}</h2>
     <p>You received a new inquiry${formLabel} through Focal Planner.</p>
     <table cellpadding="4" style="font-family:sans-serif;font-size:14px;">
-      <tr><td><strong>Name</strong></td><td>${clientName}</td></tr>
-      <tr><td><strong>Email</strong></td><td>${booking.client_email ?? "—"}</td></tr>
-      ${booking.client_phone ? `<tr><td><strong>Phone</strong></td><td>${booking.client_phone}</td></tr>` : ""}
-      ${booking.event_date ? `<tr><td><strong>Event date</strong></td><td>${booking.event_date}</td></tr>` : ""}
-      ${booking.venue_name ? `<tr><td><strong>Venue</strong></td><td>${booking.venue_name}</td></tr>` : ""}
-      ${booking.notes ? `<tr><td><strong>Notes</strong></td><td>${booking.notes}</td></tr>` : ""}
+      <tr><td><strong>Name</strong></td><td>${esc(clientName)}</td></tr>
+      <tr><td><strong>Email</strong></td><td>${esc(booking.client_email) || "—"}</td></tr>
+      ${booking.client_phone ? `<tr><td><strong>Phone</strong></td><td>${esc(booking.client_phone)}</td></tr>` : ""}
+      ${booking.event_date ? `<tr><td><strong>Event date</strong></td><td>${esc(booking.event_date)}</td></tr>` : ""}
+      ${booking.venue_name ? `<tr><td><strong>Venue</strong></td><td>${esc(booking.venue_name)}</td></tr>` : ""}
+      ${booking.notes ? `<tr><td><strong>Notes</strong></td><td>${esc(booking.notes)}</td></tr>` : ""}
     </table>
     <p><a href="${detailUrl}">View inquiry in Focal Planner →</a></p>
   `;
@@ -68,7 +73,7 @@ export async function sendInquiryNotification(
     await client.emails.send({
       from: FROM,
       to: photographerEmail,
-      subject: `New inquiry from ${clientName}${formLabel}`,
+      subject: `New inquiry from ${clientName}${formLabel ? ` via your "${formName}" form` : ""}`,
       html,
     });
   } catch (err) {
@@ -186,9 +191,9 @@ export async function sendInquiryConfirmation(
   if (!booking.client_email) return;
 
   const html = `
-    <h2>Thanks for reaching out, ${booking.client_name_primary}!</h2>
+    <h2>Thanks for reaching out, ${esc(booking.client_name_primary)}!</h2>
     <p>
-      ${photographerName} has received your inquiry and will be in touch with you shortly.
+      ${esc(photographerName)} has received your inquiry and will be in touch with you shortly.
     </p>
     <p style="color:#666;font-size:12px;">
       This is an automated confirmation. Please do not reply to this email.

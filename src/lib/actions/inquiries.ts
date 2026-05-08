@@ -34,11 +34,17 @@ const submitSchema = z.object({
 
 export type SubmitInquiryValues = z.infer<typeof submitSchema>;
 
+const urlSlugSchema = z.string().min(1).max(100).regex(/^[a-z0-9-]+$/);
+
 export async function submitInquiry(
   photographerUrl: string,
   formUrl: string,
   values: SubmitInquiryValues
 ): Promise<SubmitInquiryResult> {
+  if (!urlSlugSchema.safeParse(photographerUrl).success || !urlSlugSchema.safeParse(formUrl).success) {
+    return { success: false, error: "Invalid form URL." };
+  }
+
   const parsed = submitSchema.safeParse(values);
   if (!parsed.success) return { success: false, error: "Invalid form data." };
 
@@ -81,7 +87,8 @@ export async function submitInquiry(
       .select("*, photographer:photographers(full_name, email)")
       .eq("id", bookingId as string)
       .single(),
-  ]).then(([{ data }]) => {
+  ]).then(([{ data, error }]) => {
+    if (error) { console.error("Failed to load booking for email dispatch:", error); return; }
     if (!data) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const booking = data as any;
@@ -91,6 +98,8 @@ export async function submitInquiry(
     const formName = booking.inquiry_form_name_snapshot ?? undefined;
     sendInquiryNotification({ booking, photographerName, photographerEmail, formName });
     sendInquiryConfirmation({ booking, photographerName, photographerEmail });
+  }).catch((err) => {
+    console.error("Failed to fetch booking for email notification:", err);
   });
 
   return { success: true };
