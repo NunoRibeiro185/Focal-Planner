@@ -12,7 +12,7 @@ export default async function InquiriesPage() {
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
   if (!user) redirect("/login");
 
-  const [forms, packageTemplates, subResult, incomingResult] = await Promise.all([
+  const [forms, packageTemplates, subResult, incomingResult, slugResult] = await Promise.all([
     getInquiryForms(),
     getPackageTemplates(),
     supabase.from("subscriptions").select("*").eq("photographer_id", user!.id).maybeSingle(),
@@ -22,11 +22,13 @@ export default async function InquiriesPage() {
       .eq("photographer_id", user!.id)
       .eq("status", "inquiry")
       .order("created_at", { ascending: false }),
+    supabase.from("photographers").select("slug").eq("id", user!.id).single(),
   ]);
 
   const tier = getEffectiveTier(subResult.data);
   const atLimit = hasReachedLimit(tier, "inquiryFormsTotal", forms.length);
   const incomingBookings = incomingResult.data ?? [];
+  const photographerSlug = slugResult.data?.slug ?? "";
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
@@ -50,18 +52,16 @@ export default async function InquiriesPage() {
 
         <TabsContent value="forms" className="mt-6">
           <FormList
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            forms={forms as any}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            packageTemplates={packageTemplates as any}
+            forms={forms}
+            packageTemplates={packageTemplates}
             atLimit={atLimit}
             tier={tier}
+            photographerSlug={photographerSlug}
           />
         </TabsContent>
 
         <TabsContent value="incoming" className="mt-6">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <IncomingList bookings={incomingBookings as any} />
+          <IncomingList bookings={incomingBookings} />
         </TabsContent>
       </Tabs>
     </div>
