@@ -88,7 +88,7 @@ export async function getInquiryForms(): Promise<InquiryFormWithFields[]> {
   }));
 }
 
-export async function getActiveFormCount(): Promise<number> {
+export async function getNonArchivedFormCount(): Promise<number> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return 0;

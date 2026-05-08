@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getActiveFormCount } from "@/lib/queries/inquiry-forms";
+import { getNonArchivedFormCount } from "@/lib/queries/inquiry-forms";
 import { getEffectiveTier, hasReachedLimit } from "@/lib/services/entitlements";
 import { normalizeFormUrl } from "@/lib/utils/inquiry-forms";
 import { z } from "zod";
@@ -59,7 +59,7 @@ export async function saveInquiryForm(raw: unknown): Promise<ActionResult> {
       .eq("photographer_id", user.id)
       .maybeSingle();
     const tier = getEffectiveTier(sub);
-    const count = await getActiveFormCount();
+    const count = await getNonArchivedFormCount();
     if (hasReachedLimit(tier, "inquiryFormsTotal", count)) {
       return { success: false, error: "You have reached the form limit for your plan. Upgrade to create more forms." };
     }
@@ -193,10 +193,22 @@ export async function getFormsUsingPackage(packageTemplateId: string): Promise<s
 }
 
 export async function removePackageFromAllForms(packageTemplateId: string): Promise<void> {
-  const { supabase } = await getAuthenticatedClient();
+  const { supabase, user } = await getAuthenticatedClient();
+  if (!user) return;
+
+  const { data: ownedForms } = await supabase
+    .from("inquiry_forms")
+    .select("id")
+    .eq("photographer_id", user.id);
+
+  const ownedFormIds = (ownedForms ?? []).map((f) => f.id);
+  if (ownedFormIds.length === 0) return;
+
   await supabase
     .from("inquiry_form_allowed_packages")
     .delete()
-    .eq("package_template_id", packageTemplateId);
+    .eq("package_template_id", packageTemplateId)
+    .in("form_id", ownedFormIds);
+
   revalidatePath("/inquiries");
 }
