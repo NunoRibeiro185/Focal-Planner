@@ -55,9 +55,11 @@ describe("createSessionToken / verifySessionToken", () => {
 
   it("returns null for a token with a tampered signature", () => {
     const token = createSessionToken(bookingId);
-    // Flip the last character of the token
+    // Flip a character well inside the token (not the last one — the final
+    // base64url char may encode only zero-padding bits, making flips invisible).
     const chars = token.split("");
-    chars[chars.length - 1] = chars[chars.length - 1] === "a" ? "b" : "a";
+    const pos = chars.length - 4;
+    chars[pos] = chars[pos] === "a" ? "b" : "a";
     expect(verifySessionToken(chars.join(""))).toBeNull();
   });
 
