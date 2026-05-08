@@ -197,9 +197,17 @@ export type QuickBookingFormValues = z.infer<typeof quickBookingFormSchema>;
 
 // ─── Settings ────────────────────────────────────────────────
 
+export const slugSchema = z
+  .string()
+  .min(3, "Minimum 3 characters")
+  .max(50, "Maximum 50 characters")
+  .regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens")
+  .or(z.literal(""));
+
 export const settingsSchema = z.object({
   full_name: z.string().min(1, "Name is required"),
   default_currency: z.string().length(3),
+  slug: slugSchema,
 });
 
 export type SettingsValues = z.infer<typeof settingsSchema>;

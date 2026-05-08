@@ -28,6 +28,7 @@ export function FormList({ forms, packageTemplates, atLimit, tier: _tier, photog
       <FormEditor
         form={form}
         packageTemplates={packageTemplates}
+        photographerSlug={photographerSlug}
         onClose={() => setEditingId(null)}
       />
     );
