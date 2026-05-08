@@ -176,6 +176,30 @@ export async function archiveInquiryForm(formId: string): Promise<ActionResult> 
   return { success: true };
 }
 
+export async function checkFormUrlAvailable(
+  formUrl: string,
+  excludeFormId?: string
+): Promise<{ available: boolean }> {
+  if (!formUrl) return { available: false };
+
+  const { supabase, user } = await getAuthenticatedClient();
+  if (!user) return { available: false };
+
+  let query = supabase
+    .from("inquiry_forms")
+    .select("id")
+    .eq("photographer_id", user.id)
+    .eq("form_url", formUrl)
+    .is("archived_at", null);
+
+  if (excludeFormId) {
+    query = query.neq("id", excludeFormId);
+  }
+
+  const { data } = await query.maybeSingle();
+  return { available: data === null };
+}
+
 export async function getFormsUsingPackage(packageTemplateId: string): Promise<string[]> {
   const { supabase, user } = await getAuthenticatedClient();
   if (!user) return [];

@@ -42,7 +42,7 @@ export default async function SettingsPage({
   ] = await Promise.all([
     supabase
       .from("photographers")
-      .select("full_name, default_currency")
+      .select("full_name, default_currency, slug")
       .eq("id", user.id)
       .single(),
     getGoogleCalendarToken(),
@@ -52,7 +52,7 @@ export default async function SettingsPage({
 
   const photographer = photographerResult.data as Pick<
     Photographer,
-    "full_name" | "default_currency"
+    "full_name" | "default_currency" | "slug"
   > | null;
   const tier = getEffectiveTier(subscription);
 
@@ -68,6 +68,7 @@ export default async function SettingsPage({
           defaultValues={{
             full_name: photographer?.full_name ?? "",
             default_currency: photographer?.default_currency ?? "EUR",
+            slug: photographer?.slug ?? "",
           }}
         />
       </SettingsSection>
