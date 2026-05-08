@@ -235,8 +235,8 @@ describe("getRemainingUsage", () => {
   });
 
   it("applies packages limit correctly", () => {
-    expect(getRemainingUsage("free", "packagesTotal", 1)).toBe(1);
-    expect(getRemainingUsage("free", "packagesTotal", 2)).toBe(0);
+    expect(getRemainingUsage("free", "packagesTotal", 1)).toBe(2);
+    expect(getRemainingUsage("free", "packagesTotal", 3)).toBe(0);
   });
 
   it("applies expenses limit correctly", () => {
@@ -269,11 +269,11 @@ describe("hasReachedLimit", () => {
   });
 
   it("returns true for packages at limit", () => {
-    expect(hasReachedLimit("free", "packagesTotal", 2)).toBe(true);
+    expect(hasReachedLimit("free", "packagesTotal", 3)).toBe(true);
   });
 
   it("returns false for packages under limit", () => {
-    expect(hasReachedLimit("free", "packagesTotal", 1)).toBe(false);
+    expect(hasReachedLimit("free", "packagesTotal", 2)).toBe(false);
   });
 
   it("returns true for expenses at limit", () => {
