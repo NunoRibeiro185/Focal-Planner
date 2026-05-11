@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { toggleInquiryFormActive, archiveInquiryForm } from "@/lib/actions/inquiry-forms";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Pencil, Archive } from "lucide-react";
+import { Pencil, Archive, Link2, Check } from "lucide-react";
 import { FormEditor } from "./form-editor";
 import type { InquiryFormWithFields } from "@/lib/types/inquiry-forms";
 import type { EffectiveTier } from "@/config/plans";
@@ -78,6 +78,7 @@ function FormCard({ form, photographerSlug, onEdit }: {
   onEdit: () => void;
 }) {
   const [active, setActive] = useState(form.is_active);
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
 
   async function handleToggle() {
@@ -102,6 +103,13 @@ function FormCard({ form, photographerSlug, onEdit }: {
 
   const fullUrl = photographerSlug ? `${photographerSlug}/${form.form_url}` : form.form_url;
 
+  async function handleCopy() {
+    const url = `${window.location.origin}/inquiry/${fullUrl}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div className="rounded-xl border bg-card p-4 flex items-center gap-4">
       <div className="flex-1 min-w-0">
@@ -110,6 +118,9 @@ function FormCard({ form, photographerSlug, onEdit }: {
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <Switch checked={active} onCheckedChange={handleToggle} aria-label="Active" />
+        <Button variant="ghost" size="sm" onClick={handleCopy} title="Copy link">
+          {copied ? <Check className="h-4 w-4 text-green-500" /> : <Link2 className="h-4 w-4" />}
+        </Button>
         <Button variant="ghost" size="sm" onClick={onEdit}>
           <Pencil className="h-4 w-4" />
         </Button>

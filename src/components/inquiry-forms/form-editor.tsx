@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { FieldBuilder } from "./field-builder";
+import { FormPreview } from "./form-preview";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import type { InquiryFormWithFields, InquiryFormField } from "@/lib/types/inquiry-forms";
 
@@ -20,6 +21,7 @@ interface Props {
 }
 
 type UrlStatus = "idle" | "checking" | "available" | "taken";
+type EditorMode = "edit" | "preview";
 
 export function FormEditor({ form, packageTemplates, photographerSlug, onClose }: Props) {
   const [name, setName] = useState(form?.name ?? "");
@@ -29,6 +31,7 @@ export function FormEditor({ form, packageTemplates, photographerSlug, onClose }
   const [fields, setFields] = useState<InquiryFormField[]>(form?.fields ?? []);
   const [isPending, startTransition] = useTransition();
   const [urlStatus, setUrlStatus] = useState<UrlStatus>("idle");
+  const [mode, setMode] = useState<EditorMode>("edit");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -79,6 +82,10 @@ export function FormEditor({ form, packageTemplates, photographerSlug, onClose }
     ? `/inquiry/${photographerSlug}/${normalizeFormUrl(formUrl) || "…"}`
     : `/inquiry/…/${normalizeFormUrl(formUrl) || "…"}`;
 
+  const previewPackages = allowedPackageIds.length > 0
+    ? packageTemplates.filter((p) => allowedPackageIds.includes(p.id))
+    : packageTemplates;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -86,9 +93,31 @@ export function FormEditor({ form, packageTemplates, photographerSlug, onClose }
         <h2 className="text-xl font-[family-name:var(--font-heading)]">
           {form ? `Edit: ${form.name}` : "New form"}
         </h2>
-        <Button variant="ghost" onClick={onClose}>Back to forms</Button>
+        <div className="flex items-center gap-3">
+          <div className="flex rounded-lg border overflow-hidden">
+            <button
+              onClick={() => setMode("edit")}
+              className={`px-3 py-1.5 text-sm transition-colors ${mode === "edit" ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setMode("preview")}
+              className={`px-3 py-1.5 text-sm transition-colors ${mode === "preview" ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              Preview
+            </button>
+          </div>
+          <Button variant="ghost" onClick={onClose}>Back to forms</Button>
+        </div>
       </div>
 
+      {mode === "preview" && (
+        <FormPreview fields={fields} packageTemplates={previewPackages} />
+      )}
+
+      {mode === "edit" && (
+      <>
       {/* Form metadata */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
         <div className="space-y-1.5">
@@ -176,6 +205,8 @@ export function FormEditor({ form, packageTemplates, photographerSlug, onClose }
           {isPending ? "Saving…" : "Save form"}
         </Button>
       </div>
+      </>
+      )}
     </div>
   );
 }
