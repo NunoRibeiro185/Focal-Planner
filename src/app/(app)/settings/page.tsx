@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { SettingsForm } from "./settings-form";
+import { SettingsForm } from "@/components/settings/settings-form";
 import { GoogleCalendarPanel } from "@/components/settings/google-calendar-panel";
 import { EditingWorkflowPanel } from "@/components/settings/editing-workflow-panel";
 import { PlanBillingPanel } from "@/components/settings/plan-billing-panel";

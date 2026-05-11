@@ -32,19 +32,19 @@ export function FieldPalette({ existingMappings, onAdd }: Props) {
   const availablePreMade = PRE_MADE_FIELDS.filter((f) => !existingMappings.has(f.fieldMapping));
 
   return (
-    <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
+    <div className="space-y-5">
       {availablePreMade.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Pre-made fields</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pre-made</p>
+          <div className="space-y-0.5">
             {availablePreMade.map((f) => (
               <button
                 key={f.fieldMapping}
                 type="button"
                 onClick={() => onAdd(f.fieldType, f.fieldMapping)}
-                className="inline-flex items-center gap-1 text-xs rounded-md border bg-card px-2.5 py-1.5 hover:bg-muted transition-colors"
+                className="w-full flex items-center gap-2 text-left text-sm px-2 py-1.5 rounded-md hover:bg-muted transition-colors text-foreground/80 hover:text-foreground"
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 {f.label}
               </button>
             ))}
@@ -53,16 +53,16 @@ export function FieldPalette({ existingMappings, onAdd }: Props) {
       )}
 
       <div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Custom fields</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Custom</p>
+        <div className="space-y-0.5">
           {FREEFORM_FIELDS.map((f) => (
             <button
               key={f.fieldType}
               type="button"
               onClick={() => onAdd(f.fieldType)}
-              className="inline-flex items-center gap-1 text-xs rounded-md border bg-card px-2.5 py-1.5 hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 text-left text-sm px-2 py-1.5 rounded-md hover:bg-muted transition-colors text-foreground/80 hover:text-foreground"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               {f.label}
             </button>
           ))}
