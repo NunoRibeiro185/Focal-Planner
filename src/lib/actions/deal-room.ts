@@ -204,12 +204,15 @@ export async function acceptProposal(input: unknown) {
   const booking = await assertClientToken(bookingId, token)
 
   const supabase = createServiceRoleClient() as any
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("deal_room_proposals")
     .update({ status: "accepted", responded_at: new Date().toISOString() })
     .eq("id", proposalId)
     .eq("booking_id", bookingId)
+    .eq("status", "sent")
+    .select("id")
   if (error) throw new Error("Failed to accept proposal")
+  if (!updated || updated.length === 0) throw new Error("Proposal is no longer available for acceptance")
 
   revalidatePath(`/bookings/${bookingId}`)
   revalidatePath(`/client/${bookingId}`)
@@ -233,12 +236,15 @@ export async function submitCounterOffer(input: unknown) {
 
   const supabase = createServiceRoleClient() as any
 
-  const { error: proposalError } = await supabase
+  const { data: updatedProposal, error: proposalError } = await supabase
     .from("deal_room_proposals")
     .update({ status: "countered", responded_at: new Date().toISOString() })
     .eq("id", proposalId)
     .eq("booking_id", bookingId)
+    .eq("status", "sent")
+    .select("id")
   if (proposalError) throw new Error("Failed to update proposal")
+  if (!updatedProposal || updatedProposal.length === 0) throw new Error("Proposal is no longer available for counter-offer")
 
   const { error: counterError } = await supabase.from("deal_room_counter_offers").insert({
     proposal_id: proposalId,
@@ -320,6 +326,15 @@ export async function saveClientAnswer(input: unknown) {
   const booking = await assertClientToken(bookingId, token)
 
   const supabase = createServiceRoleClient() as any
+
+  const { data: question, error: questionError } = await supabase
+    .from("deal_room_questions")
+    .select("id")
+    .eq("id", questionId)
+    .eq("booking_id", bookingId)
+    .single()
+  if (questionError || !question) throw new Error("Question not found")
+
   const { error } = await supabase.from("deal_room_answers").upsert(
     {
       question_id: questionId,
