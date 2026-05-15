@@ -42,6 +42,8 @@ export type ExpenseCategory =
 
 export type ExpensePaidBy = "photographer" | "client";
 
+export type ItineraryCreatedBy = "photographer" | "client";
+
 export type SubscriptionStatus = "active" | "cancelled" | "past_due" | "paused";
 export type SubscriptionPlan = "monthly" | "annual";
 
@@ -132,6 +134,7 @@ export interface Booking {
   discount_amount: number;
   created_at: string;
   updated_at: string;
+  client_token: string;
 }
 
 export interface InquiryForm {
@@ -336,6 +339,7 @@ export interface BookingItineraryStop {
   start_time: string | null;
   notes: string | null;
   sort_order: number;
+  created_by: ItineraryCreatedBy;
 }
 
 export interface PersonalEvent {
@@ -451,6 +455,47 @@ export interface BookingDeliverableProgress {
   created_at: string;
 }
 
+// ─── Deal Room row types ──────────────────────────────────────
+
+export interface DealRoomProposalRow {
+  id: string;
+  booking_id: string;
+  photographer_id: string;
+  package_name: string;
+  line_items: unknown;
+  total_price: number;
+  allow_renegotiation: boolean;
+  status: "sent" | "accepted" | "countered";
+  sent_at: string;
+  responded_at: string | null;
+}
+
+export interface DealRoomCounterOfferRow {
+  id: string;
+  proposal_id: string;
+  booking_id: string;
+  removed_item_names: unknown;
+  proposed_total: number;
+  created_at: string;
+}
+
+export interface DealRoomQuestionRow {
+  id: string;
+  booking_id: string;
+  photographer_id: string;
+  question_text: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DealRoomAnswerRow {
+  id: string;
+  question_id: string;
+  booking_id: string;
+  answer_text: string;
+  updated_at: string;
+}
+
 // ─── Database interface for Supabase client generic ──────────
 
 export interface Database {
@@ -479,6 +524,10 @@ export interface Database {
       booking_editing_stages: { Row: BookingEditingStage };
       second_shooter_notes: { Row: SecondShooterNote };
       expenses: { Row: Expense };
+      deal_room_proposals: { Row: DealRoomProposalRow };
+      deal_room_counter_offers: { Row: DealRoomCounterOfferRow };
+      deal_room_questions: { Row: DealRoomQuestionRow };
+      deal_room_answers: { Row: DealRoomAnswerRow };
       subscriptions: {
         Row: Subscription;
         Insert: SubscriptionInsert;

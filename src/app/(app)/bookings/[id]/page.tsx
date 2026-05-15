@@ -38,6 +38,8 @@ import { InquiryQAPanel } from "@/components/bookings/inquiry-qa-panel";
 import { format } from "date-fns";
 import { MapPin, Calendar, Clock, Archive, CheckCircle2 } from "lucide-react";
 import { BookingArchiveDeleteActions } from "@/components/bookings/booking-archive-delete-actions";
+import { getDealRoomData } from "@/lib/queries/deal-room";
+import { ClientPortalPanel } from "@/components/bookings/client-portal-panel";
 
 const STAGE_CONTEXT: Partial<Record<string, string>> = {
   inquiry: "Evaluating this lead — check your availability, review the details, and decide.",
@@ -79,7 +81,7 @@ export default async function BookingDetailPage({
 
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
 
-  const [data, stageTemplates, packageTemplates, photographerResult, inquiryAnswers, bookingServices, catalogServices] = await Promise.all([
+  const [data, stageTemplates, packageTemplates, photographerResult, inquiryAnswers, bookingServices, catalogServices, dealRoomData] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
     getEditingStageTemplates(),
     getPackageTemplatesWithServices(),
@@ -87,6 +89,7 @@ export default async function BookingDetailPage({
     getInquiryAnswers(id),
     getBookingServices(id),
     getServices(),
+    getDealRoomData(id),
   ]);
 
   const {
@@ -347,6 +350,18 @@ export default async function BookingDetailPage({
         );
       })}
       </div>
+
+      {/* ── Client portal ── */}
+      {dealRoomData && (
+        <ClientPortalPanel
+          bookingId={booking.id}
+          clientToken={dealRoomData.booking.client_token}
+          clientEmail={dealRoomData.booking.client_email}
+          proposal={dealRoomData.proposal}
+          counterOffer={dealRoomData.counterOffer}
+          questions={dealRoomData.questions}
+        />
+      )}
     </div>
   );
 }
