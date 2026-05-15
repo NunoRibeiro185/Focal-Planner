@@ -42,20 +42,17 @@ export const LEAD_SOURCE_OPTIONS = [
 ] as const;
 
 export const bookingFormSchema = z.object({
-  package_template_id: z.string().uuid("Select a package"),
-  package_version_id: z.string().uuid().nullable().optional(),
   client_name_primary: z.string().min(1, "Primary client name is required"),
   client_name_secondary: z.string().nullable(),
   client_email: z.string().email("Invalid email").or(z.literal("")).nullable(),
   client_phone: z.string().nullable(),
   lead_source: z
-    .enum(["instagram", "facebook", "google", "referral",  "inquiry_form", "other"])
+    .enum(["instagram", "facebook", "google", "referral", "inquiry_form", "other"])
     .nullable(),
   event_date: z.string().min(1, "Event date is required"),
   location: z.string().nullable(),
   notes: z.string().nullable(),
-  price_override: z.coerce.number().nullable(),
-  hours_override: z.coerce.number().nullable(),
+  discount_amount: z.coerce.number().min(0).default(0),
   deposit_amount: z.coerce.number().min(0).nullable(),
   payment_due_date: z.string().nullable(),
 });
@@ -110,6 +107,28 @@ export const customFieldDefinitionSchema = z.object({
 });
 
 export type CustomFieldDefinitionValues = z.infer<typeof customFieldDefinitionSchema>;
+
+// ─── Services catalog ─────────────────────────────────────────
+
+export const serviceSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().nullable(),
+  unit_price: z.coerce.number().min(0, "Price must be 0 or more"),
+  track_completion: z.boolean().default(false),
+});
+
+export type ServiceValues = z.infer<typeof serviceSchema>;
+
+export const bookingServiceSchema = z.object({
+  service_id: z.string().uuid().nullable(),
+  name_snapshot: z.string().min(1, "Name is required"),
+  description_snapshot: z.string().nullable(),
+  unit_price_snapshot: z.coerce.number().min(0, "Price must be 0 or more"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  track_completion_snapshot: z.boolean().default(false),
+});
+
+export type BookingServiceValues = z.infer<typeof bookingServiceSchema>;
 
 // ─── Inline booking edits ─────────────────────────────────────
 
