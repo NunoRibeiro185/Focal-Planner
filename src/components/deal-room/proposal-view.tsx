@@ -65,14 +65,18 @@ export function ProposalView({
       </div>
 
       {/* Counter-offer sent state */}
-      {isCountered && counterOffer && (
-        <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Counter-offer sent — waiting for the photographer&apos;s response.
-          <br />
-          Removed: {counterOffer.removed_item_names.join(", ")}
-          <br />
-          Proposed total: {counterOffer.proposed_total.toLocaleString()}
-        </div>
+      {isCountered && (
+        counterOffer ? (
+          <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+            Counter-offer sent — waiting for the photographer&apos;s response.
+            <br />
+            Removed: {counterOffer.removed_item_names.join(", ")}
+            <br />
+            Proposed total: {counterOffer.proposed_total.toLocaleString()}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Counter-offer submitted — awaiting response.</p>
+        )
       )}
 
       {/* Actions — only when status is sent */}
