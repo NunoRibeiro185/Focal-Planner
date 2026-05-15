@@ -6,6 +6,7 @@ import type {
   PackageVersion,
   PackageVersionWithBookingCount,
 } from "@/lib/types";
+import type { PackageTemplateWithServices } from "@/lib/types/services";
 
 export async function getPackageTemplates(): Promise<PackageTemplateForList[]> {
   const supabase = await createClient();
@@ -112,6 +113,27 @@ export async function getPackageTemplateById(id: string) {
     template: templateResult.data as PackageTemplateWithVersion,
     versions: versionsResult.data ?? [],
   };
+}
+
+export async function getPackageTemplatesWithServices(): Promise<PackageTemplateWithServices[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("package_templates")
+    .select(`
+      id, photographer_id, name, archived, created_at,
+      services:package_template_services(
+        service_id, default_quantity, sort_order,
+        service:services(id, name, description, unit_price, track_completion)
+      )
+    `)
+    .eq("photographer_id", user.id)
+    .eq("archived", false)
+    .order("created_at", { ascending: true });
+
+  return (data ?? []) as unknown as PackageTemplateWithServices[];
 }
 
 export async function getPackageTemplatesCount(): Promise<number> {

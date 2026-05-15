@@ -5,12 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   bookingFormSchema,
+  bookingServiceSchema,
   clientInfoSchema,
   bookingDateTimeSchema,
   bookingPricingSchema,
   bookingDepositSchema,
   type BookingFormValues,
-  type BookingExtraValues,
+  type BookingServiceValues,
   type ItineraryStopInput,
   type ClientInfoValues,
   type BookingDateTimeValues,
@@ -21,40 +22,6 @@ import { canTransition, isBackwardTransition, isForwardStepperTransition, isTerm
 import { buildBookingStagesFromTemplates } from "@/lib/utils/editing-workflow";
 import type { BookingStatus } from "@/lib/types";
 import { syncBookingToGoogle } from "@/lib/actions/google-calendar";
-
-/**
- * Seeds booking_deliverable_progress rows for all checkbox-type custom fields
- * in the given package version. Used when creating or reassigning a booking.
- */
-async function seedDeliverableProgress(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  bookingId: string,
-  packageVersionId: string,
-  photographerId: string
-) {
-  const { data: fields } = await supabase
-    .from("package_version_custom_fields")
-    .select("id, value_bool, field_definition:custom_field_definitions(label, description)")
-    .eq("package_version_id", packageVersionId);
-
-  const includedFields = (fields ?? []).filter((f: any) => f.value_bool === true);
-
-  if (includedFields.length === 0) return;
-
-  const rows = includedFields.map((f: any) => ({
-    booking_id: bookingId,
-    photographer_id: photographerId,
-    package_version_custom_field_id: f.id,
-    label: f.field_definition.label as string,
-    description: (f.field_definition.description ?? null) as string | null,
-    done: false,
-  }));
-
-  const { error } = await supabase
-    .from("booking_deliverable_progress")
-    .insert(rows);
-  if (error) throw error;
-}
 
 /**
  * Replaces itinerary stops for a booking (delete all + insert new).
@@ -87,68 +54,32 @@ async function replaceItineraryStops(
   if (error) throw error;
 }
 
-/**
- * Creates a new booking atomically (booking + deliverables + tasks).
- *
- * IMPORTANT: The current_version_id is re-fetched from the DB server-side,
- * not trusted from the client, to close the race condition where the package
- * is edited between the form loading and the form being submitted.
- */
 export async function createBooking(
   values: BookingFormValues,
-  extras: BookingExtraValues[] = [],
-  itinerary: ItineraryStopInput[] = []
+  services: BookingServiceValues[] = [],
+  itinerary: ItineraryStopInput[] = [],
+  depositAlreadyPaid = false,
+  addAnother = false
 ) {
   const parsed = bookingFormSchema.safeParse(values);
   if (!parsed.success) throw new Error("Invalid booking data");
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthenticated");
 
   const data = parsed.data;
 
-  let packageVersionId: string;
-  let version: any;
+  const parsedServices = services.map((s) => bookingServiceSchema.safeParse(s));
+  if (parsedServices.some((p) => !p.success)) throw new Error("Invalid service data");
+  const validServices = parsedServices.map((p) => (p as { success: true; data: BookingServiceValues }).data);
 
-  if (data.package_version_id) {
-    // User explicitly selected a version — validate it belongs to the template
-    const { data: selectedVersion, error: versionError } = await supabase
-      .from("package_versions")
-      .select("*")
-      .eq("id", data.package_version_id)
-      .eq("package_template_id", data.package_template_id)
-      .eq("photographer_id", user.id)
-      .eq("archived", false)
-      .single();
+  const subtotal = validServices.reduce(
+    (sum, s) => sum + s.unit_price_snapshot * s.quantity,
+    0
+  );
+  const totalPrice = Math.max(0, subtotal - (data.discount_amount ?? 0));
 
-    if (versionError || !selectedVersion) throw new Error("Selected version not found");
-    packageVersionId = selectedVersion.id;
-    version = selectedVersion;
-  } else {
-    // Default: use the current version (re-fetched server-side to close race condition)
-    const { data: template, error: templateError } = await supabase
-      .from("package_templates")
-      .select("current_version_id, package_versions!fk_current_version(*)")
-      .eq("id", data.package_template_id)
-      .eq("photographer_id", user.id)
-      .single();
-
-    if (templateError || !template?.current_version_id) {
-      throw new Error("Package not found or has no version");
-    }
-    packageVersionId = template.current_version_id;
-    version = (template as any).package_versions;
-    if (!version) throw new Error("Package version not found");
-  }
-
-  const totalPrice = version.base_price + (data.price_override ?? 0);
-
-  const deliverableKeys: string[] = [];
-
-  // Gather tasks from templates
   const { data: taskTemplates } = await supabase
     .from("task_templates")
     .select("id, title, sort_order")
@@ -159,15 +90,13 @@ export async function createBooking(
   const taskTemplateIds = (taskTemplates ?? []).map((t: any) => t.id);
   const taskSortOrders = (taskTemplates ?? []).map((t: any) => t.sort_order);
 
-  // Derive venue_name and start_time from first itinerary stop for legacy columns
   const firstStop = itinerary[0];
 
-  // Call the atomic Postgres RPC
   const { data: bookingId, error: rpcError } = await supabase.rpc(
     "create_booking_atomic",
     {
       p_photographer_id: user.id,
-      p_package_version_id: packageVersionId,
+      p_package_version_id: null,
       p_client_name_primary: data.client_name_primary,
       p_client_name_secondary: data.client_name_secondary ?? null,
       p_client_email: data.client_email ?? null,
@@ -178,15 +107,17 @@ export async function createBooking(
       p_start_time: firstStop?.start_time || null,
       p_duration_hours: null,
       p_notes: data.notes ?? null,
-      p_price_override: data.price_override ?? null,
-      p_hours_override: data.hours_override ?? null,
+      p_price_override: null,
+      p_hours_override: null,
       p_total_price: totalPrice,
       p_deposit_amount: data.deposit_amount ?? null,
       p_payment_due_date: data.payment_due_date ?? null,
-      p_deliverable_keys: deliverableKeys,
+      p_deliverable_keys: [],
       p_task_titles: taskTitles,
       p_task_template_ids: taskTemplateIds,
       p_task_sort_orders: taskSortOrders,
+      p_status: "confirmed",
+      p_discount_amount: data.discount_amount ?? 0,
     }
   );
 
@@ -194,57 +125,149 @@ export async function createBooking(
 
   const bid = bookingId as string;
 
-  // Update fields not included in the atomic RPC signature
+  const parallelOps: Promise<any>[] = [
+    replaceItineraryStops(supabase, bid, user.id, itinerary),
+  ];
+
   if (data.lead_source || data.location) {
-    await supabase
-      .from("bookings")
-      .update({
-        lead_source: data.lead_source ?? null,
-        location: data.location ?? null,
-      })
-      .eq("id", bid)
-      .eq("photographer_id", user.id);
+    parallelOps.push(
+      supabase
+        .from("bookings")
+        .update({ lead_source: data.lead_source ?? null, location: data.location ?? null })
+        .eq("id", bid)
+        .eq("photographer_id", user.id) as unknown as Promise<any>
+    );
   }
 
-  await Promise.all([
-    seedDeliverableProgress(supabase, bid, packageVersionId, user.id),
-    replaceItineraryStops(supabase, bid, user.id, itinerary),
-    extras.length > 0
-      ? supabase.from("booking_extras").insert(
-          extras.map((e) => ({
-            booking_id: bid,
-            photographer_id: user.id,
-            extra_id: e.extra_id ?? null,
-            name_snapshot: e.name_snapshot,
-            price_snapshot: e.price_snapshot,
-            currency_snapshot: e.currency_snapshot,
-            quantity: e.quantity,
-          }))
-        )
-      : Promise.resolve(),
-  ]);
+  if (validServices.length > 0) {
+    parallelOps.push(
+      supabase.from("booking_services").insert(
+        validServices.map((s, i) => ({
+          booking_id: bid,
+          photographer_id: user.id,
+          service_id: s.service_id ?? null,
+          name_snapshot: s.name_snapshot,
+          description_snapshot: s.description_snapshot ?? null,
+          unit_price_snapshot: s.unit_price_snapshot,
+          quantity: s.quantity,
+          track_completion_snapshot: s.track_completion_snapshot,
+          done: false,
+          sort_order: i,
+        }))
+      ) as unknown as Promise<any>
+    );
+  }
+
+  if (depositAlreadyPaid && data.deposit_amount && data.deposit_amount > 0) {
+    parallelOps.push(
+      supabase.from("payment_log_entries").insert({
+        booking_id: bid,
+        photographer_id: user.id,
+        amount: data.deposit_amount,
+        paid_date: new Date().toISOString().split("T")[0],
+        note: "Deposit (logged at booking creation)",
+      }) as unknown as Promise<any>
+    );
+  }
+
+  await Promise.all(parallelOps);
 
   revalidatePath("/bookings");
   revalidatePath("/calendar");
 
-  // Fire-and-forget Google Calendar sync
   syncBookingToGoogle(bid, "create").catch((e) =>
     console.error("[GoogleSync] createBooking:", e)
   );
 
+  if (addAnother) {
+    redirect("/bookings/new");
+  } else {
+    redirect(`/bookings/${bid}`);
+  }
+}
+
+export async function createInquiry(
+  values: BookingFormValues,
+  itinerary: ItineraryStopInput[] = []
+) {
+  const parsed = bookingFormSchema.safeParse(values);
+  if (!parsed.success) throw new Error("Invalid booking data");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const data = parsed.data;
+
+  const { data: taskTemplates } = await supabase
+    .from("task_templates")
+    .select("id, title, sort_order")
+    .eq("photographer_id", user.id)
+    .order("sort_order", { ascending: true });
+
+  const taskTitles = (taskTemplates ?? []).map((t: any) => t.title);
+  const taskTemplateIds = (taskTemplates ?? []).map((t: any) => t.id);
+  const taskSortOrders = (taskTemplates ?? []).map((t: any) => t.sort_order);
+
+  const firstStop = itinerary[0];
+
+  const { data: bookingId, error: rpcError } = await supabase.rpc(
+    "create_booking_atomic",
+    {
+      p_photographer_id: user.id,
+      p_package_version_id: null,
+      p_client_name_primary: data.client_name_primary,
+      p_client_name_secondary: data.client_name_secondary ?? null,
+      p_client_email: data.client_email ?? null,
+      p_client_phone: data.client_phone ?? null,
+      p_venue_name: firstStop?.name ?? null,
+      p_venue_address: firstStop?.address ?? null,
+      p_event_date: data.event_date,
+      p_start_time: firstStop?.start_time || null,
+      p_duration_hours: null,
+      p_notes: data.notes ?? null,
+      p_price_override: null,
+      p_hours_override: null,
+      p_total_price: 0,
+      p_deposit_amount: null,
+      p_payment_due_date: null,
+      p_deliverable_keys: [],
+      p_task_titles: taskTitles,
+      p_task_template_ids: taskTemplateIds,
+      p_task_sort_orders: taskSortOrders,
+      p_status: "inquiry",
+      p_discount_amount: 0,
+    }
+  );
+
+  if (rpcError) throw rpcError;
+
+  const bid = bookingId as string;
+
+  await Promise.all([
+    replaceItineraryStops(supabase, bid, user.id, itinerary),
+    data.lead_source || data.location
+      ? supabase
+          .from("bookings")
+          .update({ lead_source: data.lead_source ?? null, location: data.location ?? null })
+          .eq("id", bid)
+          .eq("photographer_id", user.id)
+      : Promise.resolve(),
+  ]);
+
+  revalidatePath("/inquiries");
   redirect(`/bookings/${bid}`);
 }
 
 /**
  * Full edit of a booking.
- * - Always updates mutable fields and replaces itinerary stops.
- * - If the package template has changed, atomically reassigns via RPC
- *   and re-seeds deliverable progress from the new version.
+ * Updates mutable fields and replaces itinerary stops.
+ * Package reassignment is handled separately via updateBookingPackage.
  */
 export async function updateBookingFull(
   bookingId: string,
   values: BookingFormValues,
-  originalPackageVersionId: string | null,
+  _originalPackageVersionId: string | null,
   itinerary: ItineraryStopInput[] = []
 ) {
   const parsed = bookingFormSchema.safeParse(values);
@@ -257,59 +280,6 @@ export async function updateBookingFull(
   if (!user) throw new Error("Unauthenticated");
 
   const data = parsed.data;
-
-  // Resolve the new version: explicit selection or current version of the template
-  let newVersionId: string;
-  let newVersionBasePrice: number;
-
-  if (data.package_version_id) {
-    const { data: selectedVersion, error } = await supabase
-      .from("package_versions")
-      .select("id, base_price")
-      .eq("id", data.package_version_id)
-      .eq("package_template_id", data.package_template_id)
-      .eq("photographer_id", user.id)
-      .eq("archived", false)
-      .single();
-    if (error || !selectedVersion) throw new Error("Selected version not found");
-    newVersionId = selectedVersion.id;
-    newVersionBasePrice = selectedVersion.base_price;
-  } else {
-    const { data: template, error: templateError } = await supabase
-      .from("package_templates")
-      .select("current_version_id, package_versions!fk_current_version(base_price)")
-      .eq("id", data.package_template_id)
-      .eq("photographer_id", user.id)
-      .single();
-    if (templateError || !template?.current_version_id) {
-      throw new Error("Package not found or has no version");
-    }
-    newVersionId = template.current_version_id;
-    newVersionBasePrice = (template as any).package_versions?.base_price ?? 0;
-  }
-
-  const packageChanged = newVersionId !== originalPackageVersionId;
-
-  if (packageChanged) {
-    const newTotalPrice = newVersionBasePrice + (data.price_override ?? 0);
-
-    const { error: rpcError } = await supabase.rpc("reassign_booking_package", {
-      p_booking_id: bookingId,
-      p_photographer_id: user.id,
-      p_new_package_version_id: newVersionId,
-      p_new_total_price: newTotalPrice,
-    });
-
-    if (rpcError) throw rpcError;
-
-    await supabase
-      .from("booking_deliverable_progress")
-      .delete()
-      .eq("booking_id", bookingId)
-      .eq("photographer_id", user.id);
-
-    await seedDeliverableProgress(supabase, bookingId, newVersionId, user.id);
-  }
 
   const firstStop = itinerary[0];
 
@@ -582,7 +552,7 @@ export async function updateBookingPackage(
     .eq("booking_id", bookingId)
     .eq("photographer_id", user.id);
 
-  await seedDeliverableProgress(supabase, bookingId, template.current_version_id, user.id);
+  // seedDeliverableProgress removed — deliverables now handled via booking_services
 
   revalidatePath(`/bookings/${bookingId}`);
 
