@@ -191,6 +191,7 @@ export async function deleteDealRoomQuestion(input: unknown) {
     .from("deal_room_questions")
     .delete()
     .eq("id", questionId)
+    .eq("booking_id", bookingId)
   if (error) throw new Error("Failed to delete question")
 
   revalidatePath(`/bookings/${bookingId}`)
@@ -209,6 +210,9 @@ export async function acceptProposal(input: unknown) {
     .eq("id", proposalId)
     .eq("booking_id", bookingId)
   if (error) throw new Error("Failed to accept proposal")
+
+  revalidatePath(`/bookings/${bookingId}`)
+  revalidatePath(`/client/${bookingId}`)
 
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
@@ -244,25 +248,26 @@ export async function submitCounterOffer(input: unknown) {
   })
   if (counterError) throw new Error("Failed to save counter-offer")
 
+  revalidatePath(`/bookings/${bookingId}`)
+  revalidatePath(`/client/${bookingId}`)
+
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
-    const supabaseForCurrency = createServiceRoleClient() as any
-    const { data: photographer } = await supabaseForCurrency
-      .from("photographers")
-      .select("default_currency")
-      .eq("id", booking.photographer_id)
-      .single()
-
-    Promise.resolve().then(() =>
-      sendCounterOfferEmail({
+    Promise.resolve().then(async () => {
+      const { data: photographer } = await supabase
+        .from("photographers")
+        .select("default_currency")
+        .eq("id", booking.photographer_id)
+        .single()
+      await sendCounterOfferEmail({
         photographerEmail,
         clientName: booking.client_name_primary,
         bookingId,
         removedItems: removedItemNames,
         proposedTotal,
         currency: photographer?.default_currency ?? "€",
-      }).catch(console.error)
-    )
+      })
+    }).catch(console.error)
   }
 }
 
@@ -295,6 +300,9 @@ export async function addClientItineraryStop(input: unknown) {
   })
   if (error) throw new Error("Failed to add itinerary stop")
 
+  revalidatePath(`/bookings/${bookingId}`)
+  revalidatePath(`/client/${bookingId}`)
+
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
     Promise.resolve().then(() =>
@@ -322,6 +330,9 @@ export async function saveClientAnswer(input: unknown) {
     { onConflict: "question_id" }
   )
   if (error) throw new Error("Failed to save answer")
+
+  revalidatePath(`/bookings/${bookingId}`)
+  revalidatePath(`/client/${bookingId}`)
 
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
