@@ -40,6 +40,8 @@ export interface PackageTemplateWithServices {
   name: string;
   archived: boolean;
   created_at: string;
+  base_price: number | null;
+  currency: string | null;
   services: Array<{
     service_id: string;
     default_quantity: number;

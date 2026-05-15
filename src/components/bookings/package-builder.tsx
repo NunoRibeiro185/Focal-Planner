@@ -55,7 +55,7 @@ export function PackageBuilder({
   const finalPrice = computeFinalPrice(subtotal, discount);
 
   function loadFromPackage(pkg: PackageTemplateWithServices) {
-    const newItems: BuilderLineItem[] = pkg.services
+    const serviceItems: BuilderLineItem[] = pkg.services
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((ps) => ({
         service_id: ps.service_id,
@@ -65,7 +65,20 @@ export function PackageBuilder({
         quantity: ps.default_quantity,
         track_completion_snapshot: ps.service.track_completion,
       }));
-    onItemsChange(newItems);
+
+    const baseItem: BuilderLineItem | null =
+      pkg.base_price != null && pkg.base_price > 0
+        ? {
+            service_id: null,
+            name_snapshot: pkg.name,
+            description_snapshot: null,
+            unit_price_snapshot: pkg.base_price,
+            quantity: 1,
+            track_completion_snapshot: false,
+          }
+        : null;
+
+    onItemsChange(baseItem ? [baseItem, ...serviceItems] : serviceItems);
     onDiscountChange(0);
   }
 

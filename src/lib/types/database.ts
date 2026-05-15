@@ -294,6 +294,7 @@ export interface PackageVersionWithBookingCount extends PackageVersion {
 export interface PackageTemplateForList extends PackageTemplate {
   current_version: PackageVersionWithCustomFields | null;
   all_versions: PackageVersionWithBookingCount[];
+  services: Array<{ default_quantity: number; service: { unit_price: number } }>;
 }
 
 export interface PackageTemplateForBooking extends PackageTemplate {

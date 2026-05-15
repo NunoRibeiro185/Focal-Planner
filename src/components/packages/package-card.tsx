@@ -6,6 +6,11 @@ import type { PackageTemplateForList } from "@/lib/types";
 
 export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
   const v = pkg.current_version;
+  const servicesTotal = pkg.services.reduce(
+    (sum, s) => sum + s.service.unit_price * s.default_quantity,
+    0
+  );
+  const totalPrice = v ? v.base_price + servicesTotal : null;
 
   return (
     <article className="group overflow-hidden rounded-sm border border-border/60 bg-card flex flex-col">
@@ -26,7 +31,7 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
           </p>
         )}
 
-        {v ? (
+        {v && totalPrice !== null ? (
           <>
             <hr className="border-border/50 my-4" />
 
@@ -35,7 +40,7 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
               className="text-2xl font-semibold text-primary leading-none"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              {formatCurrency(v.base_price, v.currency)}
+              {formatCurrency(totalPrice, v.currency)}
             </p>
 
             {/* Hours */}

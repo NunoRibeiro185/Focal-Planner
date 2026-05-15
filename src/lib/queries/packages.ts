@@ -23,7 +23,8 @@ export async function getPackageTemplates(): Promise<PackageTemplateForList[]> {
           *,
           definition:custom_field_definitions(label, field_type, description)
         )
-      )`
+      ),
+      services:package_template_services(default_quantity, service:services(unit_price))`
     )
     .eq("photographer_id", user.id)
     .eq("archived", false)
@@ -130,6 +131,7 @@ export async function getPackageTemplatesWithServices(): Promise<PackageTemplate
     .from("package_templates")
     .select(`
       id, photographer_id, name, archived, created_at,
+      current_version:package_versions!fk_current_version(base_price, currency),
       services:package_template_services(
         service_id, default_quantity, sort_order,
         service:services(id, name, description, unit_price, track_completion)
@@ -139,7 +141,11 @@ export async function getPackageTemplatesWithServices(): Promise<PackageTemplate
     .eq("archived", false)
     .order("created_at", { ascending: true });
 
-  return (data ?? []) as unknown as PackageTemplateWithServices[];
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    base_price: row.current_version?.base_price ?? null,
+    currency: row.current_version?.currency ?? null,
+  })) as unknown as PackageTemplateWithServices[];
 }
 
 export async function getPackageTemplatesCount(): Promise<number> {
