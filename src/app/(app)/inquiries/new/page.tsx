@@ -21,6 +21,7 @@ export default async function NewInquiryPage() {
         packages={[]}
         onSubmit={handleCreate}
         hideBuilder
+        mode="inquiry"
       />
     </div>
   );

@@ -22,8 +22,8 @@ import { Button } from "@/components/ui/button";
 const NAV_ITEMS = [
   { href: "/command-center", label: "Command Center", shortLabel: "Home", icon: Command },
   { href: "/calendar", label: "Calendar", shortLabel: "Calendar", icon: CalendarDays },
-  { href: "/bookings", label: "Bookings", shortLabel: "Bookings", icon: CalendarCheck },
   { href: "/inquiries", label: "Inquiries", shortLabel: "Inquiries", icon: Mail },
+  { href: "/bookings", label: "Bookings", shortLabel: "Bookings", icon: CalendarCheck },
   { href: "/insights", label: "Insights", shortLabel: "Insights", icon: BarChart2 },
   { href: "/expenses", label: "Expenses", shortLabel: "Expenses", icon: Receipt },
   { href: "/packages", label: "Packages", shortLabel: "Packages", icon: Package },

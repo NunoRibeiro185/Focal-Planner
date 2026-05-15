@@ -17,10 +17,16 @@ interface Props {
   atLimit: boolean;
   tier: EffectiveTier;
   photographerSlug: string;
+  externalEditingId?: string | "new" | null;
+  onExternalEditingIdChange?: (id: string | "new" | null) => void;
 }
 
-export function FormList({ forms, packageTemplates, atLimit, tier: _tier, photographerSlug }: Props) {
-  const [editingId, setEditingId] = useState<string | "new" | null>(null);
+export function FormList({ forms, packageTemplates, atLimit, tier: _tier, photographerSlug, externalEditingId, onExternalEditingIdChange }: Props) {
+  const [internalEditingId, setInternalEditingId] = useState<string | "new" | null>(null);
+
+  const controlled = externalEditingId !== undefined;
+  const editingId = controlled ? externalEditingId : internalEditingId;
+  const setEditingId = controlled ? (onExternalEditingIdChange ?? (() => {})) : setInternalEditingId;
 
   if (editingId !== null) {
     const form = editingId === "new" ? null : forms.find((f) => f.id === editingId) ?? null;
@@ -36,18 +42,27 @@ export function FormList({ forms, packageTemplates, atLimit, tier: _tier, photog
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button
-          onClick={() => !atLimit && setEditingId("new")}
-          disabled={atLimit}
-          title={atLimit ? "Upgrade to create more forms" : undefined}
-          variant={atLimit ? "outline" : "default"}
-        >
-          New form
-        </Button>
-      </div>
-      {atLimit && (
-        <p className="text-xs text-muted-foreground text-right -mt-3">
+      {!controlled && (
+        <>
+          <div className="flex justify-end">
+            <Button
+              onClick={() => !atLimit && setEditingId("new")}
+              disabled={atLimit}
+              title={atLimit ? "Upgrade to create more forms" : undefined}
+              variant={atLimit ? "outline" : "default"}
+            >
+              New form
+            </Button>
+          </div>
+          {atLimit && (
+            <p className="text-xs text-muted-foreground text-right -mt-3">
+              Upgrade to Pro to create unlimited forms.
+            </p>
+          )}
+        </>
+      )}
+      {atLimit && controlled && (
+        <p className="text-xs text-muted-foreground -mt-1">
           Upgrade to Pro to create unlimited forms.
         </p>
       )}

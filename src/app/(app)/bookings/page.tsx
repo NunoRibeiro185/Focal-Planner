@@ -35,16 +35,13 @@ export default async function BookingsPage({ searchParams }: Props) {
 
   const bookings = isArchiveTab
     ? archivedBookings
-    : filter === "inquiries"
-      ? allBookings.filter((b) => b.status === "inquiry")
-      : filter === "active"
-        ? allBookings.filter((b) => b.status !== "inquiry" && b.status !== "cancelled" && b.status !== "done")
-        : allBookings;
+    : filter === "active"
+      ? allBookings.filter((b) => b.status !== "inquiry" && b.status !== "cancelled" && b.status !== "done")
+      : allBookings;
 
   const tabs = [
     { label: "All", value: undefined },
     { label: "Active", value: "active" },
-    { label: "Inquiries", value: "inquiries" },
     { label: "Archived", value: "archived" },
   ];
 

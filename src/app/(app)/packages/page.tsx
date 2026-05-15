@@ -45,12 +45,12 @@ export default async function PackagesPage({
     packages: {
       title: "Packages",
       description:
-        "Your service offerings. Each package keeps a full version history — update pricing any time without touching existing bookings.",
+        "Your service offerings — a name, pricing, coverage hours, and the services included. Edit anytime.",
     },
     services: {
       title: "Services",
       description:
-        "Reusable line items you can add to any booking — drone footage, albums, rush editing, extra hours.",
+        "Reusable line items you can add to any booking or package — drone footage, albums, rush editing, extra hours.",
     },
   };
 
@@ -140,34 +140,19 @@ function PackagesEmptyState({ packageCount }: { packageCount: number }) {
         No packages yet
       </h2>
       <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-        A package is your core offering — a name clients recognize, with pricing
-        and coverage that you can update each season. Here&apos;s how they work:
+        A package is your core offering — a name clients recognize, a price, coverage hours,
+        and the services included. You can edit it at any time.
       </p>
 
-      <div className="space-y-5 mb-8">
-        <TutorialStep number="01" title="Package">
-          The name that stays constant — &ldquo;Gold Package&rdquo;, &ldquo;Elopement
-          Session&rdquo;, &ldquo;Half Day&rdquo;. This is what clients see on proposals.
-        </TutorialStep>
-        <TutorialStep number="02" title="Version">
-          The specific pricing period — &ldquo;Summer 2025&rdquo;, &ldquo;Winter Base&rdquo;.
-          Each version holds the price, hours, and deliverables for that period.
-        </TutorialStep>
-        <TutorialStep number="03" title="Bookings are locked">
-          Every booking is tied to a specific version. Create a new version to update your
-          rates — existing bookings are never changed.
-        </TutorialStep>
-      </div>
-
       <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-        Before creating a package, consider{" "}
+        Consider{" "}
         <Link
           href="/packages?tab=services"
           className="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
         >
           setting up your services first
         </Link>
-        {" "}— you can include them in the package right away.
+        {" "}— you can bundle them into the package right away.
       </p>
 
       <UsageLimit resource="packagesTotal" currentCount={packageCount} resourceLabel="packages">
@@ -183,27 +168,3 @@ function PackagesEmptyState({ packageCount }: { packageCount: number }) {
   );
 }
 
-export function TutorialStep({
-  number,
-  title,
-  children,
-}: {
-  number: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-4">
-      <span
-        className="text-xs font-medium text-primary/60 w-5 shrink-0 mt-0.5 tabular-nums"
-        style={{ fontFamily: "var(--font-heading)" }}
-      >
-        {number}
-      </span>
-      <div>
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{children}</p>
-      </div>
-    </div>
-  );
-}

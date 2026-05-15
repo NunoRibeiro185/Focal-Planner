@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { PackageForm } from "@/components/packages/package-form";
+import { PackageForm, type PackageServiceItem } from "@/components/packages/package-form";
 import { createPackage } from "@/lib/actions/packages";
+import { getServices } from "@/lib/queries/services";
 import type { PackageFormValues } from "@/lib/types/forms";
 
 export default async function NewPackagePage() {
-  async function handleCreate(values: PackageFormValues) {
+  const services = await getServices();
+
+  async function handleCreate(values: PackageFormValues, serviceItems: PackageServiceItem[]) {
     "use server";
-    await createPackage(values);
+    await createPackage(values, serviceItems);
   }
 
   return (
@@ -25,15 +28,14 @@ export default async function NewPackagePage() {
           New Package
         </h1>
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-[44ch]">
-          Give your package a name, set the pricing, and define what you&apos;ll
-          track on every booking that uses it.
+          Give your package a name, set the pricing, and pick the services to include.
         </p>
       </div>
 
       <PackageForm
+        services={services}
         onSubmit={handleCreate}
         submitLabel="Create Package"
-        isNewVersion
       />
     </div>
   );

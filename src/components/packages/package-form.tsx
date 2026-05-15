@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { packageFormSchema, type PackageFormValues } from "@/lib/types/forms";
 import { SUPPORTED_CURRENCIES } from "@/lib/utils/currency";
+import { formatCurrency } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,22 +18,36 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Plus } from "lucide-react";
+import type { Service } from "@/lib/types/database";
+
+export interface PackageServiceItem {
+  service_id: string;
+  default_quantity: number;
+}
 
 interface PackageFormProps {
   defaultValues?: Partial<PackageFormValues>;
-  onSubmit: (values: PackageFormValues) => Promise<void>;
+  defaultServices?: PackageServiceItem[];
+  services?: Service[];
+  onSubmit: (values: PackageFormValues, serviceItems: PackageServiceItem[]) => Promise<void>;
   submitLabel?: string;
-  isNewVersion?: boolean;
 }
 
 export function PackageForm({
   defaultValues,
+  defaultServices = [],
+  services = [],
   onSubmit,
   submitLabel = "Save Package",
-  isNewVersion = false,
 }: PackageFormProps) {
   const [pending, setPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [serviceItems, setServiceItems] = useState<PackageServiceItem[]>(defaultServices);
+  const [showAddService, setShowAddService] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [addQty, setAddQty] = useState("1");
+  const [addError, setAddError] = useState("");
 
   const {
     register,
@@ -45,7 +60,6 @@ export function PackageForm({
     resolver: zodResolver(packageFormSchema) as any,
     defaultValues: {
       name: "",
-      version_name: "",
       description: null,
       base_price: 0,
       currency: "EUR",
@@ -56,11 +70,36 @@ export function PackageForm({
 
   const currency = watch("currency");
 
+  const availableServices = services.filter(
+    (s) => !serviceItems.some((item) => item.service_id === s.id)
+  );
+
+  function handleAddService() {
+    if (!selectedServiceId) { setAddError("Select a service"); return; }
+    const qty = parseInt(addQty, 10);
+    if (isNaN(qty) || qty < 1) { setAddError("Quantity must be at least 1"); return; }
+    setServiceItems((prev) => [...prev, { service_id: selectedServiceId, default_quantity: qty }]);
+    setSelectedServiceId("");
+    setAddQty("1");
+    setAddError("");
+    setShowAddService(false);
+  }
+
+  function updateQty(serviceId: string, qty: number) {
+    setServiceItems((prev) =>
+      prev.map((item) => item.service_id === serviceId ? { ...item, default_quantity: Math.max(1, qty) } : item)
+    );
+  }
+
+  function removeService(serviceId: string) {
+    setServiceItems((prev) => prev.filter((item) => item.service_id !== serviceId));
+  }
+
   async function handleFormSubmit(values: PackageFormValues) {
     setPending(true);
     setSubmitError(null);
     try {
-      await onSubmit(values);
+      await onSubmit(values, serviceItems);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setPending(false);
@@ -81,30 +120,6 @@ export function PackageForm({
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="version_name">
-          Version name
-          {isNewVersion && (
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              e.g. Summer 25, Base Winter, Elopement
-            </span>
-          )}
-        </Label>
-        <Input
-          id="version_name"
-          {...register("version_name")}
-          placeholder={isNewVersion ? "Name this version…" : "e.g. Summer 25"}
-          className={isNewVersion ? "text-base font-medium" : ""}
-          autoFocus={!!defaultValues?.name}
-        />
-        <p className="text-xs text-muted-foreground">
-          Versions let you update pricing each season — existing bookings stay locked to their original version.
-        </p>
-        {errors.version_name && (
-          <p className="text-sm text-destructive">{errors.version_name.message}</p>
-        )}
-      </div>
-
       <Separator />
 
       <div className="space-y-1.5">
@@ -119,7 +134,7 @@ export function PackageForm({
           rows={4}
         />
         <p className="text-xs text-muted-foreground">
-          Appears on client proposals — write it like you&apos;d introduce the package to a couple. Use deliverables below for the specifics.
+          Appears on client proposals — write it like you&apos;d introduce the package to a couple.
         </p>
       </div>
 
@@ -175,6 +190,96 @@ export function PackageForm({
           <p className="text-sm text-destructive">{errors.hours_of_coverage.message}</p>
         )}
       </div>
+
+      {services.length > 0 && (
+        <>
+          <Separator />
+
+          <div className="space-y-3">
+            <Label>Services included</Label>
+
+            {serviceItems.length > 0 && (
+              <div className="space-y-2">
+                {serviceItems.map((item) => {
+                  const svc = services.find((s) => s.id === item.service_id);
+                  if (!svc) return null;
+                  return (
+                    <div key={item.service_id} className="flex items-center gap-2 text-sm">
+                      <span className="flex-1 min-w-0 truncate">{svc.name}</span>
+                      <span className="text-xs text-muted-foreground">{formatCurrency(svc.unit_price, currency)}</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={item.default_quantity}
+                        onChange={(e) => updateQty(item.service_id, parseInt(e.target.value) || 1)}
+                        className="w-16 h-7 text-xs text-center"
+                        aria-label="Default quantity"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeService(item.service_id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Remove"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {showAddService ? (
+              <div className="rounded-md border p-3 space-y-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Service</Label>
+                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Select a service…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableServices.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name} — {formatCurrency(s.unit_price, currency)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 w-24">
+                  <Label className="text-xs">Default qty</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={addQty}
+                    onChange={(e) => setAddQty(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {addError && <p className="text-xs text-destructive">{addError}</p>}
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" onClick={handleAddService}>Add</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => { setShowAddService(false); setAddError(""); }}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              availableServices.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddService(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add service
+                </Button>
+              )
+            )}
+          </div>
+        </>
+      )}
 
       <div className="flex items-center gap-4 pt-2">
         <Button type="submit" disabled={pending}>

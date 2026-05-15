@@ -92,7 +92,7 @@ export async function getPackageTemplateById(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const [templateResult, versionsResult] = await Promise.all([
+  const [templateResult, versionsResult, servicesResult] = await Promise.all([
     supabase
       .from("package_templates")
       .select("*, current_version:package_versions!fk_current_version(*)")
@@ -104,6 +104,11 @@ export async function getPackageTemplateById(id: string) {
       .select("*")
       .eq("package_template_id", id)
       .order("version_number", { ascending: false }),
+    supabase
+      .from("package_template_services")
+      .select("service_id, default_quantity, sort_order")
+      .eq("package_template_id", id)
+      .order("sort_order", { ascending: true }),
   ]);
 
   if (templateResult.error) throw templateResult.error;
@@ -112,6 +117,7 @@ export async function getPackageTemplateById(id: string) {
   return {
     template: templateResult.data as PackageTemplateWithVersion,
     versions: versionsResult.data ?? [],
+    existingServices: (servicesResult.data ?? []) as Array<{ service_id: string; default_quantity: number; sort_order: number }>,
   };
 }
 

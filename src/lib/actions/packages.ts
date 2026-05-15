@@ -6,7 +6,10 @@ import { redirect } from "next/navigation";
 import { packageFormSchema, type PackageFormValues } from "@/lib/types/forms";
 import { buildCustomFieldInserts } from "@/lib/utils/custom-fields";
 
-export async function createPackage(values: PackageFormValues) {
+export async function createPackage(
+  values: PackageFormValues,
+  serviceIds: Array<{ service_id: string; default_quantity: number }> = []
+) {
   const parsed = packageFormSchema.safeParse(values);
   if (!parsed.success) throw new Error("Invalid package data");
 
@@ -32,7 +35,7 @@ export async function createPackage(values: PackageFormValues) {
       package_template_id: template.id,
       photographer_id: user.id,
       version_number: 1,
-      version_name: data.version_name,
+      version_name: "v1",
       base_price: data.base_price,
       currency: data.currency,
       hours_of_coverage: data.hours_of_coverage,
@@ -55,13 +58,27 @@ export async function createPackage(values: PackageFormValues) {
     if (cfError) throw cfError;
   }
 
-  // First version auto-promoted to current
   const { error: updateError } = await supabase
     .from("package_templates")
     .update({ current_version_id: version.id })
     .eq("id", template.id);
 
   if (updateError) throw updateError;
+
+  if (serviceIds.length > 0) {
+    const { error: servicesError } = await supabase
+      .from("package_template_services")
+      .insert(
+        serviceIds.map((s, i) => ({
+          package_template_id: template.id,
+          service_id: s.service_id,
+          photographer_id: user.id,
+          default_quantity: s.default_quantity,
+          sort_order: i,
+        }))
+      );
+    if (servicesError) throw servicesError;
+  }
 
   revalidatePath("/packages");
   redirect("/packages");
@@ -149,14 +166,74 @@ export async function createPackageVersion(
   redirect("/packages");
 }
 
-/**
- * @deprecated Use createPackageVersion instead. Kept for backwards compatibility.
- */
 export async function updatePackage(
   templateId: string,
-  values: PackageFormValues
+  values: PackageFormValues,
+  serviceIds: Array<{ service_id: string; default_quantity: number }> = []
 ) {
-  return createPackageVersion(templateId, values);
+  const parsed = packageFormSchema.safeParse(values);
+  if (!parsed.success) throw new Error("Invalid package data");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const data = parsed.data;
+
+  const { data: template, error: templateError } = await supabase
+    .from("package_templates")
+    .select("id, photographer_id, current_version_id")
+    .eq("id", templateId)
+    .eq("photographer_id", user.id)
+    .single();
+
+  if (templateError || !template) throw new Error("Package not found");
+
+  const { error: nameError } = await supabase
+    .from("package_templates")
+    .update({ name: data.name })
+    .eq("id", templateId);
+
+  if (nameError) throw nameError;
+
+  if (template.current_version_id) {
+    const { error: versionError } = await supabase
+      .from("package_versions")
+      .update({
+        description: data.description ?? null,
+        base_price: data.base_price,
+        currency: data.currency,
+        hours_of_coverage: data.hours_of_coverage,
+      })
+      .eq("id", template.current_version_id)
+      .eq("photographer_id", user.id);
+
+    if (versionError) throw versionError;
+  }
+
+  await supabase
+    .from("package_template_services")
+    .delete()
+    .eq("package_template_id", templateId)
+    .eq("photographer_id", user.id);
+
+  if (serviceIds.length > 0) {
+    const { error: servicesError } = await supabase
+      .from("package_template_services")
+      .insert(
+        serviceIds.map((s, i) => ({
+          package_template_id: templateId,
+          service_id: s.service_id,
+          photographer_id: user.id,
+          default_quantity: s.default_quantity,
+          sort_order: i,
+        }))
+      );
+    if (servicesError) throw servicesError;
+  }
+
+  revalidatePath("/packages");
+  redirect("/packages");
 }
 
 export async function setCurrentVersion(templateId: string, versionId: string) {

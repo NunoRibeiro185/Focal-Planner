@@ -40,18 +40,21 @@ interface BookingFormProps {
   ) => Promise<void>;
   defaultCurrency?: string;
   hideBuilder?: boolean;
+  mode?: "booking" | "inquiry";
 }
 
 type DepositMode = "amount" | "percent";
 
 const EMPTY_STOP: ItineraryStopInput = { name: "", address: "", start_time: "", notes: "" };
 
-export function BookingForm(props: BookingFormProps) {
+export function BookingForm({ mode = "booking", ...props }: BookingFormProps) {
+  const isInquiry = mode === "inquiry";
   const [pending, setPending] = useState(false);
 
   // Itinerary state
   const [itinerary, setItinerary] = useState<ItineraryStopInput[]>([{ ...EMPTY_STOP }]);
   const [itineraryError, setItineraryError] = useState("");
+  const [showItinerary, setShowItinerary] = useState(false);
 
   // Builder state
   const [builderItems, setBuilderItems] = useState<BuilderLineItem[]>([]);
@@ -132,16 +135,18 @@ export function BookingForm(props: BookingFormProps) {
   // ── Form submit ──────────────────────────────────────────────
 
   async function onSubmit(values: BookingFormValues) {
-    // Validate at least one named stop
     const namedStops = itinerary.filter((s) => s.name.trim());
-    if (namedStops.length === 0) {
-      setItineraryError("Add at least one location");
-      return;
+    if (!isInquiry) {
+      if (namedStops.length === 0) {
+        setItineraryError("Add at least one location");
+        return;
+      }
     }
     setItineraryError("");
     setPending(true);
     try {
-      await props.onSubmit(values, builderItems, namedStops, depositAlreadyPaid, addAnother);
+      const stopsToSubmit = isInquiry && !showItinerary ? [] : namedStops;
+      await props.onSubmit(values, builderItems, stopsToSubmit, depositAlreadyPaid, addAnother);
     } catch {
       setPending(false);
     }
@@ -198,98 +203,188 @@ export function BookingForm(props: BookingFormProps) {
 
       <Separator />
 
-      {/* ── Itinerary ───────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">Itinerary</p>
-      </div>
-
-      {/* Event date + location */}
-      <div className="grid grid-cols-2 gap-4 max-w-lg">
-        <div className="space-y-1.5">
-          <Label htmlFor="event_date">Event date *</Label>
-          <Input id="event_date" type="date" {...register("event_date")} />
-          {errors.event_date && (
-            <p className="text-sm text-destructive">{errors.event_date.message}</p>
-          )}
+      {/* ── Date & Location (inquiry: top-level; booking: inside itinerary) ── */}
+      {isInquiry ? (
+        <div className="grid grid-cols-2 gap-4 max-w-lg">
+          <div className="space-y-1.5">
+            <Label htmlFor="event_date">Date</Label>
+            <Input id="event_date" type="date" {...register("event_date")} />
+            {errors.event_date && (
+              <p className="text-sm text-destructive">{errors.event_date.message}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="location">Location</Label>
+            <Input id="location" placeholder="e.g. Porto, Portugal" {...register("location")} />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="location">Location</Label>
-          <Input
-            id="location"
-            placeholder="e.g. Porto, Portugal"
-            {...register("location")}
-          />
-        </div>
-      </div>
+      ) : (
+        <>
+          {/* ── Itinerary ─────────────────────────────────────── */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Itinerary</p>
+          </div>
 
-      {/* Stops */}
-      <div className="space-y-4">
-        {itinerary.map((stop, index) => (
-          <div key={index} className="rounded-md border p-4 space-y-3 relative">
-            {/* Stop header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
-                {itinerary.length > 1 ? `Stop ${index + 1}` : "Location"}
-              </div>
-              {itinerary.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeStop(index)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                  aria-label="Remove stop"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+          <div className="grid grid-cols-2 gap-4 max-w-lg">
+            <div className="space-y-1.5">
+              <Label htmlFor="event_date">Event date *</Label>
+              <Input id="event_date" type="date" {...register("event_date")} />
+              {errors.event_date && (
+                <p className="text-sm text-destructive">{errors.event_date.message}</p>
               )}
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Location name *</Label>
-                <Input
-                  placeholder="e.g. Church, Reception venue…"
-                  value={stop.name}
-                  onChange={(e) => updateStop(index, "name", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Address</Label>
-                <Input
-                  placeholder="Street address or Google Maps link"
-                  value={stop.address}
-                  onChange={(e) => updateStop(index, "address", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Start time</Label>
-                <Input
-                  type="time"
-                  value={stop.start_time}
-                  onChange={(e) => updateStop(index, "start_time", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Notes</Label>
-                <Input
-                  placeholder="e.g. Use side entrance"
-                  value={stop.notes}
-                  onChange={(e) => updateStop(index, "notes", e.target.value)}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="location">Location</Label>
+              <Input id="location" placeholder="e.g. Porto, Portugal" {...register("location")} />
             </div>
           </div>
-        ))}
+        </>
+      )}
 
-        {itineraryError && (
-          <p className="text-sm text-destructive">{itineraryError}</p>
-        )}
+      {/* ── Itinerary stops ── */}
+      {isInquiry ? (
+        <div className="space-y-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowItinerary((v) => !v)}
+          >
+            <MapPin className="h-4 w-4 mr-1" />
+            {showItinerary ? "Remove itinerary" : "Add itinerary"}
+          </Button>
 
-        <Button type="button" variant="outline" size="sm" onClick={addStop}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add stop
-        </Button>
-      </div>
+          {showItinerary && (
+            <div className="space-y-4">
+              {itinerary.map((stop, index) => (
+                <div key={index} className="rounded-md border p-4 space-y-3 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {itinerary.length > 1 ? `Stop ${index + 1}` : "Stop"}
+                    </div>
+                    {itinerary.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeStop(index)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Remove stop"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5 col-span-2">
+                      <Label className="text-xs">Location name</Label>
+                      <Input
+                        placeholder="e.g. Church, Reception venue…"
+                        value={stop.name}
+                        onChange={(e) => updateStop(index, "name", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5 col-span-2">
+                      <Label className="text-xs">Address</Label>
+                      <Input
+                        placeholder="Street address or Google Maps link"
+                        value={stop.address}
+                        onChange={(e) => updateStop(index, "address", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Start time</Label>
+                      <Input
+                        type="time"
+                        value={stop.start_time}
+                        onChange={(e) => updateStop(index, "start_time", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Notes</Label>
+                      <Input
+                        placeholder="e.g. Use side entrance"
+                        value={stop.notes}
+                        onChange={(e) => updateStop(index, "notes", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addStop}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add stop
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {itinerary.map((stop, index) => (
+            <div key={index} className="rounded-md border p-4 space-y-3 relative">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {itinerary.length > 1 ? `Stop ${index + 1}` : "Location"}
+                </div>
+                {itinerary.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeStop(index)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    aria-label="Remove stop"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-xs">Location name *</Label>
+                  <Input
+                    placeholder="e.g. Church, Reception venue…"
+                    value={stop.name}
+                    onChange={(e) => updateStop(index, "name", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-xs">Address</Label>
+                  <Input
+                    placeholder="Street address or Google Maps link"
+                    value={stop.address}
+                    onChange={(e) => updateStop(index, "address", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Start time</Label>
+                  <Input
+                    type="time"
+                    value={stop.start_time}
+                    onChange={(e) => updateStop(index, "start_time", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Notes</Label>
+                  <Input
+                    placeholder="e.g. Use side entrance"
+                    value={stop.notes}
+                    onChange={(e) => updateStop(index, "notes", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {itineraryError && (
+            <p className="text-sm text-destructive">{itineraryError}</p>
+          )}
+
+          <Button type="button" variant="outline" size="sm" onClick={addStop}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add stop
+          </Button>
+        </div>
+      )}
 
       {/* Notes */}
       <div className="space-y-1.5">
@@ -385,18 +480,20 @@ export function BookingForm(props: BookingFormProps) {
       </div>
 
       <div className="space-y-2 pt-2">
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="deposit_already_paid"
-            checked={depositAlreadyPaid}
-            onChange={(e) => setDepositAlreadyPaid(e.target.checked)}
-            className="rounded"
-          />
-          <Label htmlFor="deposit_already_paid" className="text-sm cursor-pointer">
-            Deposit already paid
-          </Label>
-        </div>
+        {!isInquiry && (
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="deposit_already_paid"
+              checked={depositAlreadyPaid}
+              onChange={(e) => setDepositAlreadyPaid(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="deposit_already_paid" className="text-sm cursor-pointer">
+              Deposit already paid
+            </Label>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -406,13 +503,13 @@ export function BookingForm(props: BookingFormProps) {
             className="rounded"
           />
           <Label htmlFor="add_another" className="text-sm cursor-pointer">
-            Add another booking after saving
+            {isInquiry ? "Add another inquiry after saving" : "Add another booking after saving"}
           </Label>
         </div>
       </div>
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Create Booking"}
+        {pending ? "Saving…" : isInquiry ? "Create Inquiry" : "Create Booking"}
       </Button>
     </form>
   );

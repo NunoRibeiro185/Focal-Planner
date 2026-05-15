@@ -11,13 +11,6 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
     <article className="group overflow-hidden rounded-sm border border-border/60 bg-card flex flex-col">
       {/* Main content */}
       <div className="flex flex-col flex-1 px-5 pt-6 pb-3">
-        {/* Version name */}
-        {v && (
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/35 font-medium mb-2">
-            {v.version_name}
-          </p>
-        )}
-
         {/* Title */}
         <h2
           className="text-lg font-semibold tracking-[-0.01em] leading-snug"
@@ -63,7 +56,7 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
           href={`/packages/${pkg.id}/edit`}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          New version
+          Edit
         </Link>
         <DeletePackageButton templateId={pkg.id} />
       </div>

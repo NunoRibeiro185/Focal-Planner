@@ -1,35 +1,38 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPackageTemplateById } from "@/lib/queries/packages";
-import { PackageForm } from "@/components/packages/package-form";
-import { createPackageVersion } from "@/lib/actions/packages";
+import { getServices } from "@/lib/queries/services";
+import { PackageForm, type PackageServiceItem } from "@/components/packages/package-form";
+import { updatePackage } from "@/lib/actions/packages";
 import type { PackageFormValues } from "@/lib/types/forms";
 import type { PackageVersion } from "@/lib/types";
 
-export default async function NewVersionPage({
+export default async function EditPackagePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { template } = await getPackageTemplateById(id).catch(() => notFound());
+  const [{ template, existingServices }, services] = await Promise.all([
+    getPackageTemplateById(id).catch(() => notFound()),
+    getServices(),
+  ]);
 
   const v: PackageVersion | null = template.current_version;
 
   const defaultValues: Partial<PackageFormValues> = v
     ? {
         name: template.name,
-        version_name: "",
         description: v.description,
         base_price: v.base_price,
         currency: v.currency,
         hours_of_coverage: v.hours_of_coverage,
       }
-    : { name: template.name, version_name: "" };
+    : { name: template.name };
 
-  async function handleCreate(values: PackageFormValues) {
+  async function handleUpdate(values: PackageFormValues, serviceItems: PackageServiceItem[]) {
     "use server";
-    await createPackageVersion(id, values);
+    await updatePackage(id, values, serviceItems);
   }
 
   return (
@@ -41,26 +44,20 @@ export default async function NewVersionPage({
         >
           ← Packages
         </Link>
-        <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mt-1 mb-1">
-          {template.name}
-        </p>
         <h1
           className="text-3xl font-semibold tracking-[-0.02em]"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          New Version
+          Edit Package
         </h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-[44ch]">
-          Pre-filled from the current version. Name this version, adjust the details, and save.
-          Existing bookings are never affected.
-        </p>
       </div>
 
       <PackageForm
         defaultValues={defaultValues}
-        onSubmit={handleCreate}
-        submitLabel="Create Version"
-        isNewVersion
+        defaultServices={existingServices}
+        services={services}
+        onSubmit={handleUpdate}
+        submitLabel="Save Changes"
       />
     </div>
   );

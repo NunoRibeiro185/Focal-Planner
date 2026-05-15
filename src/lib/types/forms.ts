@@ -9,7 +9,7 @@ import { z } from "zod";
 
 export const packageFormSchema = z.object({
   name: z.string().min(1, "Package name is required"),
-  version_name: z.string().min(1, "Version name is required").max(50, "Maximum 50 characters"),
+  version_name: z.string().max(50).optional().default(""),
   description: z.string().nullable(),
   base_price: z.coerce.number().positive("Price must be positive"),
   currency: z.string().length(3, "Select a currency"),
