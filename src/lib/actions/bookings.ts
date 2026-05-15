@@ -6,12 +6,14 @@ import { redirect } from "next/navigation";
 import {
   bookingFormSchema,
   bookingServiceSchema,
+  bookingExtraSchema,
   clientInfoSchema,
   bookingDateTimeSchema,
   bookingPricingSchema,
   bookingDepositSchema,
   type BookingFormValues,
   type BookingServiceValues,
+  type BookingExtraValues,
   type ItineraryStopInput,
   type ClientInfoValues,
   type BookingDateTimeValues,
@@ -737,6 +739,71 @@ export async function toggleBookingDeliverable(
     .from("booking_deliverable_progress")
     .update({ done })
     .eq("id", progressId)
+    .eq("photographer_id", user.id);
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Adds an extra to a booking. Price and name are snapshotted at the time of
+ * adding — future changes do not affect this record.
+ */
+export async function addBookingExtra(
+  bookingId: string,
+  values: BookingExtraValues
+) {
+  const parsed = bookingExtraSchema.safeParse(values);
+  if (!parsed.success) throw new Error("Invalid booking extra data");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { data: booking, error: bookingError } = await supabase
+    .from("bookings")
+    .select("id")
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id)
+    .single();
+
+  if (bookingError || !booking) throw new Error("Booking not found");
+
+  const { error } = await supabase.from("booking_extras").insert({
+    booking_id: bookingId,
+    photographer_id: user.id,
+    extra_id: parsed.data.extra_id ?? null,
+    name_snapshot: parsed.data.name_snapshot,
+    price_snapshot: parsed.data.price_snapshot,
+    currency_snapshot: parsed.data.currency_snapshot,
+    quantity: parsed.data.quantity,
+  });
+
+  if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+/**
+ * Removes an extra from a booking.
+ */
+export async function removeBookingExtra(
+  bookingExtraId: string,
+  bookingId: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("booking_extras")
+    .delete()
+    .eq("id", bookingExtraId)
     .eq("photographer_id", user.id);
 
   if (error) throw error;

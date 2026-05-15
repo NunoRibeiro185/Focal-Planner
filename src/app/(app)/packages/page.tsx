@@ -1,17 +1,15 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getPackageTemplates, getPackageTemplatesCount } from "@/lib/queries/packages";
-import { getExtras } from "@/lib/queries/extras";
-import { getCustomFieldDefinitions } from "@/lib/queries/custom-fields";
+import { getServices } from "@/lib/queries/services";
 import { PackageCard } from "@/components/packages/package-card";
-import { ExtrasCatalog } from "@/components/extras/extras-catalog";
-import { DeliverablesCatalog } from "@/components/deliverables/deliverables-catalog";
+import { ServicesCatalog } from "@/components/services/services-catalog";
 import { NewPackageButton } from "@/components/paywall/new-package-button";
 import { UsageLimit } from "@/components/paywall/usage-limit";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-type Tab = "packages" | "extras" | "deliverables";
+type Tab = "packages" | "services";
 
 export default async function PackagesPage({
   searchParams,
@@ -19,8 +17,7 @@ export default async function PackagesPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab } = await searchParams;
-  const activeTab: Tab =
-    tab === "extras" ? "extras" : tab === "deliverables" ? "deliverables" : "packages";
+  const activeTab: Tab = tab === "services" ? "services" : "packages";
 
   const supabase = await createClient();
   const {
@@ -34,10 +31,9 @@ export default async function PackagesPage({
     .eq("id", user.id)
     .single();
 
-  const [packages, extras, deliverables, photographer, packageCount] = await Promise.all([
+  const [packages, services, photographer, packageCount] = await Promise.all([
     activeTab === "packages" ? getPackageTemplates() : Promise.resolve([]),
-    activeTab === "extras" ? getExtras() : Promise.resolve([]),
-    activeTab === "deliverables" ? getCustomFieldDefinitions() : Promise.resolve([]),
+    activeTab === "services" ? getServices() : Promise.resolve([]),
     photographerPromise,
     getPackageTemplatesCount(),
   ]);
@@ -51,15 +47,10 @@ export default async function PackagesPage({
       description:
         "Your service offerings. Each package keeps a full version history — update pricing any time without touching existing bookings.",
     },
-    extras: {
-      title: "Extras",
+    services: {
+      title: "Services",
       description:
-        "Reusable add-ons you can attach to any booking — drone footage, second shooters, rush editing.",
-    },
-    deliverables: {
-      title: "Deliverables",
-      description:
-        "The items you promise to every client. Define them once here and they'll appear as trackable fields on each booking.",
+        "Reusable line items you can add to any booking — drone footage, albums, rush editing, extra hours.",
     },
   };
 
@@ -88,11 +79,8 @@ export default async function PackagesPage({
         <TabLink href="/packages" active={activeTab === "packages"}>
           Packages
         </TabLink>
-        <TabLink href="/packages?tab=deliverables" active={activeTab === "deliverables"}>
-          Deliverables
-        </TabLink>
-        <TabLink href="/packages?tab=extras" active={activeTab === "extras"}>
-          Extras
+        <TabLink href="/packages?tab=services" active={activeTab === "services"}>
+          Services
         </TabLink>
       </div>
 
@@ -112,10 +100,8 @@ export default async function PackagesPage({
             ))}
           </div>
         )
-      ) : activeTab === "extras" ? (
-        <ExtrasCatalog extras={extras} defaultCurrency={defaultCurrency} />
       ) : (
-        <DeliverablesCatalog fields={deliverables} />
+        <ServicesCatalog services={services} defaultCurrency={defaultCurrency} />
       )}
     </div>
   );
@@ -176,10 +162,10 @@ function PackagesEmptyState({ packageCount }: { packageCount: number }) {
       <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
         Before creating a package, consider{" "}
         <Link
-          href="/packages?tab=deliverables"
+          href="/packages?tab=services"
           className="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
         >
-          setting up your deliverables first
+          setting up your services first
         </Link>
         {" "}— you can include them in the package right away.
       </p>

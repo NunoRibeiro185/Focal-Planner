@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { PackageForm } from "@/components/packages/package-form";
 import { createPackage } from "@/lib/actions/packages";
-import { getCustomFieldDefinitions } from "@/lib/queries/custom-fields";
 import type { PackageFormValues } from "@/lib/types/forms";
 
 export default async function NewPackagePage() {
-  const customFieldDefinitions = await getCustomFieldDefinitions();
-
   async function handleCreate(values: PackageFormValues) {
     "use server";
     await createPackage(values);
@@ -37,7 +34,6 @@ export default async function NewPackagePage() {
         onSubmit={handleCreate}
         submitLabel="Create Package"
         isNewVersion
-        customFieldDefinitions={customFieldDefinitions}
       />
     </div>
   );

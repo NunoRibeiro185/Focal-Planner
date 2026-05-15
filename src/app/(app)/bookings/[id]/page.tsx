@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getBookingById, getInquiryAnswers } from "@/lib/queries/bookings";
-import { getExtras } from "@/lib/queries/extras";
 import { getBookingServices, getServices } from "@/lib/queries/services";
 import { getPackageTemplates } from "@/lib/queries/packages";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
@@ -13,7 +12,6 @@ import type {
   BookingWithVersion,
   BookingTask,
   BookingExtra,
-  BookingDeliverableProgress,
   BookingItineraryStop,
   PaymentLogEntry,
   BookingEditingStage,
@@ -27,7 +25,7 @@ import { StatusStepper } from "@/components/bookings/status-stepper";
 import { PaymentPanel } from "@/components/bookings/payment-panel";
 import { ServicesPanel } from "@/components/bookings/deliverables-panel";
 import { TasksPanel } from "@/components/bookings/tasks-panel";
-import { PackageExtrasCard } from "@/components/bookings/extras-panel";
+import { PackageExtrasCard } from "@/components/bookings/package-panel";
 import { EditingPipelinePanel } from "@/components/bookings/editing-pipeline-panel";
 import { AvailabilityCalendarPanel } from "@/components/bookings/availability-calendar-panel";
 import { SecondShooterPanel } from "@/components/bookings/second-shooter-panel";
@@ -82,9 +80,8 @@ export default async function BookingDetailPage({
 
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
 
-  const [data, catalogExtras, stageTemplates, packageTemplates, photographerResult, inquiryAnswers, bookingServices, catalogServices] = await Promise.all([
+  const [data, stageTemplates, packageTemplates, photographerResult, inquiryAnswers, bookingServices, catalogServices] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
-    getExtras(),
     getEditingStageTemplates(),
     getPackageTemplates(),
     supabase.from("photographers").select("default_currency").eq("id", user!.id).single(),
@@ -170,7 +167,7 @@ export default async function BookingDetailPage({
             booking={booking}
             bookingId={id}
             extras={bookingExtras}
-            catalogExtras={catalogExtras}
+            catalogExtras={[]}
             packageTemplates={pkgTemplates}
           />
         );

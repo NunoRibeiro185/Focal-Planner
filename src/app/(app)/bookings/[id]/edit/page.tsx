@@ -2,13 +2,10 @@ import { notFound } from "next/navigation";
 import { getBookingById } from "@/lib/queries/bookings";
 import { getPackageTemplatesWithServices } from "@/lib/queries/packages";
 import { getServices } from "@/lib/queries/services";
-import { getExtras } from "@/lib/queries/extras";
 import { BookingForm } from "@/components/bookings/booking-form";
-import { ExtrasPanel } from "@/components/bookings/extras-panel";
 import { updateBookingFull } from "@/lib/actions/bookings";
 import type { BookingFormValues, ItineraryStopInput } from "@/lib/types/forms";
 import type { BuilderLineItem } from "@/lib/utils/booking-builder";
-import { Separator } from "@/components/ui/separator";
 
 export default async function EditBookingPage({
   params,
@@ -17,14 +14,13 @@ export default async function EditBookingPage({
 }) {
   const { id } = await params;
 
-  const [data, packages, catalogServices, catalogExtras] = await Promise.all([
+  const [data, packages, catalogServices] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
     getPackageTemplatesWithServices(),
     getServices(),
-    getExtras(),
   ]);
 
-  const { booking, bookingExtras, itineraryStops } = data;
+  const { booking } = data;
 
   async function handleUpdate(
     values: BookingFormValues,
@@ -47,18 +43,6 @@ export default async function EditBookingPage({
           services={catalogServices}
           packages={packages}
           onSubmit={handleUpdate}
-        />
-      </div>
-
-      <Separator />
-
-      <div className="max-w-2xl">
-        <h2 className="text-sm font-medium mb-4">Extras</h2>
-        <ExtrasPanel
-          bookingId={id}
-          extras={bookingExtras}
-          catalogExtras={catalogExtras}
-          currency={booking.package_version?.currency ?? "EUR"}
         />
       </div>
     </div>
