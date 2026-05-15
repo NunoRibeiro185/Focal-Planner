@@ -68,20 +68,20 @@ export function QuickBookingDialog({
           {
             client_name_primary: values.client_name_primary,
             event_date: values.event_date,
-            package_template_id: values.package_template_id,
             client_name_secondary: null,
             client_email: null,
             client_phone: null,
             lead_source: null,
             location: null,
             notes: null,
-            price_override: null,
-            hours_override: null,
+            discount_amount: 0,
             deposit_amount: null,
             payment_due_date: null,
           },
           [],
-          []
+          [],
+          false,
+          false
         );
         // createBooking redirects to /bookings/[id], so this line is never reached.
         // onOpenChange(false) would be redundant but harmless.

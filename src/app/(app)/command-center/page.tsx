@@ -19,6 +19,7 @@ import { PrefetchLink } from "@/components/ui/prefetch-link";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Camera, Clock, Users, ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
@@ -331,7 +332,17 @@ export default function CommandCenterPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <h1 className="text-2xl font-bold">Command Center</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Command Center</h1>
+        <div className="flex gap-3">
+          <Button asChild>
+            <Link href="/bookings/new">+ New Booking</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/inquiries/new">+ New Inquiry</Link>
+          </Button>
+        </div>
+      </div>
 
       <Suspense fallback={null}>
         <OnboardingSection

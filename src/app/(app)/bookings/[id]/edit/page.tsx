@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import { getBookingById } from "@/lib/queries/bookings";
-import { getAllPackageTemplates } from "@/lib/queries/packages";
+import { getPackageTemplatesWithServices } from "@/lib/queries/packages";
+import { getServices } from "@/lib/queries/services";
 import { getExtras } from "@/lib/queries/extras";
 import { BookingForm } from "@/components/bookings/booking-form";
 import { ExtrasPanel } from "@/components/bookings/extras-panel";
 import { updateBookingFull } from "@/lib/actions/bookings";
-import type { BookingFormValues, BookingExtraValues, ItineraryStopInput } from "@/lib/types/forms";
+import type { BookingFormValues, ItineraryStopInput } from "@/lib/types/forms";
+import type { BuilderLineItem } from "@/lib/utils/booking-builder";
 import { Separator } from "@/components/ui/separator";
 
 export default async function EditBookingPage({
@@ -15,47 +17,22 @@ export default async function EditBookingPage({
 }) {
   const { id } = await params;
 
-  const [data, packages, catalogExtras] = await Promise.all([
+  const [data, packages, catalogServices, catalogExtras] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
-    getAllPackageTemplates(),
+    getPackageTemplatesWithServices(),
+    getServices(),
     getExtras(),
   ]);
 
   const { booking, bookingExtras, itineraryStops } = data;
 
-  const originalPackageVersionId = booking.package_version_id ?? null;
-
-  const defaultValues: Partial<BookingFormValues> = {
-    package_template_id: booking.package_version?.package_template_id ?? undefined,
-    package_version_id: booking.package_version_id ?? null,
-    client_name_primary: booking.client_name_primary,
-    client_name_secondary: booking.client_name_secondary,
-    client_email: booking.client_email,
-    client_phone: booking.client_phone,
-    lead_source: booking.lead_source ?? null,
-    event_date: booking.event_date ?? undefined,
-    location: booking.location ?? null,
-    notes: booking.notes,
-    price_override: booking.price_override,
-    hours_override: booking.hours_override,
-    deposit_amount: booking.deposit_amount,
-    payment_due_date: booking.payment_due_date,
-  };
-
-  const initialItinerary: ItineraryStopInput[] = itineraryStops.map((s) => ({
-    name: s.name,
-    address: s.address ?? "",
-    start_time: s.start_time ?? "",
-    notes: s.notes ?? "",
-  }));
-
   async function handleUpdate(
     values: BookingFormValues,
-    _extras: BookingExtraValues[],
+    _services: BuilderLineItem[],
     itinerary: ItineraryStopInput[]
   ) {
     "use server";
-    await updateBookingFull(id, values, originalPackageVersionId, itinerary);
+    await updateBookingFull(id, values, null, itinerary);
   }
 
   return (
@@ -67,11 +44,9 @@ export default async function EditBookingPage({
           {booking.client_name_secondary && ` & ${booking.client_name_secondary}`}
         </p>
         <BookingForm
+          services={catalogServices}
           packages={packages}
-          defaultValues={defaultValues}
-          initialItinerary={initialItinerary}
           onSubmit={handleUpdate}
-          submitLabel="Save Changes"
         />
       </div>
 
