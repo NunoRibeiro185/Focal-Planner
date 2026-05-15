@@ -2,132 +2,77 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Clock, Pencil, Check, X, Package } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Pencil, X, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { SUPPORTED_CURRENCIES, formatCurrency } from "@/lib/utils/currency";
-import {
-  addBookingExtra,
-  removeBookingExtra,
-  updateBookingPackage,
-  updateBookingPricing,
-} from "@/lib/actions/bookings";
-import type { BookingExtra, BookingWithVersion } from "@/lib/types";
-import type { PackageTemplateWithVersion } from "@/lib/types";
-
-type AddMode = "custom";
+import { formatCurrency } from "@/lib/utils/currency";
+import { computeSubtotal, computeFinalPrice, type BuilderLineItem } from "@/lib/utils/booking-builder";
+import { PackageBuilder } from "@/components/bookings/package-builder";
+import { updateBookingServices } from "@/lib/actions/bookings";
+import type { Booking } from "@/lib/types";
+import type { BookingService, Service, PackageTemplateWithServices } from "@/lib/types/services";
 
 interface PackageExtrasCardProps {
-  booking: BookingWithVersion;
+  booking: Booking;
   bookingId: string;
-  extras: BookingExtra[];
-  catalogExtras: never[];
-  packageTemplates: PackageTemplateWithVersion[];
+  bookingServices: BookingService[];
+  catalogServices: Service[];
+  packages: PackageTemplateWithServices[];
+  currency: string;
+  // Legacy props kept for compat — unused
+  extras?: unknown[];
+  catalogExtras?: never[];
+  packageTemplates?: unknown[];
+}
+
+function toBuilderItems(services: BookingService[]): BuilderLineItem[] {
+  return [...services]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((s) => ({
+      service_id: s.service_id,
+      name_snapshot: s.name_snapshot,
+      description_snapshot: s.description_snapshot,
+      unit_price_snapshot: s.unit_price_snapshot,
+      quantity: s.quantity,
+      track_completion_snapshot: s.track_completion_snapshot,
+    }));
 }
 
 export function PackageExtrasCard({
   booking,
   bookingId,
-  extras,
-  packageTemplates,
+  bookingServices,
+  catalogServices,
+  packages,
+  currency,
 }: PackageExtrasCardProps) {
-  const v = booking.package_version;
-  const currency = v?.currency ?? "EUR";
-
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [items, setItems] = useState<BuilderLineItem[]>(() => toBuilderItems(bookingServices));
+  const [discount, setDiscount] = useState(booking.discount_amount ?? 0);
   const [isPending, startTransition] = useTransition();
 
-  // Package picker
-  const [showPackagePicker, setShowPackagePicker] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    v?.package_template_id ?? ""
-  );
+  const subtotal = computeSubtotal(items);
+  const total = computeFinalPrice(subtotal, discount);
 
-  // Inline pricing edit
-  const [editingPricing, setEditingPricing] = useState(false);
-  const [draftPriceOverride, setDraftPriceOverride] = useState(
-    booking.price_override != null ? String(booking.price_override) : ""
-  );
-  const [draftHoursOverride, setDraftHoursOverride] = useState(
-    booking.hours_override != null ? String(booking.hours_override) : ""
-  );
-
-  // Custom extra form
-  const [customName, setCustomName] = useState("");
-  const [customPrice, setCustomPrice] = useState("");
-  const [customCurrency, setCustomCurrency] = useState(currency);
-  const [customQty, setCustomQty] = useState("1");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const extrasSubtotal = extras.reduce((sum, e) => sum + e.price_snapshot * e.quantity, 0);
-
-  function handleAssignPackage() {
-    if (!selectedTemplateId) return;
-    startTransition(async () => {
-      try {
-        await updateBookingPackage(bookingId, selectedTemplateId);
-        setShowPackagePicker(false);
-      } catch {
-        toast.error("Couldn't assign package — try again");
-      }
-    });
+  function handleEdit() {
+    setItems(toBuilderItems(bookingServices));
+    setDiscount(booking.discount_amount ?? 0);
+    setEditing(true);
   }
 
-  function handleSavePricing() {
-    startTransition(async () => {
-      try {
-        await updateBookingPricing(bookingId, {
-          price_override: draftPriceOverride !== "" ? Number(draftPriceOverride) : null,
-          hours_override: draftHoursOverride !== "" ? Number(draftHoursOverride) : null,
-        });
-        setEditingPricing(false);
-      } catch {
-        toast.error("Couldn't save pricing — try again");
-      }
-    });
+  function handleCancel() {
+    setItems(toBuilderItems(bookingServices));
+    setDiscount(booking.discount_amount ?? 0);
+    setEditing(false);
   }
 
-  function handleAdd() {
-    const newErrors: Record<string, string> = {};
-    if (!customName.trim()) newErrors.name = "Name is required";
-    const price = Number(customPrice);
-    if (isNaN(price) || price < 0) newErrors.price = "Enter a valid price";
-    const qty = Number(customQty);
-    if (!Number.isInteger(qty) || qty < 1) newErrors.qty = "Quantity must be at least 1";
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    setErrors({});
+  function handleSave() {
     startTransition(async () => {
       try {
-        await addBookingExtra(bookingId, {
-          extra_id: null,
-          name_snapshot: customName.trim(),
-          price_snapshot: price,
-          currency_snapshot: customCurrency,
-          quantity: qty,
-        });
-        setCustomName(""); setCustomPrice(""); setCustomQty("1"); setShowAddForm(false);
+        await updateBookingServices(bookingId, items, discount);
+        setEditing(false);
       } catch {
-        toast.error("Couldn't add extra — try again");
-      }
-    });
-  }
-
-  function handleRemove(extraId: string) {
-    startTransition(async () => {
-      try {
-        await removeBookingExtra(extraId, bookingId);
-      } catch {
-        toast.error("Couldn't remove extra — try again");
+        toast.error("Couldn't save — try again");
       }
     });
   }
@@ -137,244 +82,84 @@ export function PackageExtrasCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Package &amp; Extras
+            Package &amp; Services
           </CardTitle>
-          {v?.version_name && (
-            <Badge variant="outline" className="text-xs font-normal">
-              {v.version_name}
-            </Badge>
+          {!editing && (
+            <button
+              onClick={handleEdit}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Edit services"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-
-        {/* ── No package assigned ── */}
-        {!v && !showPackagePicker && (
+        {editing ? (
+          <>
+            <PackageBuilder
+              services={catalogServices}
+              packages={packages}
+              items={items}
+              discount={discount}
+              currency={currency}
+              onItemsChange={setItems}
+              onDiscountChange={setDiscount}
+            />
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={handleSave} disabled={isPending}>
+                <Check className="h-3.5 w-3.5 mr-1" />
+                {isPending ? "Saving…" : "Save"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleCancel} disabled={isPending}>
+                <X className="h-3.5 w-3.5 mr-1" />
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : bookingServices.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <Package className="h-7 w-7 text-muted-foreground/40" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">No package assigned yet.</p>
-            <Button variant="outline" size="sm" onClick={() => setShowPackagePicker(true)}>
-              Assign package
+            <p className="text-sm text-muted-foreground">No services added yet.</p>
+            <Button variant="outline" size="sm" onClick={handleEdit}>
+              Build package
             </Button>
           </div>
-        )}
+        ) : (
+          <div className="space-y-2">
+            {[...bookingServices]
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((s) => (
+                <div key={s.id} className="flex items-center justify-between text-sm">
+                  <span className="flex-1 min-w-0 font-medium truncate">
+                    {s.name_snapshot}
+                    {s.quantity > 1 && (
+                      <span className="text-muted-foreground font-normal ml-1">× {s.quantity}</span>
+                    )}
+                  </span>
+                  <span className="tabular-nums text-sm ml-3">
+                    {formatCurrency(s.unit_price_snapshot * s.quantity, currency)}
+                  </span>
+                </div>
+              ))}
 
-        {/* ── Package picker ── */}
-        {showPackagePicker && (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Select package</Label>
-              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a package…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {packageTemplates.map((pt) => (
-                    <SelectItem key={pt.id} value={pt.id}>
-                      {pt.name}
-                      {pt.current_version && (
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          · {formatCurrency(pt.current_version.base_price, pt.current_version.currency)}
-                        </span>
-                      )}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleAssignPackage} disabled={isPending || !selectedTemplateId}>
-                <Check className="h-3.5 w-3.5" /> Assign
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowPackagePicker(false)} disabled={isPending}>
-                <X className="h-3.5 w-3.5" /> Cancel
-              </Button>
+            <div className="border-t pt-2 space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="tabular-nums">{formatCurrency(subtotal, currency)}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Discount</span>
+                  <span className="tabular-nums">−{formatCurrency(discount, currency)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">{formatCurrency(total, currency)}</span>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* ── Package assigned ── */}
-        {v && (
-          <>
-            {/* Package name row */}
-            {!showPackagePicker && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium truncate">
-                  {packageTemplates.find((pt) => pt.id === v.package_template_id)?.name ?? "Package"}
-                </span>
-                <button
-                  onClick={() => {
-                    setSelectedTemplateId(v.package_template_id);
-                    setShowPackagePicker(true);
-                  }}
-                  disabled={isPending}
-                  className="text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-2"
-                  aria-label="Change package"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-
-            {/* Pricing row */}
-            {editingPricing ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Price adjustment ({v.currency})</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={draftPriceOverride}
-                      onChange={(e) => setDraftPriceOverride(e.target.value)}
-                      placeholder="0"
-                      autoFocus
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Base: {formatCurrency(v.base_price, v.currency)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Hours override</Label>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      value={draftHoursOverride}
-                      onChange={(e) => setDraftHoursOverride(e.target.value)}
-                      placeholder={String(v.hours_of_coverage)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Default: {v.hours_of_coverage}h
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSavePricing} disabled={isPending}>
-                    <Check className="h-3.5 w-3.5" /> Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingPricing(false)} disabled={isPending}>
-                    <X className="h-3.5 w-3.5" /> Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  {booking.hours_override ?? v.hours_of_coverage}h
-                  {(booking.price_override !== null && booking.price_override !== 0) && (
-                    <span className="text-xs">
-                      · Base {formatCurrency(v.base_price, currency)}{" "}
-                      {(booking.price_override ?? 0) > 0 ? "+" : ""}
-                      {formatCurrency(booking.price_override ?? 0, currency)}
-                    </span>
-                  )}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="tabular-nums font-medium">
-                    {formatCurrency(booking.total_price, currency)}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setDraftPriceOverride(booking.price_override != null ? String(booking.price_override) : "");
-                      setDraftHoursOverride(booking.hours_override != null ? String(booking.hours_override) : "");
-                      setEditingPricing(true);
-                    }}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Edit pricing"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Extras list */}
-            {(extras.length > 0 || showAddForm) && (
-              <div className="space-y-2 pt-2 border-t">
-                {extras.map((extra) => (
-                  <div key={extra.id} className="flex items-center justify-between text-sm">
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium">{extra.name_snapshot}</span>
-                      {extra.quantity > 1 && (
-                        <span className="text-muted-foreground ml-1">× {extra.quantity}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="tabular-nums font-medium">
-                        {formatCurrency(extra.price_snapshot * extra.quantity, extra.currency_snapshot)}
-                      </span>
-                      <button
-                        onClick={() => handleRemove(extra.id)}
-                        disabled={isPending}
-                        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-                        aria-label="Remove extra"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {extras.length > 0 && (
-                  <div className="flex justify-between items-center pt-1 border-t text-xs text-muted-foreground">
-                    <span>Extras subtotal</span>
-                    <span className="tabular-nums">{formatCurrency(extrasSubtotal, currency)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Grand total */}
-            <div className="flex justify-between items-center pt-2 border-t text-sm font-semibold">
-              <span>Total</span>
-              <span className="tabular-nums">{formatCurrency(booking.total_price + extrasSubtotal, currency)}</span>
-            </div>
-
-            {/* Custom extra add form */}
-            {showAddForm && (
-              <div className="space-y-3 pt-2 border-t">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Name</Label>
-                  <Input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="e.g. Extra hour" />
-                  {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Qty</Label>
-                    <Input type="number" min="1" step="1" value={customQty} onChange={(e) => setCustomQty(e.target.value)} />
-                    {errors.qty && <p className="text-xs text-destructive">{errors.qty}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Price</Label>
-                    <Input type="number" min="0" step="0.01" value={customPrice} onChange={(e) => setCustomPrice(e.target.value)} placeholder="0.00" />
-                    {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Currency</Label>
-                    <Select value={customCurrency} onValueChange={setCustomCurrency}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {SUPPORTED_CURRENCIES.map((c) => (
-                          <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAdd} disabled={isPending}>{isPending ? "Adding…" : "Add"}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setShowAddForm(false); setErrors({}); }} disabled={isPending}>Cancel</Button>
-                </div>
-              </div>
-            )}
-
-            {!showAddForm && !editingPricing && (
-              <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAddForm(true)}>
-                <Plus className="h-4 w-4" /> Add extra
-              </Button>
-            )}
-          </>
         )}
       </CardContent>
     </Card>

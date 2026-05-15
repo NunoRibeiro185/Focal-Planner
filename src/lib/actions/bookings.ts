@@ -24,6 +24,7 @@ import { canTransition, isBackwardTransition, isForwardStepperTransition, isTerm
 import { buildBookingStagesFromTemplates } from "@/lib/utils/editing-workflow";
 import type { BookingStatus } from "@/lib/types";
 import { syncBookingToGoogle } from "@/lib/actions/google-calendar";
+import { computeSubtotal, computeFinalPrice, type BuilderLineItem } from "@/lib/utils/booking-builder";
 
 /**
  * Replaces itinerary stops for a booking (delete all + insert new).
@@ -807,6 +808,53 @@ export async function removeBookingExtra(
     .eq("photographer_id", user.id);
 
   if (error) throw error;
+
+  revalidatePath(`/bookings/${bookingId}`);
+}
+
+export async function updateBookingServices(
+  bookingId: string,
+  items: BuilderLineItem[],
+  discount: number
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const subtotal = computeSubtotal(items);
+  const totalPrice = computeFinalPrice(subtotal, discount);
+
+  const { error: deleteError } = await supabase
+    .from("booking_services")
+    .delete()
+    .eq("booking_id", bookingId)
+    .eq("photographer_id", user.id);
+  if (deleteError) throw deleteError;
+
+  if (items.length > 0) {
+    const { error: insertError } = await supabase.from("booking_services").insert(
+      items.map((item, i) => ({
+        booking_id: bookingId,
+        photographer_id: user.id,
+        service_id: item.service_id ?? null,
+        name_snapshot: item.name_snapshot,
+        description_snapshot: item.description_snapshot ?? null,
+        unit_price_snapshot: item.unit_price_snapshot,
+        quantity: item.quantity,
+        track_completion_snapshot: item.track_completion_snapshot,
+        done: false,
+        sort_order: i,
+      }))
+    );
+    if (insertError) throw insertError;
+  }
+
+  const { error: updateError } = await supabase
+    .from("bookings")
+    .update({ total_price: totalPrice, discount_amount: discount })
+    .eq("id", bookingId)
+    .eq("photographer_id", user.id);
+  if (updateError) throw updateError;
 
   revalidatePath(`/bookings/${bookingId}`);
 }

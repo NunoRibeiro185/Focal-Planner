@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getBookingById, getInquiryAnswers } from "@/lib/queries/bookings";
 import { getBookingServices, getServices } from "@/lib/queries/services";
-import { getPackageTemplates } from "@/lib/queries/packages";
+import { getPackageTemplatesWithServices } from "@/lib/queries/packages";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
 import { getCalendarEventsForAvailabilityPanel } from "@/lib/queries/availability-calendar";
 import { getSecondShooterView, getSecondShooterNotes } from "@/lib/queries/second-shooter";
@@ -11,14 +11,13 @@ import type { PanelSlot } from "@/lib/utils/booking-layout";
 import type {
   BookingWithVersion,
   BookingTask,
-  BookingExtra,
   BookingItineraryStop,
   PaymentLogEntry,
   BookingEditingStage,
   EditingStageTemplate,
   CalendarEvent,
-  PackageTemplateWithVersion,
 } from "@/lib/types";
+import type { PackageTemplateWithServices } from "@/lib/types/services";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
 import { StatusStepper } from "@/components/bookings/status-stepper";
@@ -83,7 +82,7 @@ export default async function BookingDetailPage({
   const [data, stageTemplates, packageTemplates, photographerResult, inquiryAnswers, bookingServices, catalogServices] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
     getEditingStageTemplates(),
-    getPackageTemplates(),
+    getPackageTemplatesWithServices(),
     supabase.from("photographers").select("default_currency").eq("id", user!.id).single(),
     getInquiryAnswers(id),
     getBookingServices(id),
@@ -97,7 +96,6 @@ export default async function BookingDetailPage({
     itineraryStops,
     editingStages,
     payments,
-    bookingExtras,
     bookingExpenses,
     amountPaid,
     grandTotal,
@@ -107,6 +105,7 @@ export default async function BookingDetailPage({
 
   const defaultCurrency =
     (photographerResult.data as { default_currency: string } | null)?.default_currency ?? "EUR";
+  const bookingCurrency = booking.package_version?.currency ?? defaultCurrency;
   const v = booking.package_version;
 
   // If the current user is the accepted second shooter, show the dedicated view
@@ -136,8 +135,7 @@ export default async function BookingDetailPage({
       ? await getCalendarEventsForAvailabilityPanel(booking.event_date)
       : [];
 
-  // Cast package templates to the shape the component expects
-  const pkgTemplates = packageTemplates as unknown as PackageTemplateWithVersion[];
+  const pkgTemplates = packageTemplates as PackageTemplateWithServices[];
 
   // ── Panel renderer ─────────────────────────────────────────────────────────
 
@@ -166,9 +164,10 @@ export default async function BookingDetailPage({
             key={panel}
             booking={booking}
             bookingId={id}
-            extras={bookingExtras}
-            catalogExtras={[]}
-            packageTemplates={pkgTemplates}
+            bookingServices={bookingServices}
+            catalogServices={catalogServices}
+            packages={pkgTemplates}
+            currency={bookingCurrency}
           />
         );
 
@@ -186,7 +185,6 @@ export default async function BookingDetailPage({
         return <NotesCard key={panel} notes={booking.notes} bookingId={id} />;
 
       case "payment":
-        if (!v) return null;
         return (
           <PaymentPanel
             key={panel}
@@ -197,7 +195,7 @@ export default async function BookingDetailPage({
             balance={balance}
             overdue={overdue}
             grandTotal={grandTotal}
-            currency={v.currency}
+            currency={bookingCurrency}
             defaultCurrency={defaultCurrency}
           />
         );

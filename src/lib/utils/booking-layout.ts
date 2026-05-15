@@ -75,7 +75,7 @@ const INQUIRY_LAYOUT: BookingLayoutConfig = {
       { panel: "availability_calendar"},
       { panel: "notes", forceShow: true },
     ]},
-    { slots: [{ panel: "inquiry_qa" }] },
+    { slots: [{ panel: "inquiry_qa", forceShow: true }] },
     { slots: [
       { panel: "client_info" },
       { panel: "itinerary" },
