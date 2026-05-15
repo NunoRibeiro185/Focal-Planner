@@ -191,6 +191,7 @@ export function verifyWebhookSignature(
 
 const STATUS_MAP: Record<string, SubscriptionStatus> = {
   active: "active",
+  on_trial: "active",
   cancelled: "cancelled",
   past_due: "past_due",
   paused: "paused",
