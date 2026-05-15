@@ -3,6 +3,9 @@ import { ProposalView } from "./proposal-view"
 import { ItinerarySection } from "./itinerary-section"
 import { QASection } from "./qa-section"
 
+type SafeBooking = Omit<DealRoomData["booking"], "client_token" | "photographer_id">
+type SafeDealRoomData = Omit<DealRoomData, "booking"> & { booking: SafeBooking }
+
 function formatDate(dateStr: string | null) {
   if (!dateStr) return null
   return new Date(dateStr).toLocaleDateString("en-GB", {
@@ -17,7 +20,7 @@ export function ClientDealRoomView({
   data,
   token,
 }: {
-  data: DealRoomData
+  data: SafeDealRoomData
   token: string
 }) {
   const { booking, inquiryAnswers, proposal, counterOffer, questions, itineraryStops } = data

@@ -20,5 +20,6 @@ export default async function ClientDealRoomPage({
 
   if (!verifyClientToken(data.booking.client_token, token)) notFound()
 
-  return <ClientDealRoomView data={data} token={token} />
+  const { client_token: _token, photographer_id: _pid, ...safeBooking } = data.booking
+  return <ClientDealRoomView data={{ ...data, booking: safeBooking }} token={token} />
 }
