@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getInquiryForms } from "@/lib/queries/inquiry-forms";
 import { getPackageTemplates } from "@/lib/queries/packages";
@@ -7,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEffectiveTier, hasReachedLimit } from "@/lib/services/entitlements";
 import { FormList } from "@/components/inquiry-forms/form-list";
 import { IncomingList } from "@/components/inquiry-forms/incoming-list";
+import { Button } from "@/components/ui/button";
 
 export default async function InquiriesPage() {
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
@@ -61,6 +63,11 @@ export default async function InquiriesPage() {
         </TabsContent>
 
         <TabsContent value="incoming" className="mt-6">
+          <div className="flex justify-end mb-4">
+            <Button asChild size="sm">
+              <Link href="/inquiries/new">+ New Inquiry</Link>
+            </Button>
+          </div>
           <IncomingList bookings={incomingBookings} />
         </TabsContent>
       </Tabs>

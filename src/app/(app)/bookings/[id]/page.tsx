@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getBookingById, getInquiryAnswers } from "@/lib/queries/bookings";
-import { getExtras } from "@/lib/queries/extras";
+import { getBookingServices, getServices } from "@/lib/queries/services";
 import { getPackageTemplates } from "@/lib/queries/packages";
 import { getEditingStageTemplates } from "@/lib/queries/command-center";
 import { getCalendarEventsForAvailabilityPanel } from "@/lib/queries/availability-calendar";
@@ -12,7 +12,6 @@ import type {
   BookingWithVersion,
   BookingTask,
   BookingExtra,
-  BookingDeliverableProgress,
   BookingItineraryStop,
   PaymentLogEntry,
   BookingEditingStage,
@@ -24,9 +23,9 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { BookingStatusBadge } from "@/components/bookings/booking-status-badge";
 import { StatusStepper } from "@/components/bookings/status-stepper";
 import { PaymentPanel } from "@/components/bookings/payment-panel";
-import { DeliverablesPanel } from "@/components/bookings/deliverables-panel";
+import { ServicesPanel } from "@/components/bookings/deliverables-panel";
 import { TasksPanel } from "@/components/bookings/tasks-panel";
-import { PackageExtrasCard } from "@/components/bookings/extras-panel";
+import { PackageExtrasCard } from "@/components/bookings/package-panel";
 import { EditingPipelinePanel } from "@/components/bookings/editing-pipeline-panel";
 import { AvailabilityCalendarPanel } from "@/components/bookings/availability-calendar-panel";
 import { SecondShooterPanel } from "@/components/bookings/second-shooter-panel";
@@ -81,13 +80,14 @@ export default async function BookingDetailPage({
 
   const [user, supabase] = await Promise.all([getUser(), createClient()]);
 
-  const [data, catalogExtras, stageTemplates, packageTemplates, photographerResult, inquiryAnswers] = await Promise.all([
+  const [data, stageTemplates, packageTemplates, photographerResult, inquiryAnswers, bookingServices, catalogServices] = await Promise.all([
     getBookingById(id).catch(() => notFound()),
-    getExtras(),
     getEditingStageTemplates(),
     getPackageTemplates(),
     supabase.from("photographers").select("default_currency").eq("id", user!.id).single(),
     getInquiryAnswers(id),
+    getBookingServices(id),
+    getServices(),
   ]);
 
   const {
@@ -167,7 +167,7 @@ export default async function BookingDetailPage({
             booking={booking}
             bookingId={id}
             extras={bookingExtras}
-            catalogExtras={catalogExtras}
+            catalogExtras={[]}
             packageTemplates={pkgTemplates}
           />
         );
@@ -206,12 +206,13 @@ export default async function BookingDetailPage({
         return <TasksPanel key={panel} tasks={tasks} bookingId={id} />;
 
       case "deliverables":
-        if (deliverableProgress.length === 0) return null;
         return (
-          <DeliverablesPanel
+          <ServicesPanel
             key={panel}
-            deliverableProgress={deliverableProgress}
             bookingId={id}
+            bookingServices={bookingServices}
+            catalogServices={catalogServices}
+            currency={booking.package_version?.currency ?? defaultCurrency}
           />
         );
 

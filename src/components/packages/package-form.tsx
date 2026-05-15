@@ -8,7 +8,6 @@ import { SUPPORTED_CURRENCIES } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -18,15 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import Link from "next/link";
-import type { CustomFieldDefinition } from "@/lib/types";
 
 interface PackageFormProps {
   defaultValues?: Partial<PackageFormValues>;
   onSubmit: (values: PackageFormValues) => Promise<void>;
   submitLabel?: string;
   isNewVersion?: boolean;
-  customFieldDefinitions?: CustomFieldDefinition[];
 }
 
 export function PackageForm({
@@ -34,7 +30,6 @@ export function PackageForm({
   onSubmit,
   submitLabel = "Save Package",
   isNewVersion = false,
-  customFieldDefinitions = [],
 }: PackageFormProps) {
   const [pending, setPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -55,17 +50,11 @@ export function PackageForm({
       base_price: 0,
       currency: "EUR",
       hours_of_coverage: 8,
-      custom_fields: customFieldDefinitions.map((f) => ({
-        field_definition_id: f.id,
-        value_text: null,
-        value_bool: null,
-      })),
       ...defaultValues,
     },
   });
 
   const currency = watch("currency");
-  const customFields = watch("custom_fields");
 
   async function handleFormSubmit(values: PackageFormValues) {
     setPending(true);
@@ -184,60 +173,6 @@ export function PackageForm({
         />
         {errors.hours_of_coverage && (
           <p className="text-sm text-destructive">{errors.hours_of_coverage.message}</p>
-        )}
-      </div>
-
-      <Separator />
-
-      <div className="space-y-0.5">
-        <p className="text-sm font-semibold">Deliverables</p>
-        <p className="text-xs text-muted-foreground">
-          Select which deliverables are included in this package. Each checked item appears as a trackable field on every booking.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        {customFieldDefinitions.map((field, index) => (
-          <div key={field.id}>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <Checkbox
-                checked={!!customFields?.[index]?.value_bool}
-                onCheckedChange={(checked) =>
-                  setValue(`custom_fields.${index}.value_bool`, !!checked)
-                }
-                className="mt-0.5"
-              />
-              <div>
-                <span className="text-sm">{field.label}</span>
-                {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>
-                )}
-              </div>
-            </label>
-          </div>
-        ))}
-
-        {customFieldDefinitions.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            No deliverables defined yet.{" "}
-            <Link
-              href="/packages?tab=deliverables"
-              className="text-primary hover:text-primary/80 transition-colors"
-            >
-              Go to Deliverables
-            </Link>{" "}
-            to add them, then come back here.
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground pt-1">
-            Need to add or remove deliverables?{" "}
-            <Link
-              href="/packages?tab=deliverables"
-              className="text-primary hover:text-primary/80 transition-colors"
-            >
-              Manage deliverables
-            </Link>
-          </p>
         )}
       </div>
 

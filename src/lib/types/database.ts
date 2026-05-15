@@ -2,6 +2,8 @@
  * Type-safe representation of the Supabase database schema.
  * Keep in sync with supabase/migrations/001_initial_schema.sql.
  */
+import type { Service, BookingService, PackageTemplateService } from "./services";
+
 export type BookingStatus =
   | "inquiry"
   | "confirmed"
@@ -127,6 +129,7 @@ export interface Booking {
   inquiry_form_id: string | null;
   inquiry_form_name_snapshot: string | null;
   is_archived: boolean;
+  discount_amount: number;
   created_at: string;
   updated_at: string;
 }
@@ -217,6 +220,8 @@ export interface Extra {
   deleted_at: string | null;
   created_at: string;
 }
+
+export type { Service, BookingService, PackageTemplateService, PackageTemplateWithServices } from "./services";
 
 export interface BookingExtra {
   id: string;
@@ -462,6 +467,9 @@ export interface Database {
       package_version_custom_fields: { Row: PackageVersionCustomField };
       extras: { Row: Extra };
       booking_extras: { Row: BookingExtra };
+      services: { Row: Service };
+      booking_services: { Row: BookingService };
+      package_template_services: { Row: PackageTemplateService };
       booking_deliverable_progress: { Row: BookingDeliverableProgress };
       booking_itinerary_stops: { Row: BookingItineraryStop };
       personal_events: { Row: PersonalEvent };

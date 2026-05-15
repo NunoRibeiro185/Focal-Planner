@@ -2,12 +2,10 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/currency";
 import { DeletePackageButton } from "./delete-package-button";
-import { VersionHistorySection } from "./version-history-section";
 import type { PackageTemplateForList } from "@/lib/types";
 
 export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
   const v = pkg.current_version;
-  const deliverables = v?.custom_fields?.filter((cf) => cf.value_bool) ?? [];
 
   return (
     <article className="group overflow-hidden rounded-sm border border-border/60 bg-card flex flex-col">
@@ -53,33 +51,10 @@ export function PackageCard({ pkg }: { pkg: PackageTemplateForList }) {
               <span>{v.hours_of_coverage}h coverage</span>
             </div>
 
-            {/* Deliverables */}
-            {deliverables.length > 0 && (
-              <ul className="flex flex-col gap-1 mt-3">
-                {deliverables.map((cf) => (
-                  <li
-                    key={cf.id}
-                    className="flex items-start gap-2 text-xs text-muted-foreground"
-                  >
-                    <span className="mt-[5px] w-1 h-1 rounded-full bg-primary/40 shrink-0" />
-                    {cf.definition.label}
-                  </li>
-                ))}
-              </ul>
-            )}
           </>
         ) : (
           <p className="text-sm text-muted-foreground/40 mt-3 italic">No version set</p>
         )}
-      </div>
-
-      {/* Version history — collapsed by default */}
-      <div className="px-5">
-        <VersionHistorySection
-          templateId={pkg.id}
-          currentVersionId={pkg.current_version_id}
-          versions={pkg.all_versions}
-        />
       </div>
 
       {/* Hover control bar — always in DOM, fades in on hover */}

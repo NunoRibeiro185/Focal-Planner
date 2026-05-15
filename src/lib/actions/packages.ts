@@ -219,6 +219,45 @@ export async function toggleVersionArchived(versionId: string, archived: boolean
   revalidatePath("/packages");
 }
 
+export async function replacePackageServices(
+  packageTemplateId: string,
+  serviceIds: Array<{ service_id: string; default_quantity: number }>
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { data: template } = await supabase
+    .from("package_templates")
+    .select("id")
+    .eq("id", packageTemplateId)
+    .eq("photographer_id", user.id)
+    .single();
+  if (!template) throw new Error("Package template not found");
+
+  await supabase
+    .from("package_template_services")
+    .delete()
+    .eq("package_template_id", packageTemplateId)
+    .eq("photographer_id", user.id);
+
+  if (serviceIds.length > 0) {
+    const { error } = await supabase.from("package_template_services").insert(
+      serviceIds.map((s, i) => ({
+        package_template_id: packageTemplateId,
+        service_id: s.service_id,
+        photographer_id: user.id,
+        default_quantity: s.default_quantity,
+        sort_order: i,
+      }))
+    );
+    if (error) throw error;
+  }
+
+  revalidatePath("/packages");
+  revalidatePath(`/packages/${packageTemplateId}`);
+}
+
 export async function togglePackageArchived(
   templateId: string,
   archived: boolean
