@@ -87,9 +87,7 @@ export async function createCheckoutSession(
             email,
             custom: { photographer_id: photographerId },
           },
-          checkout_options: {
-            redirect_url: redirectUrl,
-          },
+          redirect_url: redirectUrl,
         },
         relationships: {
           store: { data: { type: "stores", id: storeId } },
