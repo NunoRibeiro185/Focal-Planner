@@ -132,6 +132,7 @@ export interface Booking {
   discount_amount: number;
   created_at: string;
   updated_at: string;
+  client_token: string;
 }
 
 export interface InquiryForm {
@@ -336,6 +337,7 @@ export interface BookingItineraryStop {
   start_time: string | null;
   notes: string | null;
   sort_order: number;
+  created_by: "photographer" | "client";
 }
 
 export interface PersonalEvent {
