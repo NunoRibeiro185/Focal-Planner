@@ -81,10 +81,10 @@ export function ItinerarySection({
             )}
           </div>
           {stop.address && (
-            <p className="text-xs text-muted-foreground mt-0.5 ml-14">{stop.address}</p>
+            <p className={`text-xs text-muted-foreground mt-0.5 ${stop.start_time ? "ml-14" : ""}`}>{stop.address}</p>
           )}
           {stop.notes && (
-            <p className="text-xs text-muted-foreground mt-0.5 ml-14">{stop.notes}</p>
+            <p className={`text-xs text-muted-foreground mt-0.5 ${stop.start_time ? "ml-14" : ""}`}>{stop.notes}</p>
           )}
         </div>
       ))}

@@ -17,18 +17,24 @@ function QuestionItem({
 }) {
   const [value, setValue] = useState(question.answer?.answer_text ?? "")
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   function handleSave() {
+    setError(null)
     startTransition(async () => {
-      await saveClientAnswer({
-        bookingId,
-        token,
-        questionId: question.id,
-        answerText: value,
-      })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      try {
+        await saveClientAnswer({
+          bookingId,
+          token,
+          questionId: question.id,
+          answerText: value,
+        })
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      } catch {
+        setError("Failed to save. Please try again.")
+      }
     })
   }
 
@@ -41,6 +47,7 @@ function QuestionItem({
         rows={2}
         placeholder="Your answer…"
       />
+      {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex items-center gap-2">
         <Button
           size="sm"
