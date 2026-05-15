@@ -2,7 +2,7 @@
 
 -- ─── 1. Services catalog ──────────────────────────────────────
 
-CREATE TABLE services (
+CREATE TABLE IF NOT EXISTS services (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   photographer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name            VARCHAR(255) NOT NULL,
@@ -17,21 +17,26 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "photographers_manage_own_services" ON services
   FOR ALL USING (photographer_id = auth.uid());
 
+CREATE INDEX IF NOT EXISTS idx_services_photographer_id ON services(photographer_id);
+
 -- Migrate extras → services (preserve IDs so booking_extras FK still resolves)
 INSERT INTO services (id, photographer_id, name, description, unit_price, track_completion, deleted_at, created_at)
 SELECT id, photographer_id, name, description, price, FALSE, deleted_at, created_at
-FROM extras;
+FROM extras
+WHERE photographer_id IS NOT NULL
+ON CONFLICT (id) DO NOTHING;
 
 -- Migrate custom_field_definitions → services (new IDs, unit_price = 0)
 INSERT INTO services (photographer_id, name, description, unit_price, track_completion, deleted_at, created_at)
 SELECT photographer_id, label, description, 0,
   CASE WHEN field_type = 'checkbox' THEN TRUE ELSE FALSE END,
   deleted_at, created_at
-FROM custom_field_definitions;
+FROM custom_field_definitions
+WHERE photographer_id IS NOT NULL;
 
 -- ─── 2. Per-booking line items ────────────────────────────────
 
-CREATE TABLE booking_services (
+CREATE TABLE IF NOT EXISTS booking_services (
   id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id                UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
   photographer_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -50,6 +55,10 @@ ALTER TABLE booking_services ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "photographers_manage_own_booking_services" ON booking_services
   FOR ALL USING (photographer_id = auth.uid());
 
+CREATE INDEX IF NOT EXISTS idx_booking_services_booking_id ON booking_services(booking_id);
+CREATE INDEX IF NOT EXISTS idx_booking_services_photographer_id ON booking_services(photographer_id);
+CREATE INDEX IF NOT EXISTS idx_booking_services_service_id ON booking_services(service_id);
+
 -- Migrate booking_extras → booking_services
 INSERT INTO booking_services (
   booking_id, photographer_id, service_id,
@@ -60,9 +69,11 @@ SELECT
   booking_id, photographer_id, extra_id,
   name_snapshot, price_snapshot, quantity,
   FALSE, FALSE, 0
-FROM booking_extras;
+FROM booking_extras WHERE photographer_id IS NOT NULL;
 
 -- Migrate booking_deliverable_progress → booking_services
+-- service_id intentionally NULL: these were deliverables with no catalog entry.
+-- Rows are still valid; service_id nullable is by design.
 INSERT INTO booking_services (
   booking_id, photographer_id, service_id,
   name_snapshot, description_snapshot, unit_price_snapshot,
@@ -72,11 +83,11 @@ SELECT
   booking_id, photographer_id, NULL,
   label, description, 0,
   1, TRUE, done, 0
-FROM booking_deliverable_progress;
+FROM booking_deliverable_progress WHERE photographer_id IS NOT NULL;
 
 -- ─── 3. Package template services ────────────────────────────
 
-CREATE TABLE package_template_services (
+CREATE TABLE IF NOT EXISTS package_template_services (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   package_template_id UUID NOT NULL REFERENCES package_templates(id) ON DELETE CASCADE,
   service_id          UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
@@ -89,6 +100,9 @@ CREATE TABLE package_template_services (
 ALTER TABLE package_template_services ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "photographers_manage_own_package_template_services" ON package_template_services
   FOR ALL USING (photographer_id = auth.uid());
+
+CREATE INDEX IF NOT EXISTS idx_package_template_services_template_id ON package_template_services(package_template_id);
+CREATE INDEX IF NOT EXISTS idx_package_template_services_photographer_id ON package_template_services(photographer_id);
 
 -- ─── 4. Add discount_amount to bookings ───────────────────────
 
