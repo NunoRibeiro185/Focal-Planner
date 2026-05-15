@@ -65,6 +65,7 @@ export async function createCheckoutSession(
   photographerId: string,
   email: string,
   plan: SubscriptionPlan,
+  redirectUrl: string,
   now: Date = new Date()
 ): Promise<string> {
   const apiKey = getEnv("LEMONSQUEEZY_API_KEY");
@@ -85,6 +86,9 @@ export async function createCheckoutSession(
           checkout_data: {
             email,
             custom: { photographer_id: photographerId },
+          },
+          checkout_options: {
+            redirect_url: redirectUrl,
           },
         },
         relationships: {

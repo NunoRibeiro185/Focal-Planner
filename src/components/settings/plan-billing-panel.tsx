@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import type { EffectiveTier } from "@/config/plans";
 interface PlanBillingPanelProps {
   subscription: Subscription | null;
   tier: EffectiveTier;
+  checkoutSuccess?: boolean;
 }
 
 const PRO_FEATURES = [
@@ -48,10 +50,16 @@ function resolvePanelState(
   return "free";
 }
 
-export function PlanBillingPanel({ subscription, tier }: PlanBillingPanelProps) {
+export function PlanBillingPanel({ subscription, tier, checkoutSuccess }: PlanBillingPanelProps) {
   const router = useRouter();
   const panelState = resolvePanelState(subscription, tier);
   const refresh = () => router.refresh();
+
+  useEffect(() => {
+    if (checkoutSuccess) {
+      toast.success("You're subscribed!", { description: "Your Pro plan is now active." });
+    }
+  }, [checkoutSuccess]);
 
   if (panelState === "trial_nosub") return <TrialNoSubState />;
   if (panelState === "trial_sub")

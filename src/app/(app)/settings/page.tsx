@@ -13,12 +13,12 @@ import { DeleteAccountPanel } from "@/components/settings/delete-account-panel";
 import { OnboardingPanel } from "@/components/onboarding/onboarding-panel";
 import type { Photographer } from "@/lib/types";
 
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google?: string }>;
+  searchParams: Promise<{ google?: string; checkout?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -33,6 +33,7 @@ export default async function SettingsPage({
       : params.google === "error"
       ? "error"
       : null;
+  const checkoutSuccess = params.checkout === "success";
 
   const [
     photographerResult,
@@ -77,7 +78,7 @@ export default async function SettingsPage({
         title="Plan & Billing"
         description="Manage your subscription and payment details."
       >
-        <PlanBillingPanel subscription={subscription} tier={tier} />
+        <PlanBillingPanel subscription={subscription} tier={tier} checkoutSuccess={checkoutSuccess} />
       </SettingsSection>
 
       <SettingsSection

@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const url = await createCheckoutSession(user.id, user.email ?? "", plan);
+    const origin = req.headers.get("origin") ?? req.nextUrl.origin;
+    const redirectUrl = `${origin}/settings?checkout=success`;
+    const url = await createCheckoutSession(user.id, user.email ?? "", plan, redirectUrl);
     return NextResponse.json({ url });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
