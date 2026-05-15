@@ -42,6 +42,7 @@ CREATE TABLE deal_room_counter_offers (
 );
 
 ALTER TABLE deal_room_counter_offers ENABLE ROW LEVEL SECURITY;
+-- Writes happen via service-role client only (bypasses RLS) — no client INSERT policy is intentional.
 
 CREATE POLICY "Photographers view counter offers on own bookings"
   ON deal_room_counter_offers FOR SELECT
@@ -79,6 +80,7 @@ CREATE TABLE deal_room_answers (
 );
 
 ALTER TABLE deal_room_answers ENABLE ROW LEVEL SECURITY;
+-- Writes happen via service-role client only (bypasses RLS) — no client INSERT policy is intentional.
 
 CREATE POLICY "Photographers view answers on own bookings"
   ON deal_room_answers FOR SELECT

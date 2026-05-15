@@ -1,5 +1,7 @@
+import type { ItineraryCreatedBy } from "@/lib/types/database"
+
 export type ProposalStatus = "sent" | "accepted" | "countered"
-export type ItineraryCreatedBy = "photographer" | "client"
+export type { ItineraryCreatedBy }
 
 export interface ProposalLineItem {
   name: string
