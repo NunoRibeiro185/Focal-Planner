@@ -355,8 +355,8 @@ export default async function BookingDetailPage({
       {dealRoomData && (
         <ClientPortalPanel
           bookingId={booking.id}
-          clientToken={booking.client_token}
-          clientEmail={booking.client_email}
+          clientToken={dealRoomData.booking.client_token}
+          clientEmail={dealRoomData.booking.client_email}
           proposal={dealRoomData.proposal}
           counterOffer={dealRoomData.counterOffer}
           questions={dealRoomData.questions}
