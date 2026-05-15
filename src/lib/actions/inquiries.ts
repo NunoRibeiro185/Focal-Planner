@@ -6,6 +6,7 @@ import {
   sendInquiryNotification,
   sendInquiryConfirmation,
 } from "@/lib/services/resend";
+import { sendDealRoomLinkEmail } from "@/lib/services/deal-room-emails";
 import { z } from "zod";
 
 export interface SubmitInquiryResult {
@@ -98,6 +99,15 @@ export async function submitInquiry(
     const formName = booking.inquiry_form_name_snapshot ?? undefined;
     sendInquiryNotification({ booking, photographerName, photographerEmail, formName });
     sendInquiryConfirmation({ booking, photographerName, photographerEmail });
+    if (booking.client_token) {
+      sendDealRoomLinkEmail({
+        clientEmail: booking.client_email,
+        clientName: booking.client_name_primary,
+        photographerName,
+        bookingId: booking.id,
+        clientToken: booking.client_token,
+      }).catch((err) => console.error("Failed to send deal room link email:", err));
+    }
   }).catch((err) => {
     console.error("Failed to fetch booking for email notification:", err);
   });
