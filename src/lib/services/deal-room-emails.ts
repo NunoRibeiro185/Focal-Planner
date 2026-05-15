@@ -19,6 +19,11 @@ function getClient(): Resend | null {
 const FROM = process.env.RESEND_FROM_ADDRESS ?? "noreply@focal.app";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://focal.app";
 
+function esc(s: string | null | undefined): string {
+  if (!s) return "";
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function dealRoomUrl(bookingId: string, token: string): string {
   return `${APP_URL}/client/${bookingId}?token=${token}`;
 }
@@ -39,10 +44,10 @@ export async function sendDealRoomLinkEmail(params: {
       from: FROM,
       to: params.clientEmail,
       subject: `Your booking page with ${params.photographerName}`,
-      html: `<p>Hi ${params.clientName},</p>
+      html: `<p>Hi ${esc(params.clientName)},</p>
 <p>Thank you for your inquiry! You can track your booking here:</p>
 <p><a href="${url}">View your booking page</a></p>
-<p>${params.photographerName}</p>`,
+<p>${esc(params.photographerName)}</p>`,
     });
   } catch (err) {
     console.error("Failed to send deal room link email:", err);
@@ -65,8 +70,8 @@ export async function sendProposalEmail(params: {
       from: FROM,
       to: params.clientEmail,
       subject: `You have a new proposal from ${params.photographerName}`,
-      html: `<p>Hi ${params.clientName},</p>
-<p>${params.photographerName} has sent you a proposal. Review it and let them know:</p>
+      html: `<p>Hi ${esc(params.clientName)},</p>
+<p>${esc(params.photographerName)} has sent you a proposal. Review it and let them know:</p>
 <p><a href="${url}">View proposal</a></p>`,
     });
   } catch (err) {
@@ -87,7 +92,7 @@ export async function sendProposalAcceptedEmail(params: {
       from: FROM,
       to: params.photographerEmail,
       subject: `${params.clientName} accepted your proposal`,
-      html: `<p>${params.clientName} accepted your proposal for booking ${params.bookingId}.</p>`,
+      html: `<p>${esc(params.clientName)} accepted your proposal for booking ${params.bookingId}.</p>`,
     });
   } catch (err) {
     console.error("Failed to send proposal accepted email:", err);
@@ -111,7 +116,7 @@ export async function sendCounterOfferEmail(params: {
       from: FROM,
       to: params.photographerEmail,
       subject: `${params.clientName} sent a counter-offer`,
-      html: `<p>${params.clientName} sent a counter-offer for booking ${params.bookingId}.</p>
+      html: `<p>${esc(params.clientName)} sent a counter-offer for booking ${params.bookingId}.</p>
 <p><strong>Removed:</strong> ${removed}</p>
 <p><strong>Proposed total:</strong> ${params.currency}${params.proposedTotal.toFixed(2)}</p>`,
     });
@@ -133,7 +138,7 @@ export async function sendItineraryUpdatedEmail(params: {
       from: FROM,
       to: params.photographerEmail,
       subject: `${params.clientName} updated the itinerary`,
-      html: `<p>${params.clientName} added a stop to the itinerary for booking ${params.bookingId}.</p>`,
+      html: `<p>${esc(params.clientName)} added a stop to the itinerary for booking ${params.bookingId}.</p>`,
     });
   } catch (err) {
     console.error("Failed to send itinerary updated email:", err);
@@ -153,7 +158,7 @@ export async function sendAnswersSubmittedEmail(params: {
       from: FROM,
       to: params.photographerEmail,
       subject: `${params.clientName} answered your questions`,
-      html: `<p>${params.clientName} answered or updated their responses for booking ${params.bookingId}.</p>`,
+      html: `<p>${esc(params.clientName)} answered or updated their responses for booking ${params.bookingId}.</p>`,
     });
   } catch (err) {
     console.error("Failed to send answers submitted email:", err);
