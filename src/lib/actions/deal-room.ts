@@ -365,11 +365,39 @@ export async function acceptCounterOffer(bookingId: string) {
   await getOwnedBooking(bookingId)
   const supabase = createServiceRoleClient() as any
 
-  const { error } = await supabase
+  // Fetch the current countered proposal and its counter offer to apply negotiated terms
+  const { data: proposal, error: proposalFetchError } = await supabase
     .from("deal_room_proposals")
-    .update({ status: "accepted", responded_at: new Date().toISOString() })
+    .select("id, line_items")
     .eq("booking_id", bookingId)
     .eq("status", "countered")
+    .single()
+
+  if (proposalFetchError || !proposal) throw new Error("Failed to find countered proposal")
+
+  const { data: counterOffer, error: counterFetchError } = await supabase
+    .from("deal_room_counter_offers")
+    .select("removed_item_names, proposed_total")
+    .eq("proposal_id", proposal.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single()
+
+  if (counterFetchError || !counterOffer) throw new Error("Failed to find counter offer")
+
+  const updatedLineItems = (proposal.line_items as { name: string }[]).filter(
+    (item) => !(counterOffer.removed_item_names as string[]).includes(item.name)
+  )
+
+  const { error } = await supabase
+    .from("deal_room_proposals")
+    .update({
+      status: "accepted",
+      responded_at: new Date().toISOString(),
+      total_price: counterOffer.proposed_total,
+      line_items: updatedLineItems,
+    })
+    .eq("id", proposal.id)
 
   if (error) throw new Error("Failed to accept counter-offer")
   revalidatePath(`/bookings/${bookingId}`)
