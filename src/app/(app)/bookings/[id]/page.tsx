@@ -1,3 +1,4 @@
+import React from "react";
 import { notFound } from "next/navigation";
 import { FeatureGate } from "@/components/paywall/feature-gate";
 import { getBookingById, getInquiryAnswers } from "@/lib/queries/bookings";
@@ -53,22 +54,6 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
-const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid grid-cols-1 md:grid-cols-2 md:gap-x-px md:bg-border",
-  3: "grid grid-cols-1 md:grid-cols-3 md:gap-x-px md:bg-border",
-  4: "grid grid-cols-1 lg:grid-cols-4 lg:gap-x-px lg:bg-border",
-  5: "grid grid-cols-1 lg:grid-cols-5 lg:gap-x-px lg:bg-border",
-  6: "grid grid-cols-1 lg:grid-cols-6 lg:gap-x-px lg:bg-border",
-};
-
-const COL_SPAN_CLASS: Record<number, string> = {
-  1: "",
-  2: "col-span-2",
-  3: "col-span-3",
-  4: "col-span-4",
-  5: "col-span-5",
-  6: "col-span-6",
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -340,19 +325,14 @@ export default async function BookingDetailPage({
             return <div key={sectionIndex} className="py-6">{rendered[0].node}</div>;
           }
 
-          const totalWeight = rendered.reduce((sum, item) => sum + item.weight, 0);
-          const gridClass = GRID_COLS_CLASS[totalWeight] ?? `grid gap-5 grid-cols-1 md:grid-cols-${totalWeight}`;
-
           return (
-            <div key={sectionIndex} className="py-6">
-              <div className={gridClass}>
-                {rendered.map(({ node, weight }) => {
-                  const spanClass = COL_SPAN_CLASS[weight] ?? `col-span-${weight}`;
-                  return weight === 1
-                    ? <div key={(node as React.ReactElement).key} className="px-4">{node}</div>
-                    : <div key={(node as React.ReactElement).key} className={`${spanClass} *:h-full px-4`}>{node}</div>;
-                })}
-              </div>
+            <div key={sectionIndex} className="py-6 flex items-stretch">
+              {rendered.map(({ node, weight }, i) => (
+                <React.Fragment key={(node as React.ReactElement).key}>
+                  {i > 0 && <div className="w-px bg-border shrink-0 mx-4" />}
+                  <div style={{ flex: weight }} className="min-w-0">{node}</div>
+                </React.Fragment>
+              ))}
             </div>
           );
         })}
