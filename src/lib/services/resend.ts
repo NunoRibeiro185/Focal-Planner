@@ -16,8 +16,8 @@ function getClient(): Resend | null {
   return new Resend(key);
 }
 
-const FROM = process.env.RESEND_FROM_ADDRESS ?? "noreply@focal.app";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://focal.app";
+const FROM = process.env.RESEND_FROM_ADDRESS ?? "noreply@focalplanner.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://focalplanner.com";
 
 function esc(s: string | null | undefined): string {
   if (!s) return "";

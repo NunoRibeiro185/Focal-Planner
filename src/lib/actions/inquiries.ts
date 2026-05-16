@@ -82,35 +82,38 @@ export async function submitInquiry(
     return { success: false, error: "Something went wrong. Please try again." };
   }
 
-  Promise.all([
-    supabase
-      .from("bookings")
-      .select("*, photographer:photographers(full_name, email)")
-      .eq("id", bookingId as string)
-      .single(),
-  ]).then(([{ data, error }]) => {
-    if (error) { console.error("Failed to load booking for email dispatch:", error); return; }
-    if (!data) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const booking = data as any;
-    const photographerName = booking.photographer?.full_name ?? "Your photographer";
-    const photographerEmail = booking.photographer?.email;
-    if (!photographerEmail) return;
-    const formName = booking.inquiry_form_name_snapshot ?? undefined;
-    sendInquiryNotification({ booking, photographerName, photographerEmail, formName });
-    sendInquiryConfirmation({ booking, photographerName, photographerEmail });
-    if (booking.client_token) {
-      sendDealRoomLinkEmail({
-        clientEmail: booking.client_email,
-        clientName: booking.client_name_primary,
-        photographerName,
-        bookingId: booking.id,
-        clientToken: booking.client_token,
-      }).catch((err) => console.error("Failed to send deal room link email:", err));
-    }
-  }).catch((err) => {
-    console.error("Failed to fetch booking for email notification:", err);
-  });
+  const { data, error: fetchError } = await supabase
+    .from("bookings")
+    .select("*, photographer:photographers(full_name, email)")
+    .eq("id", bookingId as string)
+    .single();
+
+  if (fetchError || !data) {
+    console.error("Failed to load booking for email dispatch:", fetchError);
+    return { success: true };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const booking = data as any;
+  const photographerName = booking.photographer?.full_name ?? "Your photographer";
+  const photographerEmail = booking.photographer?.email;
+  const formName = booking.inquiry_form_name_snapshot ?? undefined;
+
+  const emailJobs: Promise<void>[] = [];
+  if (photographerEmail) {
+    emailJobs.push(sendInquiryNotification({ booking, photographerName, photographerEmail, formName }));
+    emailJobs.push(sendInquiryConfirmation({ booking, photographerName, photographerEmail }));
+  }
+  if (booking.client_token) {
+    emailJobs.push(sendDealRoomLinkEmail({
+      clientEmail: booking.client_email,
+      clientName: booking.client_name_primary,
+      photographerName,
+      bookingId: booking.id,
+      clientToken: booking.client_token,
+    }));
+  }
+  await Promise.all(emailJobs);
 
   return { success: true };
 }
