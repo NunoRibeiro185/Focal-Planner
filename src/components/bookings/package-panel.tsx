@@ -9,16 +9,19 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { computeSubtotal, computeFinalPrice, type BuilderLineItem } from "@/lib/utils/booking-builder";
 import { PackageBuilder } from "@/components/bookings/package-builder";
 import { updateBookingServices } from "@/lib/actions/bookings";
-import type { Booking } from "@/lib/types";
+import { sendProposal } from "@/lib/actions/deal-room";
+import type { BookingWithVersion } from "@/lib/types/database";
 import type { BookingService, Service, PackageTemplateWithServices } from "@/lib/types/services";
+import type { DealRoomProposal } from "@/lib/types/deal-room";
 
 interface PackageExtrasCardProps {
-  booking: Booking;
+  booking: BookingWithVersion;
   bookingId: string;
   bookingServices: BookingService[];
   catalogServices: Service[];
   packages: PackageTemplateWithServices[];
   currency: string;
+  proposal?: DealRoomProposal | null;
   // Legacy props kept for compat — unused
   extras?: unknown[];
   catalogExtras?: never[];
@@ -45,11 +48,48 @@ export function PackageExtrasCard({
   catalogServices,
   packages,
   currency,
+  proposal,
 }: PackageExtrasCardProps) {
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<BuilderLineItem[]>(() => toBuilderItems(bookingServices));
   const [discount, setDiscount] = useState(booking.discount_amount ?? 0);
   const [isPending, startTransition] = useTransition();
+  const [allowRenegotiation, setAllowRenegotiation] = useState(false);
+  const [isSendingProposal, startSendProposal] = useTransition();
+
+  const showProposalButton =
+    booking.status === "inquiry" && proposal?.status !== "accepted";
+
+  function handleSendProposal() {
+    const pv = booking.package_version;
+    const lineItems = [
+      { name: pv?.version_name ?? "Base package", price: pv?.base_price ?? 0, is_base: true as const },
+      ...bookingServices.map((s) => ({
+        name: s.name_snapshot,
+        price: s.unit_price_snapshot * s.quantity,
+        is_base: false as const,
+      })),
+    ].filter((i) => i.name.trim());
+
+    if (lineItems.length === 0) {
+      toast.error("Add at least one service before sending a proposal.");
+      return;
+    }
+
+    startSendProposal(async () => {
+      try {
+        await sendProposal({
+          bookingId,
+          packageName: pv?.version_name ?? "Package",
+          lineItems,
+          allowRenegotiation,
+        });
+        toast.success("Proposal sent to client.");
+      } catch {
+        toast.error("Couldn't send proposal — try again.");
+      }
+    });
+  }
 
   const subtotal = computeSubtotal(items);
   const total = computeFinalPrice(subtotal, discount);
@@ -159,6 +199,31 @@ export function PackageExtrasCard({
                 <span className="tabular-nums">{formatCurrency(total, currency)}</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {!editing && showProposalButton && (
+          <div className="border-t pt-3 space-y-2">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={allowRenegotiation}
+                onChange={(e) => setAllowRenegotiation(e.target.checked)}
+                className="h-3.5 w-3.5"
+              />
+              Allow client to counter-offer
+            </label>
+            <Button
+              size="sm"
+              onClick={handleSendProposal}
+              disabled={isSendingProposal}
+            >
+              {isSendingProposal
+                ? "Sending…"
+                : proposal
+                ? "Send revised proposal"
+                : "Send proposal"}
+            </Button>
           </div>
         )}
       </CardContent>

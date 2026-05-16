@@ -171,6 +171,7 @@ export default async function BookingDetailPage({
             catalogServices={catalogServices}
             packages={pkgTemplates}
             currency={bookingCurrency}
+            proposal={dealRoomData?.proposal ?? null}
           />
         );
 
@@ -360,8 +361,6 @@ export default async function BookingDetailPage({
           proposal={dealRoomData.proposal}
           counterOffer={dealRoomData.counterOffer}
           questions={dealRoomData.questions}
-          packageVersion={booking.package_version ?? null}
-          bookingServices={bookingServices}
         />
       )}
     </div>
