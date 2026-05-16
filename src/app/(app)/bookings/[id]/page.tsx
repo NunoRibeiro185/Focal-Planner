@@ -54,11 +54,11 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid grid-cols-1 md:grid-cols-2 md:divide-x divide-border",
-  3: "grid grid-cols-1 md:grid-cols-3 md:divide-x divide-border",
-  4: "grid grid-cols-1 lg:grid-cols-4 lg:divide-x divide-border",
-  5: "grid grid-cols-1 lg:grid-cols-5 lg:divide-x divide-border",
-  6: "grid grid-cols-1 lg:grid-cols-6 lg:divide-x divide-border",
+  2: "grid grid-cols-1 md:grid-cols-2 md:gap-x-px md:bg-border",
+  3: "grid grid-cols-1 md:grid-cols-3 md:gap-x-px md:bg-border",
+  4: "grid grid-cols-1 lg:grid-cols-4 lg:gap-x-px lg:bg-border",
+  5: "grid grid-cols-1 lg:grid-cols-5 lg:gap-x-px lg:bg-border",
+  6: "grid grid-cols-1 lg:grid-cols-6 lg:gap-x-px lg:bg-border",
 };
 
 const COL_SPAN_CLASS: Record<number, string> = {
