@@ -54,11 +54,11 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid gap-8 grid-cols-1 md:grid-cols-2",
-  3: "grid gap-8 grid-cols-1 md:grid-cols-3",
-  4: "grid gap-8 grid-cols-1 lg:grid-cols-4",
-  5: "grid gap-8 grid-cols-1 lg:grid-cols-5",
-  6: "grid gap-8 grid-cols-1 lg:grid-cols-6",
+  2: "grid gap-5 grid-cols-1 md:grid-cols-2",
+  3: "grid gap-5 grid-cols-1 md:grid-cols-3",
+  4: "grid gap-5 grid-cols-1 lg:grid-cols-4",
+  5: "grid gap-5 grid-cols-1 lg:grid-cols-5",
+  6: "grid gap-5 grid-cols-1 lg:grid-cols-6",
 };
 
 const COL_SPAN_CLASS: Record<number, string> = {
@@ -328,7 +328,7 @@ export default async function BookingDetailPage({
       <div className="h-px bg-border mb-10" />
 
       {/* ── Layout sections ── */}
-      <div className={isArchive ? "space-y-10 opacity-80" : "space-y-10"}>
+      <div className={isArchive ? "space-y-6 opacity-80" : "space-y-6"}>
       {layout.sections.map((section, sectionIndex) => {
         const rendered = section.slots
           .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))
@@ -358,17 +358,15 @@ export default async function BookingDetailPage({
 
       {/* ── Client portal ── */}
       {dealRoomData && (
-        <>
-          <div className="h-px bg-border" />
-          <ClientPortalPanel
+        <ClientPortalPanel
           bookingId={booking.id}
           clientToken={dealRoomData.booking.client_token}
           clientEmail={dealRoomData.booking.client_email}
           proposal={dealRoomData.proposal}
           counterOffer={dealRoomData.counterOffer}
           questions={dealRoomData.questions}
+          currency={bookingCurrency}
         />
-        </>
       )}
     </div>
   );

@@ -3,10 +3,13 @@
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/booking-section"
+import { formatCurrency } from "@/lib/utils/currency"
 import {
   addDealRoomQuestion,
   deleteDealRoomQuestion,
   sendDealRoomLink,
+  acceptCounterOffer,
 } from "@/lib/actions/deal-room"
 import type { DealRoomProposal, DealRoomCounterOffer, DealRoomQuestionWithAnswer } from "@/lib/types/deal-room"
 
@@ -38,30 +41,31 @@ function QuestionManager({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
         Questions for your client
       </p>
 
-      {questions.map((q) => (
-        <div key={q.id} className="py-2.5 border-b border-border/60 space-y-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm">{q.question_text}</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-muted-foreground"
-              onClick={() => handleDelete(q.id)}
-            >
-              ×
-            </Button>
-          </div>
-          {q.answer && (
-            <p className="text-xs text-muted-foreground">
-              {q.answer.answer_text}
-            </p>
-          )}
+      {questions.length > 0 && (
+        <div>
+          {questions.map((q) => (
+            <div key={q.id} className="group flex items-start gap-2 py-2 border-b border-border/40 last:border-0">
+              <div className="flex-1 space-y-0.5">
+                <p className="text-sm">{q.question_text}</p>
+                {q.answer && (
+                  <p className="text-xs text-muted-foreground">{q.answer.answer_text}</p>
+                )}
+              </div>
+              <button
+                className="mt-0.5 text-base leading-none text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                onClick={() => handleDelete(q.id)}
+                aria-label="Remove question"
+              >
+                ×
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
       <div className="flex gap-2">
         <Input
@@ -69,6 +73,7 @@ function QuestionManager({
           value={newQuestion}
           onChange={(e) => setNewQuestion(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          className="text-sm"
         />
         <Button size="sm" onClick={handleAdd} disabled={isPending || !newQuestion.trim()}>
           Add
@@ -87,6 +92,7 @@ export function ClientPortalPanel({
   proposal,
   counterOffer,
   questions,
+  currency,
 }: {
   bookingId: string
   clientToken: string
@@ -94,9 +100,11 @@ export function ClientPortalPanel({
   proposal: DealRoomProposal | null
   counterOffer: DealRoomCounterOffer | null
   questions: DealRoomQuestionWithAnswer[]
+  currency: string
 }) {
   const [linkSent, setLinkSent] = useState(false)
   const [isSendingLink, startSendLink] = useTransition()
+  const [isAccepting, startAccept] = useTransition()
 
   const dealRoomUrl =
     typeof window !== "undefined"
@@ -115,69 +123,81 @@ export function ClientPortalPanel({
     })
   }
 
+  function handleAcceptCounter() {
+    startAccept(async () => {
+      await acceptCounterOffer(bookingId)
+    })
+  }
+
   return (
-    <div className="space-y-5">
-      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        Client portal
-      </p>
-      {/* Deal room link */}
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Link</p>
-        <div className="flex gap-2">
-          <Input value={dealRoomUrl} readOnly className="text-xs" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Client portal
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Compact link row */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={copyLink}>
-            Copy
+            Copy link
           </Button>
-        </div>
-        {clientEmail && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSendLink}
-            disabled={isSendingLink}
-          >
-            {isSendingLink ? "Sending…" : linkSent ? "Sent!" : "Email link to client"}
-          </Button>
-        )}
-      </div>
-
-      {/* Proposal status */}
-      {proposal && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Proposal
-          </p>
-
-          {proposal.status === "sent" && (
-            <p className="text-sm text-muted-foreground">
-              Proposal sent — awaiting client response.
-            </p>
+          {clientEmail && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendLink}
+              disabled={isSendingLink}
+            >
+              {isSendingLink ? "Sending…" : linkSent ? "Sent!" : "Email to client"}
+            </Button>
           )}
+        </div>
 
-          {proposal.status === "countered" && counterOffer && (
+        {/* Counter-offer with action */}
+        {proposal?.status === "countered" && counterOffer && (
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Counter-offer received
+            </p>
             <div className="space-y-1 text-sm">
-              <p className="font-medium" style={{ color: "var(--color-primary)" }}>
-                Client sent a counter-offer
+              <p>
+                Remove:{" "}
+                <span className="font-medium">{counterOffer.removed_item_names.join(", ")}</span>
               </p>
-              <p className="text-muted-foreground">
-                Removed: {counterOffer.removed_item_names.join(", ")}
-              </p>
-              <p className="text-muted-foreground">
-                Proposed total: {counterOffer.proposed_total.toLocaleString()}
+              <p>
+                Proposed total:{" "}
+                <span className="font-medium">{formatCurrency(counterOffer.proposed_total, currency)}</span>
               </p>
             </div>
-          )}
+            <div className="flex items-center gap-3 flex-wrap pt-1">
+              <Button size="sm" onClick={handleAcceptCounter} disabled={isAccepting}>
+                {isAccepting ? "Accepting…" : "Accept terms"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                or send a revised proposal above
+              </span>
+            </div>
+          </div>
+        )}
 
-          {proposal.status === "accepted" && (
-            <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-              ✓ Client accepted the proposal
-            </p>
-          )}
-        </div>
-      )}
+        {/* Awaiting response */}
+        {proposal?.status === "sent" && (
+          <p className="text-sm text-muted-foreground">
+            Proposal sent — awaiting client response.
+          </p>
+        )}
 
-      {/* Q&A section — always visible so photographer can prepare questions early */}
-      <QuestionManager bookingId={bookingId} questions={questions} />
-    </div>
+        {/* Accepted */}
+        {proposal?.status === "accepted" && (
+          <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+            ✓ Client accepted the proposal
+          </p>
+        )}
+
+        {/* Q&A */}
+        <QuestionManager bookingId={bookingId} questions={questions} />
+      </CardContent>
+    </Card>
   )
 }

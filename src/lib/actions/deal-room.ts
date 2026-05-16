@@ -361,6 +361,21 @@ export async function saveClientAnswer(input: unknown) {
   }
 }
 
+export async function acceptCounterOffer(bookingId: string) {
+  await getOwnedBooking(bookingId)
+  const supabase = createServiceRoleClient() as any
+
+  const { error } = await supabase
+    .from("deal_room_proposals")
+    .update({ status: "accepted", responded_at: new Date().toISOString() })
+    .eq("booking_id", bookingId)
+    .eq("status", "countered")
+
+  if (error) throw new Error("Failed to accept counter-offer")
+  revalidatePath(`/bookings/${bookingId}`)
+  revalidatePath(`/client/${bookingId}`)
+}
+
 export async function sendDealRoomLink(bookingId: string) {
   const { booking, photographerId } = await getOwnedBooking(bookingId)
   if (!booking.client_email) throw new Error("Booking has no client email")
