@@ -325,49 +325,52 @@ export default async function BookingDetailPage({
       )}
 
       {/* ── Divider ── */}
-      <div className="h-px bg-border mb-10" />
+      <div className="h-px bg-border" />
 
-      {/* ── Layout sections ── */}
-      <div className={isArchive ? "space-y-6 opacity-80" : "space-y-6"}>
-      {layout.sections.map((section, sectionIndex) => {
-        const rendered = section.slots
-          .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))
-          .filter((item): item is { node: React.ReactElement; weight: number } => item.node !== null);
+      {/* ── Layout sections + client portal ── */}
+      <div className={isArchive ? "divide-y divide-border opacity-80" : "divide-y divide-border"}>
+        {layout.sections.map((section, sectionIndex) => {
+          const rendered = section.slots
+            .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))
+            .filter((item): item is { node: React.ReactElement; weight: number } => item.node !== null);
 
-        if (rendered.length === 0) return null;
+          if (rendered.length === 0) return null;
 
-        if (rendered.length === 1) {
-          return <div key={sectionIndex}>{rendered[0].node}</div>;
-        }
+          if (rendered.length === 1) {
+            return <div key={sectionIndex} className="py-6">{rendered[0].node}</div>;
+          }
 
-        const totalWeight = rendered.reduce((sum, item) => sum + item.weight, 0);
-        const gridClass = GRID_COLS_CLASS[totalWeight] ?? `grid gap-4 grid-cols-1 md:grid-cols-${totalWeight}`;
+          const totalWeight = rendered.reduce((sum, item) => sum + item.weight, 0);
+          const gridClass = GRID_COLS_CLASS[totalWeight] ?? `grid gap-5 grid-cols-1 md:grid-cols-${totalWeight}`;
 
-        return (
-          <div key={sectionIndex} className={gridClass}>
-            {rendered.map(({ node, weight }) => {
-              const spanClass = COL_SPAN_CLASS[weight] ?? `col-span-${weight}`;
-              return weight === 1
-                ? node
-                : <div key={(node as React.ReactElement).key} className={`${spanClass} *:h-full`}>{node}</div>;
-            })}
+          return (
+            <div key={sectionIndex} className="py-6">
+              <div className={gridClass}>
+                {rendered.map(({ node, weight }) => {
+                  const spanClass = COL_SPAN_CLASS[weight] ?? `col-span-${weight}`;
+                  return weight === 1
+                    ? node
+                    : <div key={(node as React.ReactElement).key} className={`${spanClass} *:h-full`}>{node}</div>;
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {dealRoomData && (
+          <div className="py-6">
+            <ClientPortalPanel
+              bookingId={booking.id}
+              clientToken={dealRoomData.booking.client_token}
+              clientEmail={dealRoomData.booking.client_email}
+              proposal={dealRoomData.proposal}
+              counterOffer={dealRoomData.counterOffer}
+              questions={dealRoomData.questions}
+              currency={bookingCurrency}
+            />
           </div>
-        );
-      })}
+        )}
       </div>
-
-      {/* ── Client portal ── */}
-      {dealRoomData && (
-        <ClientPortalPanel
-          bookingId={booking.id}
-          clientToken={dealRoomData.booking.client_token}
-          clientEmail={dealRoomData.booking.client_email}
-          proposal={dealRoomData.proposal}
-          counterOffer={dealRoomData.counterOffer}
-          questions={dealRoomData.questions}
-          currency={bookingCurrency}
-        />
-      )}
     </div>
   );
 }
