@@ -326,11 +326,11 @@ export default async function BookingDetailPage({
           }
 
           return (
-            <div key={sectionIndex} className="py-6 flex items-stretch">
+            <div key={sectionIndex} className="py-6 flex items-stretch w-full">
               {rendered.map(({ node, weight }, i) => (
                 <React.Fragment key={(node as React.ReactElement).key}>
                   {i > 0 && <div className="w-px bg-border shrink-0 mx-4" />}
-                  <div style={{ flex: weight }} className="min-w-0">{node}</div>
+                  <div style={{ flex: weight }} className="min-w-0 *:h-full">{node}</div>
                 </React.Fragment>
               ))}
             </div>
