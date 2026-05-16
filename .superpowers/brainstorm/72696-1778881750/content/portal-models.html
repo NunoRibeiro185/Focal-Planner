@@ -1,0 +1,40 @@
+<h2>Client Portal — Which model fits best?</h2>
+<p class="subtitle">Three different ways to think about the client-facing space. Pick the one that feels closest to what you're imagining.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Deal Room (per-booking page)</h3>
+      <p>Each booking gets a unique secret link the photographer sends to the client. The client opens it — no account needed — and sees their inquiry, the proposal, and can accept or counter-offer. Like the 2nd shooter view but for clients. Simple, familiar pattern.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>No auth complexity</li><li>Follows existing pattern</li><li>Photographer controls when to share</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>One link per booking, no history</li><li>Client can't revisit past bookings easily</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Client Account (magic-link login)</h3>
+      <p>When a client submits an inquiry, they get a magic link to a lightweight personal dashboard. They log in via email and can see all their interactions with this photographer — inquiries, proposals, contracts — across multiple bookings over time.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Persistent history</li><li>More "professional" product feel</li><li>Multi-booking support</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Client must authenticate</li><li>More infrastructure to build</li><li>Most clients only book once</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Shared Timeline (conversation thread)</h3>
+      <p>A shared, scrollable timeline attached to a booking. Both the photographer and client post to it — proposals, messages, contract links, updates. Client accesses via a token link (no account). Think of it like a lightweight shared inbox or Basecamp-style message board per booking.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Very flexible — anything can be a "message"</li><li>Natural for back-and-forth negotiation</li><li>Extensible for contracts, invoices later</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Less structured than a formal proposal flow</li><li>More complex to build the right UX</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

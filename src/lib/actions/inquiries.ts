@@ -70,7 +70,7 @@ export async function submitInquiry(
       p_location:              parsed.data.location ?? null,
       p_package_template_id:   parsed.data.package_template_id ?? null,
       p_notes:                 parsed.data.notes ?? null,
-      p_answers:               JSON.stringify(parsed.data.answers),
+      p_answers:               parsed.data.answers,
     }
   );
 
