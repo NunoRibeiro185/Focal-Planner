@@ -18,7 +18,7 @@ export async function getDealRoomData(
       supabase
         .from("bookings")
         .select(
-          "id, photographer_id, client_name_primary, client_name_secondary, client_email, event_date, venue_name, client_token, photographers(full_name, default_currency)"
+          "id, photographer_id, client_name_primary, client_name_secondary, client_email, event_date, venue_name, client_token"
         )
         .eq("id", bookingId)
         .single(),
@@ -52,10 +52,15 @@ export async function getDealRoomData(
 
   if (bookingRes.error || !bookingRes.data) return null
 
-  const photographerData = bookingRes.data.photographers as { full_name: string | null; default_currency: string } | null
-  const photographerName = photographerData?.full_name ?? null
-  const currency = photographerData?.default_currency ?? "EUR"
-  const { photographers: _pg, ...bookingData } = bookingRes.data
+  // Fetch photographer name + currency separately to avoid join complexity
+  const { data: photographerData } = await supabase
+    .from("photographers")
+    .select("full_name, default_currency")
+    .eq("id", bookingRes.data.photographer_id)
+    .single()
+
+  const photographerName = (photographerData?.full_name as string | null) ?? null
+  const currency = (photographerData?.default_currency as string | null) ?? "EUR"
 
   const proposal: DealRoomProposal | null = proposalRes.data
     ? { ...proposalRes.data, line_items: proposalRes.data.line_items as ProposalLineItem[] }
@@ -84,7 +89,7 @@ export async function getDealRoomData(
   }))
 
   return {
-    booking: bookingData,
+    booking: bookingRes.data,
     photographerName,
     currency,
     inquiryAnswers: answersRes.data ?? [],
