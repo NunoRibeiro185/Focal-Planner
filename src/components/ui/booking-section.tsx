@@ -1,10 +1,9 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Refined Card replacement for the booking detail page.
-// Keeps a hairline border for panel separation in the multi-column grid,
-// but removes the heavy bg-card background, shadow, and large rounded corners
-// so panels feel lighter and more editorial than the default shadcn Card.
+// Refined panel for the booking detail page.
+// No border, no shadow. A barely-perceptible warm tint distinguishes
+// panels from the page background without boxing them in.
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -12,7 +11,7 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-sm border border-border/60 bg-transparent", className)}
+    className={cn("rounded-sm bg-card", className)}
     {...props}
   />
 ));
