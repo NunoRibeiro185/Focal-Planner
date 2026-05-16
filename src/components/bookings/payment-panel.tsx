@@ -25,7 +25,7 @@ import {
 import { formatCurrency, isOverdue } from "@/lib/utils/currency";
 import { computeVat } from "@/lib/utils/expenses";
 import type { Booking, PaymentLogEntry, Expense } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/booking-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

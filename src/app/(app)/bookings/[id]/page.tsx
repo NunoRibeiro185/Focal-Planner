@@ -54,11 +54,11 @@ const STAGE_CONTEXT: Partial<Record<string, string>> = {
 // ─── Section renderer ─────────────────────────────────────────────────────────
 
 const GRID_COLS_CLASS: Record<number, string> = {
-  2: "grid gap-6 grid-cols-1 md:grid-cols-2",
-  3: "grid gap-6 grid-cols-1 md:grid-cols-3",
-  4: "grid gap-6 grid-cols-1 lg:grid-cols-4",
-  5: "grid gap-6 grid-cols-1 lg:grid-cols-5",
-  6: "grid gap-6 grid-cols-1 lg:grid-cols-6",
+  2: "grid gap-8 grid-cols-1 md:grid-cols-2",
+  3: "grid gap-8 grid-cols-1 md:grid-cols-3",
+  4: "grid gap-8 grid-cols-1 lg:grid-cols-4",
+  5: "grid gap-8 grid-cols-1 lg:grid-cols-5",
+  6: "grid gap-8 grid-cols-1 lg:grid-cols-6",
 };
 
 const COL_SPAN_CLASS: Record<number, string> = {
@@ -258,34 +258,33 @@ export default async function BookingDetailPage({
   const stageContext = STAGE_CONTEXT[booking.status];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-[family-name:var(--font-heading)] leading-tight tracking-wide break-words">
             {booking.client_name_primary}
             {booking.client_name_secondary && ` & ${booking.client_name_secondary}`}
           </h1>
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {/* Badge only for cancelled (no stepper to communicate status) */}
+          <div className="flex items-center gap-x-4 gap-y-1 mt-3 flex-wrap">
             {booking.status === "cancelled" && (
               <BookingStatusBadge status={booking.status} />
             )}
             {booking.venue_name && (
-              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
                 {booking.venue_name}
               </span>
             )}
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
               {booking.event_date
                 ? format(new Date(booking.event_date), "EEEE, d MMMM yyyy")
                 : "Date TBD"}
             </span>
             {booking.start_time && (
-              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" />
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 shrink-0" />
                 {booking.start_time}
               </span>
             )}
@@ -300,31 +299,36 @@ export default async function BookingDetailPage({
 
       {/* ── Status stepper ── */}
       {booking.status !== "cancelled" && (
-        <StatusStepper bookingId={id} currentStatus={booking.status} />
+        <div className="mb-6">
+          <StatusStepper bookingId={id} currentStatus={booking.status} />
+        </div>
       )}
 
       {/* ── Stage context hint ── */}
       {stageContext && (
-        <p className="text-sm text-muted-foreground">{stageContext}</p>
+        <p className="text-sm text-muted-foreground mb-6">{stageContext}</p>
       )}
 
       {/* ── Archive notice ── */}
       {isArchive && (
         booking.status === "done" ? (
-          <div className="flex items-center gap-2 rounded-md bg-primary/8 px-4 py-3 text-sm text-primary/80 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
+          <div className="flex items-center gap-2 mb-6 text-sm" style={{ color: "var(--color-primary)" }}>
             <CheckCircle2 className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span>Archived — all panels are read-only.</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-md bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
             <Archive className="h-4 w-4 shrink-0" />
             <span>This booking was cancelled — kept here for reference.</span>
           </div>
         )
       )}
 
+      {/* ── Divider ── */}
+      <div className="h-px bg-border mb-10" />
+
       {/* ── Layout sections ── */}
-      <div className={isArchive ? "space-y-6 opacity-80" : "space-y-6"}>
+      <div className={isArchive ? "space-y-10 opacity-80" : "space-y-10"}>
       {layout.sections.map((section, sectionIndex) => {
         const rendered = section.slots
           .map((slot) => ({ node: renderPanel(slot), weight: slot.weight ?? 1 }))
@@ -354,7 +358,9 @@ export default async function BookingDetailPage({
 
       {/* ── Client portal ── */}
       {dealRoomData && (
-        <ClientPortalPanel
+        <>
+          <div className="h-px bg-border" />
+          <ClientPortalPanel
           bookingId={booking.id}
           clientToken={dealRoomData.booking.client_token}
           clientEmail={dealRoomData.booking.client_email}
@@ -362,6 +368,7 @@ export default async function BookingDetailPage({
           counterOffer={dealRoomData.counterOffer}
           questions={dealRoomData.questions}
         />
+        </>
       )}
     </div>
   );

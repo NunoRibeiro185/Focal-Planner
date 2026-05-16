@@ -38,12 +38,12 @@ function QuestionManager({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
         Questions for your client
-      </h3>
+      </p>
 
       {questions.map((q) => (
-        <div key={q.id} className="rounded-md border p-3 space-y-1">
+        <div key={q.id} className="py-2.5 border-b border-border/60 space-y-1">
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm">{q.question_text}</p>
             <Button
@@ -56,7 +56,7 @@ function QuestionManager({
             </Button>
           </div>
           {q.answer && (
-            <p className="text-xs text-muted-foreground border-t pt-1">
+            <p className="text-xs text-muted-foreground">
               {q.answer.answer_text}
             </p>
           )}
@@ -117,11 +117,12 @@ export function ClientPortalPanel({
 
   return (
     <div className="space-y-5">
+      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+        Client portal
+      </p>
       {/* Deal room link */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Client portal link
-        </p>
+        <p className="text-xs text-muted-foreground">Link</p>
         <div className="flex gap-2">
           <Input value={dealRoomUrl} readOnly className="text-xs" />
           <Button variant="outline" size="sm" onClick={copyLink}>
@@ -154,8 +155,8 @@ export function ClientPortalPanel({
           )}
 
           {proposal.status === "countered" && counterOffer && (
-            <div className="space-y-2 rounded-md border p-3 text-sm">
-              <p className="font-medium text-amber-600 dark:text-amber-400">
+            <div className="space-y-1 text-sm">
+              <p className="font-medium" style={{ color: "var(--color-primary)" }}>
                 Client sent a counter-offer
               </p>
               <p className="text-muted-foreground">

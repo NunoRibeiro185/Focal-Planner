@@ -110,7 +110,7 @@ export function ServicesPanel({
       )}
 
       {showAdd ? (
-        <div className="rounded border p-3 space-y-2">
+        <div className="pt-3 border-t space-y-2">
           <div className="space-y-1">
             <Label className="text-xs">Service</Label>
             <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
