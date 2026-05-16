@@ -84,7 +84,7 @@ export async function submitInquiry(
 
   const { data, error: fetchError } = await supabase
     .from("bookings")
-    .select("*, photographer:photographers(full_name, email)")
+    .select("*, photographer:photographers!bookings_photographer_id_fkey(full_name, email)")
     .eq("id", bookingId as string)
     .single();
 
