@@ -73,6 +73,8 @@ export interface DealRoomData {
     client_token: string
     photographer_id: string
   }
+  photographerName: string | null
+  currency: string
   inquiryAnswers: { question_text: string; answer_value: string; sort_order: number }[]
   proposal: DealRoomProposal | null
   counterOffer: DealRoomCounterOffer | null

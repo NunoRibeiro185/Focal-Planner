@@ -18,7 +18,7 @@ export async function getDealRoomData(
       supabase
         .from("bookings")
         .select(
-          "id, photographer_id, client_name_primary, client_name_secondary, client_email, event_date, venue_name, client_token"
+          "id, photographer_id, client_name_primary, client_name_secondary, client_email, event_date, venue_name, client_token, photographers(full_name, default_currency)"
         )
         .eq("id", bookingId)
         .single(),
@@ -52,6 +52,11 @@ export async function getDealRoomData(
 
   if (bookingRes.error || !bookingRes.data) return null
 
+  const photographerData = bookingRes.data.photographers as { full_name: string | null; default_currency: string } | null
+  const photographerName = photographerData?.full_name ?? null
+  const currency = photographerData?.default_currency ?? "EUR"
+  const { photographers: _pg, ...bookingData } = bookingRes.data
+
   const proposal: DealRoomProposal | null = proposalRes.data
     ? { ...proposalRes.data, line_items: proposalRes.data.line_items as ProposalLineItem[] }
     : null
@@ -79,7 +84,9 @@ export async function getDealRoomData(
   }))
 
   return {
-    booking: bookingRes.data,
+    booking: bookingData,
+    photographerName,
+    currency,
     inquiryAnswers: answersRes.data ?? [],
     proposal,
     counterOffer,

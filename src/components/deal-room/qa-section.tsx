@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
 import { saveClientAnswer } from "@/lib/actions/deal-room"
 import type { DealRoomQuestionWithAnswer } from "@/lib/types/deal-room"
 
@@ -21,6 +19,7 @@ function QuestionItem({
   const [isPending, startTransition] = useTransition()
 
   function handleSave() {
+    if (!value.trim()) return
     setError(null)
     startTransition(async () => {
       try {
@@ -39,24 +38,35 @@ function QuestionItem({
   }
 
   return (
-    <div className="space-y-1.5">
-      <p className="text-sm">{question.question_text}</p>
-      <Textarea
+    <div>
+      <p className="text-sm text-foreground leading-relaxed mb-3">
+        {question.question_text}
+      </p>
+      <textarea
         value={value}
-        onChange={(e) => { setValue(e.target.value); setSaved(false) }}
+        onChange={(e) => {
+          setValue(e.target.value)
+          setSaved(false)
+        }}
+        onBlur={handleSave}
         rows={2}
         placeholder="Your answer…"
+        className="w-full text-sm bg-transparent border-b border-border py-1.5 outline-none resize-none placeholder:text-muted-foreground/40 focus:border-foreground transition-colors leading-relaxed"
       />
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleSave}
-          disabled={isPending}
-        >
-          {isPending ? "Saving…" : saved ? "Saved" : "Save"}
-        </Button>
+      <div className="flex items-center gap-3 mt-2 h-4">
+        {isPending && (
+          <span className="text-[10px] text-muted-foreground/60 tracking-wide">
+            Saving…
+          </span>
+        )}
+        {saved && !isPending && (
+          <span className="text-[10px] tracking-wide" style={{ color: "var(--color-primary)" }}>
+            Saved
+          </span>
+        )}
+        {error && (
+          <span className="text-[10px] text-destructive">{error}</span>
+        )}
       </div>
     </div>
   )
@@ -72,13 +82,20 @@ export function QASection({
   questions: DealRoomQuestionWithAnswer[]
 }) {
   return (
-    <section className="rounded-lg border p-4 space-y-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Questions from your photographer
+    <section>
+      <h2 className="text-[10px] tracking-[0.18em] uppercase text-muted-foreground mb-8">
+        A few questions
       </h2>
-      {questions.map((q) => (
-        <QuestionItem key={q.id} question={q} bookingId={bookingId} token={token} />
-      ))}
+      <div className="space-y-8">
+        {questions.map((q, index) => (
+          <div key={q.id}>
+            <QuestionItem question={q} bookingId={bookingId} token={token} />
+            {index < questions.length - 1 && (
+              <div className="h-px bg-border mt-8" />
+            )}
+          </div>
+        ))}
+      </div>
     </section>
   )
 }
