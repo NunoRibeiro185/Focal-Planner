@@ -349,8 +349,8 @@ export default async function BookingDetailPage({
                 {rendered.map(({ node, weight }) => {
                   const spanClass = COL_SPAN_CLASS[weight] ?? `col-span-${weight}`;
                   return weight === 1
-                    ? node
-                    : <div key={(node as React.ReactElement).key} className={`${spanClass} *:h-full`}>{node}</div>;
+                    ? <div key={(node as React.ReactElement).key} className="px-4">{node}</div>
+                    : <div key={(node as React.ReactElement).key} className={`${spanClass} *:h-full px-4`}>{node}</div>;
                 })}
               </div>
             </div>
