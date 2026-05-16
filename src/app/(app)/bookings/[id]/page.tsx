@@ -360,6 +360,8 @@ export default async function BookingDetailPage({
           proposal={dealRoomData.proposal}
           counterOffer={dealRoomData.counterOffer}
           questions={dealRoomData.questions}
+          packageVersion={booking.package_version ?? null}
+          bookingServices={bookingServices}
         />
       )}
     </div>

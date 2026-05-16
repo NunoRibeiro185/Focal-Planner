@@ -10,6 +10,8 @@ import {
   sendDealRoomLink,
 } from "@/lib/actions/deal-room"
 import type { DealRoomProposal, DealRoomCounterOffer, DealRoomQuestionWithAnswer } from "@/lib/types/deal-room"
+import type { PackageVersion } from "@/lib/types/database"
+import type { BookingService } from "@/lib/types/services"
 
 // ─── Line item builder ────────────────────────────────────────────────────────
 
@@ -48,12 +50,39 @@ function LineItemRow({
 
 // ─── Send proposal form ───────────────────────────────────────────────────────
 
-function SendProposalForm({ bookingId, onSent }: { bookingId: string; onSent: () => void }) {
-  const [packageName, setPackageName] = useState("")
+function buildInitialLineItems(
+  packageVersion: PackageVersion | null,
+  bookingServices: BookingService[]
+): { name: string; price: number; is_base: boolean }[] {
+  const base = {
+    name: packageVersion?.version_name ?? "",
+    price: packageVersion?.base_price ?? 0,
+    is_base: true,
+  }
+  const extras = bookingServices.map((s) => ({
+    name: s.name_snapshot,
+    price: s.unit_price_snapshot * s.quantity,
+    is_base: false,
+  }))
+  return [base, ...extras]
+}
+
+function SendProposalForm({
+  bookingId,
+  onSent,
+  packageVersion,
+  bookingServices,
+}: {
+  bookingId: string
+  onSent: () => void
+  packageVersion: PackageVersion | null
+  bookingServices: BookingService[]
+}) {
+  const [packageName, setPackageName] = useState(packageVersion?.version_name ?? "")
   const [allowRenegotiation, setAllowRenegotiation] = useState(false)
-  const [lineItems, setLineItems] = useState([
-    { name: "", price: 0, is_base: true },
-  ])
+  const [lineItems, setLineItems] = useState(() =>
+    buildInitialLineItems(packageVersion, bookingServices)
+  )
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -211,6 +240,8 @@ export function ClientPortalPanel({
   proposal,
   counterOffer,
   questions,
+  packageVersion,
+  bookingServices,
 }: {
   bookingId: string
   clientToken: string
@@ -218,6 +249,8 @@ export function ClientPortalPanel({
   proposal: DealRoomProposal | null
   counterOffer: DealRoomCounterOffer | null
   questions: DealRoomQuestionWithAnswer[]
+  packageVersion: PackageVersion | null
+  bookingServices: BookingService[]
 }) {
   const [showSendForm, setShowSendForm] = useState(false)
   const [linkSent, setLinkSent] = useState(false)
@@ -278,7 +311,7 @@ export function ClientPortalPanel({
         )}
 
         {showSendForm && (
-          <SendProposalForm bookingId={bookingId} onSent={() => setShowSendForm(false)} />
+          <SendProposalForm bookingId={bookingId} onSent={() => setShowSendForm(false)} packageVersion={packageVersion} bookingServices={bookingServices} />
         )}
 
         {proposal && proposal.status === "sent" && (
