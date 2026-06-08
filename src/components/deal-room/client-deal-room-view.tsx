@@ -17,6 +17,55 @@ function formatDate(dateStr: string | null) {
   })
 }
 
+function parseDateParts(dateStr: string | null) {
+  if (!dateStr) return null
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const date = new Date(y, m - 1, d)
+  return {
+    day: d,
+    month: date.toLocaleString("en-GB", { month: "short" }).toUpperCase(),
+    year: y,
+  }
+}
+
+function DateCard({ dateStr }: { dateStr: string | null }) {
+  const parts = parseDateParts(dateStr)
+  if (!parts) {
+    return (
+      <div
+        className="inline-flex flex-col items-center w-14 rounded-md overflow-hidden border border-dashed"
+        style={{ borderColor: "var(--color-border)", opacity: 0.5 }}
+      >
+        <div className="w-full px-2 py-1 text-center" style={{ backgroundColor: "var(--color-muted)" }}>
+          <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">date</span>
+        </div>
+        <div className="py-2 text-center">
+          <span className="text-xs text-muted-foreground">TBD</span>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div
+      className="inline-flex flex-col items-center w-14 rounded-md overflow-hidden border"
+      style={{ borderColor: "var(--color-border)" }}
+    >
+      <div className="w-full px-2 py-1 text-center" style={{ backgroundColor: "var(--color-muted)" }}>
+        <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">{parts.month}</span>
+      </div>
+      <div className="py-2 text-center">
+        <span
+          className="font-heading leading-none text-foreground"
+          style={{ fontSize: "1.75rem" }}
+        >
+          {parts.day}
+        </span>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{parts.year}</p>
+      </div>
+    </div>
+  )
+}
+
 function stageBg(proposal: DealRoomData["proposal"]) {
   if (!proposal) return "oklch(0.99 0.005 85)"
   if (proposal.status === "accepted") return "oklch(0.955 0.022 74)"
@@ -25,7 +74,7 @@ function stageBg(proposal: DealRoomData["proposal"]) {
 
 function stageLabel(proposal: DealRoomData["proposal"]) {
   if (!proposal) return "Proposal incoming"
-  if (proposal.status === "accepted") return "Booking confirmed"
+  if (proposal.status === "accepted") return "Budget agreed"
   if (proposal.status === "countered") return "Counter-offer sent"
   return "Proposal ready"
 }
@@ -87,22 +136,19 @@ export function ClientDealRoomView({
 
         {/* Header */}
         <header className="mb-12">
-          <h1
-            className="font-heading leading-[1.1] tracking-tight text-foreground mb-4"
-            style={{ fontSize: "clamp(2rem, 5vw, 2.75rem)" }}
-          >
-            {clientName}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            {booking.event_date && (
-              <span>{formatDate(booking.event_date)}</span>
-            )}
-            {booking.event_date && booking.venue_name && (
-              <span aria-hidden className="opacity-40">·</span>
-            )}
-            {booking.venue_name && (
-              <span>{booking.venue_name}</span>
-            )}
+          <div className="flex items-start gap-6 mb-4">
+            <DateCard dateStr={booking.event_date} />
+            <div className="flex-1 min-w-0">
+              <h1
+                className="font-heading leading-[1.1] tracking-tight text-foreground"
+                style={{ fontSize: "clamp(2rem, 5vw, 2.75rem)" }}
+              >
+                {clientName}
+              </h1>
+              {booking.venue_name && (
+                <p className="text-sm text-muted-foreground mt-2">{booking.venue_name}</p>
+              )}
+            </div>
           </div>
         </header>
 

@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { computeSubtotal, computeFinalPrice, type BuilderLineItem } from "@/lib/utils/booking-builder";
 import { PackageBuilder } from "@/components/bookings/package-builder";
 import { updateBookingServices } from "@/lib/actions/bookings";
-import { sendProposal } from "@/lib/actions/deal-room";
+import { sendProposal, sendChangeRequest } from "@/lib/actions/deal-room";
 import type { BookingWithVersion } from "@/lib/types/database";
 import type { BookingService, Service, PackageTemplateWithServices } from "@/lib/types/services";
 import type { DealRoomProposal } from "@/lib/types/deal-room";
@@ -57,6 +57,7 @@ export function PackageExtrasCard({
   const [allowRenegotiation, setAllowRenegotiation] = useState(false);
   const [isSendingProposal, startSendProposal] = useTransition();
 
+  const isPostAcceptance = proposal?.status === "accepted"
   const showProposalButton =
     booking.status === "inquiry" && proposal?.status !== "accepted";
 
@@ -107,6 +108,23 @@ export function PackageExtrasCard({
   }
 
   function handleSave() {
+    if (isPostAcceptance) {
+      startTransition(async () => {
+        try {
+          await sendChangeRequest({
+            bookingId,
+            packageName: booking.package_version?.version_name ?? "Package",
+            items,
+            discount,
+          });
+          toast.success("Change request sent to client for approval.");
+          setEditing(false);
+        } catch {
+          toast.error("Couldn't send change request — try again");
+        }
+      });
+      return;
+    }
     startTransition(async () => {
       try {
         await updateBookingServices(bookingId, items, discount);
@@ -138,6 +156,11 @@ export function PackageExtrasCard({
       <CardContent className="space-y-3">
         {editing ? (
           <>
+            {isPostAcceptance && (
+              <p className="text-xs text-muted-foreground pb-1">
+                Changes will be sent to your client for approval before taking effect.
+              </p>
+            )}
             <PackageBuilder
               services={catalogServices}
               packages={packages}
@@ -150,7 +173,9 @@ export function PackageExtrasCard({
             <div className="flex gap-2 pt-1">
               <Button size="sm" onClick={handleSave} disabled={isPending}>
                 <Check className="h-3.5 w-3.5 mr-1" />
-                {isPending ? "Saving…" : "Save"}
+                {isPending
+                  ? isPostAcceptance ? "Sending…" : "Saving…"
+                  : isPostAcceptance ? "Send change request" : "Save"}
               </Button>
               <Button size="sm" variant="ghost" onClick={handleCancel} disabled={isPending}>
                 <X className="h-3.5 w-3.5 mr-1" />

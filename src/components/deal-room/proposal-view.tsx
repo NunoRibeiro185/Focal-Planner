@@ -72,7 +72,7 @@ export function ProposalView({
   return (
     <section>
       <h2 className="text-[10px] tracking-[0.18em] uppercase text-muted-foreground mb-8">
-        {isAccepted ? "Confirmed package" : "Your proposal"}
+        {isAccepted ? "Agreed package" : "Your proposal"}
       </h2>
 
       <p className="font-heading text-2xl text-foreground mb-10 leading-snug">
@@ -200,7 +200,7 @@ export function ProposalView({
               opacity: acceptPending ? 0.6 : 1,
             }}
           >
-            {acceptPending ? "Confirming…" : "Confirm booking →"}
+            {acceptPending ? "Agreeing…" : "Agree to budget →"}
           </button>
 
           {canCounter && (
@@ -251,7 +251,7 @@ export function ProposalView({
           className="text-xs tracking-[0.12em] uppercase"
           style={{ color: "var(--color-primary)" }}
         >
-          Booking confirmed
+          Budget agreed
         </p>
       )}
 

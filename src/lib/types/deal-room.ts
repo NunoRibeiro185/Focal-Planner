@@ -7,6 +7,13 @@ export interface ProposalLineItem {
   name: string
   price: number
   is_base: boolean
+  // Extended fields stored in JSONB for change requests — absent on regular proposals
+  service_id?: string | null
+  quantity?: number
+  description_snapshot?: string | null
+  unit_price_snapshot?: number
+  track_completion_snapshot?: boolean
+  _discount?: number
 }
 
 export interface DealRoomProposal {

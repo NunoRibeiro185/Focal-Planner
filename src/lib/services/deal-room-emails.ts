@@ -145,6 +145,31 @@ export async function sendItineraryUpdatedEmail(params: {
   }
 }
 
+export async function sendChangeRequestEmail(params: {
+  clientEmail: string;
+  clientName: string;
+  photographerName: string;
+  bookingId: string;
+  clientToken: string;
+}): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+
+  const url = dealRoomUrl(params.bookingId, params.clientToken);
+  try {
+    await client.emails.send({
+      from: FROM,
+      to: params.clientEmail,
+      subject: `${params.photographerName} proposed changes to your booking`,
+      html: `<p>Hi ${esc(params.clientName)},</p>
+<p>${esc(params.photographerName)} has proposed some changes to your booking. Please review and agree to continue:</p>
+<p><a href="${url}">Review changes</a></p>`,
+    });
+  } catch (err) {
+    console.error("Failed to send change request email:", err);
+  }
+}
+
 export async function sendAnswersSubmittedEmail(params: {
   photographerEmail: string;
   clientName: string;

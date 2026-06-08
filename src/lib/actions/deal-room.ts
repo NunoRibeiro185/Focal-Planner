@@ -13,7 +13,10 @@ import {
   sendItineraryUpdatedEmail,
   sendAnswersSubmittedEmail,
   sendDealRoomLinkEmail,
+  sendChangeRequestEmail,
 } from "@/lib/services/deal-room-emails"
+import type { ProposalLineItem } from "@/lib/types/deal-room"
+import { computeSubtotal, computeFinalPrice, type BuilderLineItem } from "@/lib/utils/booking-builder"
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -65,6 +68,20 @@ const itineraryStopSchema = clientTokenBaseSchema.extend({
 const saveAnswerSchema = clientTokenBaseSchema.extend({
   questionId: z.string().uuid(),
   answerText: z.string(),
+})
+
+const sendChangeRequestSchema = z.object({
+  bookingId: z.string().uuid(),
+  packageName: z.string().min(1),
+  items: z.array(z.object({
+    service_id: z.string().uuid().nullable().optional(),
+    name_snapshot: z.string().min(1),
+    description_snapshot: z.string().nullable().optional(),
+    unit_price_snapshot: z.number().nonnegative(),
+    quantity: z.number().int().positive(),
+    track_completion_snapshot: z.boolean(),
+  })),
+  discount: z.number().nonnegative(),
 })
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -204,15 +221,32 @@ export async function acceptProposal(input: unknown) {
   const booking = await assertClientToken(bookingId, token)
 
   const supabase = createServiceRoleClient() as any
-  const { data: updated, error } = await supabase
+
+  // Fetch proposal first so we can inspect line_items before updating
+  const { data: proposalData, error: fetchError } = await supabase
     .from("deal_room_proposals")
-    .update({ status: "accepted", responded_at: new Date().toISOString() })
+    .select("id, line_items, total_price")
     .eq("id", proposalId)
     .eq("booking_id", bookingId)
     .eq("status", "sent")
-    .select("id")
+    .single()
+  if (fetchError || !proposalData) throw new Error("Proposal is no longer available for acceptance")
+
+  const { error } = await supabase
+    .from("deal_room_proposals")
+    .update({ status: "accepted", responded_at: new Date().toISOString() })
+    .eq("id", proposalId)
   if (error) throw new Error("Failed to accept proposal")
-  if (!updated || updated.length === 0) throw new Error("Proposal is no longer available for acceptance")
+
+  // If this is a change request (line items contain service metadata), apply them
+  const lineItems = proposalData.line_items as ProposalLineItem[]
+  const isChangeRequest = lineItems?.some((item) => item.unit_price_snapshot !== undefined)
+  if (isChangeRequest) {
+    const discountItem = lineItems.find((item) => item._discount !== undefined)
+    const discount = discountItem?._discount ?? 0
+    const serviceItems = lineItems.filter((item) => item.unit_price_snapshot !== undefined)
+    await applyChangeRequest(bookingId, booking.photographer_id, serviceItems, discount, proposalData.total_price)
+  }
 
   revalidatePath(`/bookings/${bookingId}`)
   revalidatePath(`/client/${bookingId}`)
@@ -335,6 +369,15 @@ export async function saveClientAnswer(input: unknown) {
     .single()
   if (questionError || !question) throw new Error("Question not found")
 
+  // Check if an answer already exists before upserting (to avoid emailing on every edit)
+  const { data: existingAnswer } = await supabase
+    .from("deal_room_answers")
+    .select("id")
+    .eq("question_id", questionId)
+    .maybeSingle()
+
+  const isNewAnswer = !existingAnswer
+
   const { error } = await supabase.from("deal_room_answers").upsert(
     {
       question_id: questionId,
@@ -349,15 +392,18 @@ export async function saveClientAnswer(input: unknown) {
   revalidatePath(`/bookings/${bookingId}`)
   revalidatePath(`/client/${bookingId}`)
 
-  const photographerEmail = await getPhotographerEmail(booking.photographer_id)
-  if (photographerEmail) {
-    Promise.resolve().then(() =>
-      sendAnswersSubmittedEmail({
-        photographerEmail,
-        clientName: booking.client_name_primary,
-        bookingId,
-      }).catch(console.error)
-    )
+  // Only email the photographer when the client submits an answer for the first time
+  if (isNewAnswer) {
+    const photographerEmail = await getPhotographerEmail(booking.photographer_id)
+    if (photographerEmail) {
+      Promise.resolve().then(() =>
+        sendAnswersSubmittedEmail({
+          photographerEmail,
+          clientName: booking.client_name_primary,
+          bookingId,
+        }).catch(console.error)
+      )
+    }
   }
 }
 
@@ -402,6 +448,97 @@ export async function acceptCounterOffer(bookingId: string) {
   if (error) throw new Error("Failed to accept counter-offer")
   revalidatePath(`/bookings/${bookingId}`)
   revalidatePath(`/client/${bookingId}`)
+}
+
+async function applyChangeRequest(
+  bookingId: string,
+  photographerId: string,
+  serviceItems: ProposalLineItem[],
+  discount: number,
+  totalPrice: number
+) {
+  const supabase = createServiceRoleClient() as any
+
+  await supabase
+    .from("booking_services")
+    .delete()
+    .eq("booking_id", bookingId)
+    .eq("photographer_id", photographerId)
+
+  if (serviceItems.length > 0) {
+    const { error } = await supabase.from("booking_services").insert(
+      serviceItems.map((item, i) => ({
+        booking_id: bookingId,
+        photographer_id: photographerId,
+        service_id: item.service_id ?? null,
+        name_snapshot: item.name,
+        description_snapshot: item.description_snapshot ?? null,
+        unit_price_snapshot: item.unit_price_snapshot!,
+        quantity: item.quantity ?? 1,
+        track_completion_snapshot: item.track_completion_snapshot ?? false,
+        done: false,
+        sort_order: i,
+      }))
+    )
+    if (error) throw new Error("Failed to apply change request services")
+  }
+
+  await supabase
+    .from("bookings")
+    .update({ total_price: totalPrice, discount_amount: discount })
+    .eq("id", bookingId)
+}
+
+export async function sendChangeRequest(input: unknown) {
+  const { bookingId, packageName, items, discount } = sendChangeRequestSchema.parse(input)
+  const { booking, photographerId } = await getOwnedBooking(bookingId)
+
+  const lineItems: ProposalLineItem[] = [
+    ...items.map((item) => ({
+      name: item.name_snapshot,
+      price: item.unit_price_snapshot * item.quantity,
+      is_base: false,
+      service_id: item.service_id ?? null,
+      quantity: item.quantity,
+      description_snapshot: item.description_snapshot ?? null,
+      unit_price_snapshot: item.unit_price_snapshot,
+      track_completion_snapshot: item.track_completion_snapshot,
+    })),
+    ...(discount > 0
+      ? [{ name: "__discount__", price: 0, is_base: false, _discount: discount }]
+      : []),
+  ]
+
+  const subtotal = computeSubtotal(items as BuilderLineItem[])
+  const totalPrice = computeFinalPrice(subtotal, discount)
+
+  const supabase = createServiceRoleClient() as any
+  const { error } = await supabase.from("deal_room_proposals").insert({
+    booking_id: bookingId,
+    photographer_id: photographerId,
+    package_name: packageName,
+    line_items: lineItems,
+    total_price: totalPrice,
+    allow_renegotiation: false,
+    status: "sent",
+  })
+  if (error) throw new Error("Failed to send change request")
+
+  revalidatePath(`/bookings/${bookingId}`)
+  revalidatePath(`/client/${bookingId}`)
+
+  if (booking.client_email) {
+    const photographerName = await getPhotographerName(photographerId)
+    Promise.resolve().then(() =>
+      sendChangeRequestEmail({
+        clientEmail: booking.client_email!,
+        clientName: booking.client_name_primary,
+        photographerName,
+        bookingId,
+        clientToken: booking.client_token,
+      }).catch(console.error)
+    )
+  }
 }
 
 export async function sendDealRoomLink(bookingId: string) {
