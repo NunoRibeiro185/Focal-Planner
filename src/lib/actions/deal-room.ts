@@ -417,13 +417,17 @@ export async function acceptCounterOffer(bookingId: string) {
   await getOwnedBooking(bookingId)
   const supabase = createServiceRoleClient()
 
-  // Fetch the current countered proposal and its counter offer to apply negotiated terms
+  // Fetch the most recent countered proposal and its counter offer to apply
+  // negotiated terms. Uses limit(1) rather than single() so a second countered
+  // proposal on the booking doesn't throw.
   const { data: proposal, error: proposalFetchError } = await supabase
     .from("deal_room_proposals")
     .select("id, line_items")
     .eq("booking_id", bookingId)
     .eq("status", "countered")
-    .single()
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   if (proposalFetchError || !proposal) throw new Error("Failed to find countered proposal")
 

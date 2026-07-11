@@ -136,25 +136,3 @@ export async function reorderBookingTask(
 
   revalidateTaskPaths(bookingId);
 }
-
-export async function updateDeliverableStatus(
-  deliverableId: string,
-  status: string,
-  bookingId: string
-) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthenticated");
-
-  const { error } = await supabase
-    .from("deliverable_statuses")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", deliverableId)
-    .eq("photographer_id", user.id);
-
-  if (error) throw error;
-
-  revalidatePath(`/bookings/${bookingId}`);
-}

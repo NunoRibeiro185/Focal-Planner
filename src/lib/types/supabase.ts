@@ -34,61 +34,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      booking_deliverable_progress: {
-        Row: {
-          booking_id: string
-          created_at: string
-          description: string | null
-          done: boolean
-          id: string
-          label: string
-          package_version_custom_field_id: string
-          photographer_id: string
-        }
-        Insert: {
-          booking_id: string
-          created_at?: string
-          description?: string | null
-          done?: boolean
-          id?: string
-          label: string
-          package_version_custom_field_id: string
-          photographer_id: string
-        }
-        Update: {
-          booking_id?: string
-          created_at?: string
-          description?: string | null
-          done?: boolean
-          id?: string
-          label?: string
-          package_version_custom_field_id?: string
-          photographer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "booking_deliverable_progress_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_deliverable_progress_package_version_custom_field__fkey"
-            columns: ["package_version_custom_field_id"]
-            isOneToOne: false
-            referencedRelation: "package_version_custom_fields"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_deliverable_progress_photographer_id_fkey"
-            columns: ["photographer_id"]
-            isOneToOne: false
-            referencedRelation: "photographers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       booking_editing_stages: {
         Row: {
           booking_id: string
@@ -127,64 +72,6 @@ export type Database = {
           },
           {
             foreignKeyName: "booking_editing_stages_photographer_id_fkey"
-            columns: ["photographer_id"]
-            isOneToOne: false
-            referencedRelation: "photographers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      booking_extras: {
-        Row: {
-          booking_id: string
-          created_at: string
-          currency_snapshot: string
-          extra_id: string | null
-          id: string
-          name_snapshot: string
-          photographer_id: string
-          price_snapshot: number
-          quantity: number
-        }
-        Insert: {
-          booking_id: string
-          created_at?: string
-          currency_snapshot: string
-          extra_id?: string | null
-          id?: string
-          name_snapshot: string
-          photographer_id: string
-          price_snapshot: number
-          quantity?: number
-        }
-        Update: {
-          booking_id?: string
-          created_at?: string
-          currency_snapshot?: string
-          extra_id?: string | null
-          id?: string
-          name_snapshot?: string
-          photographer_id?: string
-          price_snapshot?: number
-          quantity?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "booking_extras_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_extras_extra_id_fkey"
-            columns: ["extra_id"]
-            isOneToOne: false
-            referencedRelation: "extras"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_extras_photographer_id_fkey"
             columns: ["photographer_id"]
             isOneToOne: false
             referencedRelation: "photographers"
@@ -734,48 +621,6 @@ export type Database = {
           },
         ]
       }
-      deliverable_statuses: {
-        Row: {
-          booking_id: string
-          deliverable_key: Database["public"]["Enums"]["deliverable_key"]
-          id: string
-          photographer_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          booking_id: string
-          deliverable_key: Database["public"]["Enums"]["deliverable_key"]
-          id?: string
-          photographer_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          booking_id?: string
-          deliverable_key?: Database["public"]["Enums"]["deliverable_key"]
-          id?: string
-          photographer_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "deliverable_statuses_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deliverable_statuses_photographer_id_fkey"
-            columns: ["photographer_id"]
-            isOneToOne: false
-            referencedRelation: "photographers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       editing_stage_templates: {
         Row: {
           created_at: string
@@ -867,47 +712,6 @@ export type Database = {
           },
           {
             foreignKeyName: "expenses_photographer_id_fkey"
-            columns: ["photographer_id"]
-            isOneToOne: false
-            referencedRelation: "photographers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      extras: {
-        Row: {
-          created_at: string
-          currency: string
-          deleted_at: string | null
-          description: string | null
-          id: string
-          name: string
-          photographer_id: string
-          price: number
-        }
-        Insert: {
-          created_at?: string
-          currency: string
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          photographer_id: string
-          price: number
-        }
-        Update: {
-          created_at?: string
-          currency?: string
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          photographer_id?: string
-          price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "extras_photographer_id_fkey"
             columns: ["photographer_id"]
             isOneToOne: false
             referencedRelation: "photographers"
@@ -1667,7 +1471,6 @@ export type Database = {
           p_client_name_primary?: string
           p_client_name_secondary?: string
           p_client_phone?: string
-          p_deliverable_keys?: Database["public"]["Enums"]["deliverable_key"][]
           p_deposit_amount?: number
           p_discount_amount?: number
           p_duration_hours?: number
@@ -1688,15 +1491,6 @@ export type Database = {
           p_venue_name?: string
         }
         Returns: string
-      }
-      reassign_booking_package: {
-        Args: {
-          p_booking_id: string
-          p_new_package_version_id: string
-          p_new_total_price: number
-          p_photographer_id: string
-        }
-        Returns: undefined
       }
       submit_inquiry_public: {
         Args: {
@@ -1726,13 +1520,6 @@ export type Database = {
         | "delivered"
         | "done"
         | "cancelled"
-      deliverable_key:
-        | "edited_photos"
-        | "wedding_album"
-        | "film_rolls"
-        | "video"
-        | "short_clips"
-        | "second_shooter"
       expense_category:
         | "equipment"
         | "travel"
@@ -1907,14 +1694,6 @@ export const Constants = {
         "delivered",
         "done",
         "cancelled",
-      ],
-      deliverable_key: [
-        "edited_photos",
-        "wedding_album",
-        "film_rolls",
-        "video",
-        "short_clips",
-        "second_shooter",
       ],
       expense_category: [
         "equipment",

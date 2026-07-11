@@ -21,7 +21,6 @@ type Enums = Database["public"]["Enums"];
 // ─── Enums (from the DB) ─────────────────────────────────────
 export type BookingStatus = Enums["booking_status"];
 export type LeadSource = Enums["lead_source"];
-export type DeliverableKey = Enums["deliverable_key"];
 export type ExpenseCategory = Enums["expense_category"];
 export type ExpensePaidBy = Enums["expense_paid_by"];
 export type SubscriptionStatus = Enums["subscription_status"];
@@ -45,10 +44,7 @@ export type InquiryFormFieldOption = Row<"inquiry_form_field_options">;
 export type InquiryAnswer = Row<"inquiry_answers">;
 export type SecondShooterNote = Row<"second_shooter_notes">;
 export type PaymentLogEntry = Row<"payment_log_entries">;
-export type DeliverableStatus = Row<"deliverable_statuses">;
 export type TaskTemplate = Row<"task_templates">;
-export type Extra = Row<"extras">;
-export type BookingExtra = Row<"booking_extras">;
 export type CustomFieldDefinition = Row<"custom_field_definitions">;
 export type PackageVersionCustomField = Row<"package_version_custom_fields">;
 export type BookingTask = Row<"booking_tasks">;
@@ -60,7 +56,6 @@ export type SubscriptionInsert = Insert<"subscriptions">;
 export type GoogleCalendarToken = Row<"google_calendar_tokens">;
 export type EditingStageTemplate = Row<"editing_stage_templates">;
 export type BookingEditingStage = Row<"booking_editing_stages">;
-export type BookingDeliverableProgress = Row<"booking_deliverable_progress">;
 
 // Deal room rows
 export type DealRoomProposalRow = Row<"deal_room_proposals">;
@@ -107,10 +102,6 @@ export interface PackageTemplateForBooking extends PackageTemplate {
 
 export interface BookingWithVersion extends Booking {
   package_version: PackageVersion | null;
-}
-
-export interface BookingWithExtras extends Booking {
-  extras: BookingExtra[];
 }
 
 // ─── Unified calendar event type ─────────────────────────────

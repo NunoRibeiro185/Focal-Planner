@@ -98,16 +98,12 @@ describe("RPC: create_booking_atomic caller-identity guard (Phase 0 exploit)", (
   });
 });
 
-describe("RPC: reassign_booking_package caller-identity guard (Phase 0 exploit)", () => {
-  it("rejects when an authenticated user targets another tenant", async () => {
-    await expect(
-      asUser(A, (q) =>
-        q(
-          "select public.reassign_booking_package($1, $2, $3, $4)",
-          [bookingA, B, "00000000-0000-0000-0000-000000000000", 100]
-        )
-      )
-    ).rejects.toThrow(/Access denied/);
+describe("RPC: reassign_booking_package has been retired (Phase 3)", () => {
+  it("no longer exists in the schema", async () => {
+    const { rows } = await admin<{ n: string }>(
+      "select count(*)::text as n from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace where ns.nspname = 'public' and p.proname = 'reassign_booking_package'"
+    );
+    expect(rows[0].n).toBe("0");
   });
 });
 

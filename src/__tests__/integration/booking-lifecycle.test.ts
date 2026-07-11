@@ -7,8 +7,8 @@ beforeAll(async () => {
   P = await newPhotographer();
 });
 
-describe("create_booking_atomic: atomic multi-table creation", () => {
-  it("creates the booking plus its tasks and deliverable rows in one call", async () => {
+describe("create_booking_atomic: atomic booking + task creation", () => {
+  it("creates the booking plus its tasks in one call", async () => {
     const res = await asUser(P, (q) =>
       q<{ id: string }>(
         `select public.create_booking_atomic(
@@ -17,7 +17,6 @@ describe("create_booking_atomic: atomic multi-table creation", () => {
            p_event_date := '2027-09-09',
            p_total_price := 1200,
            p_status := 'confirmed',
-           p_deliverable_keys := array['edited_photos','video']::public.deliverable_key[],
            p_task_titles := array['Send contract','Confirm timeline'],
            p_task_template_ids := array[null, null]::uuid[],
            p_task_sort_orders := array[0, 1]
@@ -40,15 +39,6 @@ describe("create_booking_atomic: atomic multi-table creation", () => {
       [bookingId]
     );
     expect(tasks.rowCount).toBe(2);
-
-    const deliverables = await admin<{ deliverable_key: string }>(
-      "select deliverable_key from public.deliverable_statuses where booking_id = $1 order by deliverable_key",
-      [bookingId]
-    );
-    expect(deliverables.rows.map((r) => r.deliverable_key).sort()).toEqual([
-      "edited_photos",
-      "video",
-    ]);
   });
 });
 

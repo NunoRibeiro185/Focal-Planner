@@ -80,7 +80,6 @@ export default async function BookingDetailPage({
   const {
     booking,
     tasks,
-    deliverableProgress,
     itineraryStops,
     editingStages,
     payments,

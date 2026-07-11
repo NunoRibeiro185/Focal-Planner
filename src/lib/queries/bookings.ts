@@ -3,8 +3,6 @@ import type {
   Booking,
   BookingWithVersion,
   BookingTask,
-  BookingExtra,
-  BookingDeliverableProgress,
   BookingItineraryStop,
   BookingEditingStage,
   PaymentLogEntry,
@@ -30,33 +28,47 @@ export interface BookingListItem extends Booking {
   is_second_shooter: boolean;
 }
 
-export async function getBookings(): Promise<BookingListItem[]> {
+// Shared select for all booking-list views: full booking row + the few
+// package_version columns the list needs (with its template, for package_name)
+// + payment amounts (for balance).
+const BOOKING_LIST_SELECT = `*,
+  package_version:package_versions(
+    id, version_name, hours_of_coverage, currency,
+    template:package_templates!package_versions_package_template_id_fkey(id, name)
+  ),
+  payment_log_entries(amount)`;
+
+interface BookingListFilters {
+  archived?: boolean;
+  excludeStatuses?: BookingStatus[];
+  dateFrom?: string;
+  dateTo?: string;
+  order?: "asc" | "desc";
+}
+
+async function fetchBookingList(filters: BookingListFilters): Promise<BookingListItem[]> {
   const user = await getUser();
   if (!user) throw new Error("Unauthorized");
 
   const supabase = await createClient();
 
-  const { data: bookings, error } = await supabase
+  let query = supabase
     .from("bookings")
-    .select(
-      `*,
-       package_version:package_versions(
-         id, version_name, hours_of_coverage, currency,
-         template:package_templates!package_versions_package_template_id_fkey(id, name)
-       ),
-       payment_log_entries(amount)`
-    )
-    .eq("photographer_id", user.id)
-    .eq("is_archived", false)
-    .neq("status", "inquiry")
-    .order("event_date", { ascending: true });
+    .select(BOOKING_LIST_SELECT)
+    .eq("photographer_id", user.id);
 
+  if (filters.archived !== undefined) query = query.eq("is_archived", filters.archived);
+  for (const status of filters.excludeStatuses ?? []) query = query.neq("status", status);
+  if (filters.dateFrom) query = query.gte("event_date", filters.dateFrom);
+  if (filters.dateTo) query = query.lte("event_date", filters.dateTo);
+
+  const { data, error } = await query.order("event_date", {
+    ascending: filters.order !== "desc",
+  });
   if (error) throw error;
 
-  return (bookings ?? []).map((b) => {
-    const amountPaid = computeAmountPaid(
-      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
-    );
+  return (data ?? []).map((b) => {
+    const amountPaid = computeAmountPaid((b.payment_log_entries ?? []).map((e) => e.amount));
     const balance = computeBalance(b.total_price, amountPaid);
     return {
       ...b,
@@ -70,120 +82,28 @@ export async function getBookings(): Promise<BookingListItem[]> {
   });
 }
 
-export async function getArchivedBookings(): Promise<BookingListItem[]> {
-  const user = await getUser();
-  if (!user) throw new Error("Unauthorized");
-
-  const supabase = await createClient();
-
-  const { data: bookings, error } = await supabase
-    .from("bookings")
-    .select(
-      `*,
-       package_version:package_versions(id, version_name, hours_of_coverage, currency),
-       payment_log_entries(amount)`
-    )
-    .eq("photographer_id", user.id)
-    .eq("is_archived", true)
-    .order("event_date", { ascending: false });
-
-  if (error) throw error;
-
-  const rows = bookings ?? [];
-
-  return rows.map((b) => {
-    const amountPaid = computeAmountPaid(
-      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
-    );
-    const balance = computeBalance(b.total_price, amountPaid);
-    return {
-      ...b,
-      package_version: b.package_version,
-      package_name: null,
-      amount_paid: amountPaid,
-      balance,
-      overdue: isOverdue(b.payment_due_date, balance),
-      is_second_shooter: b.second_shooter_id === user.id,
-    };
-  });
+/** Active (non-archived, non-inquiry) bookings, soonest first. */
+export function getBookings(): Promise<BookingListItem[]> {
+  return fetchBookingList({ archived: false, excludeStatuses: ["inquiry"], order: "asc" });
 }
 
-export async function getAllBookingsByDateRange(
+/** Archived bookings, most recent first. */
+export function getArchivedBookings(): Promise<BookingListItem[]> {
+  return fetchBookingList({ archived: true, order: "desc" });
+}
+
+/** All bookings within a date range (used by the availability calendar). */
+export function getAllBookingsByDateRange(
   start: string,
   end: string
 ): Promise<BookingListItem[]> {
-  const user = await getUser();
-  if (!user) throw new Error("Unauthorized");
-
-  const supabase = await createClient();
-
-  const { data: bookings, error } = await supabase
-    .from("bookings")
-    .select(
-      `*,
-       package_version:package_versions(*, template:package_templates!package_versions_package_template_id_fkey(id, name)),
-       payment_log_entries(amount)`
-    )
-    .eq("photographer_id", user.id)
-    .gte("event_date", start)
-    .lte("event_date", end)
-    .order("event_date", { ascending: true });
-
-  if (error) throw error;
-
-  return (bookings ?? []).map((b) => {
-    const amountPaid = computeAmountPaid(
-      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
-    );
-    const balance = computeBalance(b.total_price, amountPaid);
-    return {
-      ...b,
-      package_version: b.package_version,
-      package_name: b.package_version?.template?.name ?? null,
-      amount_paid: amountPaid,
-      balance,
-      overdue: isOverdue(b.payment_due_date, balance),
-      is_second_shooter: false,
-    };
-  });
+  return fetchBookingList({ dateFrom: start, dateTo: end, order: "asc" });
 }
 
-export async function getFutureBookings(): Promise<BookingListItem[]> {
+/** Upcoming, non-cancelled bookings (used by Google Calendar sync). */
+export function getFutureBookings(): Promise<BookingListItem[]> {
   const today = new Date().toISOString().split("T")[0];
-  const user = await getUser();
-  if (!user) throw new Error("Unauthorized");
-
-  const supabase = await createClient();
-
-  const { data: bookings, error } = await supabase
-    .from("bookings")
-    .select(
-      `*,
-       package_version:package_versions(*),
-       payment_log_entries(amount)`
-    )
-    .eq("photographer_id", user.id)
-    .gte("event_date", today)
-    .neq("status", "cancelled")
-    .order("event_date", { ascending: true });
-
-  if (error) throw error;
-
-  return (bookings ?? []).map((b) => {
-    const amountPaid = computeAmountPaid(
-      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
-    );
-    const balance = computeBalance(b.total_price, amountPaid);
-    return {
-      ...b,
-      package_version: b.package_version,
-      package_name: null,
-      amount_paid: amountPaid,
-      balance,
-      overdue: isOverdue(b.payment_due_date, balance),
-      is_second_shooter: false,
-    };
-  });
+  return fetchBookingList({ dateFrom: today, excludeStatuses: ["cancelled"], order: "asc" });
 }
 
 export interface CalendarBookingItem {
@@ -256,9 +176,7 @@ export async function getBookingById(id: string) {
       `*,
        package_version:package_versions(*),
        booking_tasks(*),
-       booking_deliverable_progress(*),
        payment_log_entries(*),
-       booking_extras(*),
        booking_itinerary_stops(*),
        booking_editing_stages(*),
        expenses(*)`
@@ -266,9 +184,7 @@ export async function getBookingById(id: string) {
     .eq("id", id)
     .eq("photographer_id", user.id)
     .order("sort_order", { referencedTable: "booking_tasks", ascending: true })
-    .order("created_at", { referencedTable: "booking_deliverable_progress", ascending: true })
     .order("paid_date", { referencedTable: "payment_log_entries", ascending: true })
-    .order("created_at", { referencedTable: "booking_extras", ascending: true })
     .order("sort_order", { referencedTable: "booking_itinerary_stops", ascending: true })
     .order("sort_order", { referencedTable: "booking_editing_stages", ascending: true })
     .order("expense_date", { referencedTable: "expenses", ascending: false })
@@ -279,9 +195,7 @@ export async function getBookingById(id: string) {
 
   const {
     booking_tasks: tasks,
-    booking_deliverable_progress: deliverableProgress,
     payment_log_entries: payments,
-    booking_extras: bookingExtras,
     booking_itinerary_stops: itineraryStops,
     booking_editing_stages: editingStages,
     expenses: bookingExpenses,
@@ -295,7 +209,6 @@ export async function getBookingById(id: string) {
   );
   const grandTotal = computeGrandTotal(
     booking.total_price,
-    (bookingExtras ?? []) as BookingExtra[],
     (bookingExpenses ?? []) as Expense[]
   );
   const balance = computeBalance(grandTotal, amountPaid);
@@ -303,11 +216,9 @@ export async function getBookingById(id: string) {
   return {
     booking,
     tasks: (tasks ?? []) as BookingTask[],
-    deliverableProgress: (deliverableProgress ?? []) as BookingDeliverableProgress[],
     itineraryStops: (itineraryStops ?? []) as BookingItineraryStop[],
     editingStages: (editingStages ?? []) as BookingEditingStage[],
     payments: (payments ?? []) as PaymentLogEntry[],
-    bookingExtras: (bookingExtras ?? []) as BookingExtra[],
     bookingExpenses: (bookingExpenses ?? []) as Expense[],
     amountPaid,
     grandTotal,

@@ -2,41 +2,42 @@ import { describe, it, expect } from "vitest";
 import { computeGrandTotal } from "@/lib/utils/extras";
 
 describe("computeGrandTotal", () => {
-  it("returns total_price when there are no extras", () => {
+  it("returns total_price when there are no expenses", () => {
+    expect(computeGrandTotal(1000)).toBe(1000);
     expect(computeGrandTotal(1000, [])).toBe(1000);
   });
 
-  it("adds a single extra with quantity 1", () => {
-    expect(computeGrandTotal(1000, [{ price_snapshot: 200, quantity: 1 }])).toBe(1200);
-  });
-
-  it("multiplies price by quantity", () => {
-    expect(computeGrandTotal(500, [{ price_snapshot: 50, quantity: 3 }])).toBe(650);
-  });
-
-  it("sums multiple extras", () => {
-    const extras = [
-      { price_snapshot: 100, quantity: 2 },
-      { price_snapshot: 75, quantity: 1 },
-    ];
-    expect(computeGrandTotal(800, extras)).toBe(1075);
-  });
-
-  it("handles fractional prices correctly", () => {
+  it("adds client-paid, unreimbursed expenses", () => {
     expect(
-      computeGrandTotal(100, [{ price_snapshot: 33.33, quantity: 3 }])
+      computeGrandTotal(1000, [{ amount: 200, paid_by: "client", reimbursed: false }])
+    ).toBe(1200);
+  });
+
+  it("ignores photographer-paid expenses", () => {
+    expect(
+      computeGrandTotal(1000, [{ amount: 200, paid_by: "photographer", reimbursed: false }])
+    ).toBe(1000);
+  });
+
+  it("ignores reimbursed client expenses", () => {
+    expect(
+      computeGrandTotal(1000, [{ amount: 200, paid_by: "client", reimbursed: true }])
+    ).toBe(1000);
+  });
+
+  it("sums multiple qualifying expenses", () => {
+    expect(
+      computeGrandTotal(800, [
+        { amount: 100, paid_by: "client", reimbursed: false },
+        { amount: 75, paid_by: "client", reimbursed: false },
+        { amount: 999, paid_by: "photographer", reimbursed: false },
+      ])
+    ).toBe(975);
+  });
+
+  it("handles fractional amounts", () => {
+    expect(
+      computeGrandTotal(100, [{ amount: 99.99, paid_by: "client", reimbursed: false }])
     ).toBeCloseTo(199.99);
-  });
-
-  it("handles a zero-price extra (no change to total)", () => {
-    expect(computeGrandTotal(500, [{ price_snapshot: 0, quantity: 5 }])).toBe(500);
-  });
-
-  it("returns total_price when all extras have zero price", () => {
-    const extras = [
-      { price_snapshot: 0, quantity: 1 },
-      { price_snapshot: 0, quantity: 10 },
-    ];
-    expect(computeGrandTotal(999, extras)).toBe(999);
   });
 });

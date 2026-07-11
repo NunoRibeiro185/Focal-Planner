@@ -78,26 +78,6 @@ export const taskSchema = z.object({
 
 export type TaskValues = z.infer<typeof taskSchema>;
 
-// ─── Extras catalog ───────────────────────────────────────────
-
-export const extraSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().nullable(),
-  price: z.coerce.number().min(0, "Price must be 0 or more"),
-  currency: z.string().length(3, "Select a currency"),
-});
-
-export type ExtraValues = z.infer<typeof extraSchema>;
-
-export const bookingExtraSchema = z.object({
-  extra_id: z.string().uuid().nullable(),
-  name_snapshot: z.string().min(1, "Name is required"),
-  price_snapshot: z.coerce.number().min(0, "Price must be 0 or more"),
-  currency_snapshot: z.string().length(3),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
-});
-
-export type BookingExtraValues = z.infer<typeof bookingExtraSchema>;
 
 // ─── Custom field definitions ─────────────────────────────────
 

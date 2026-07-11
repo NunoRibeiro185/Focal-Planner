@@ -6,12 +6,10 @@ import { redirect } from "next/navigation";
 import {
   bookingFormSchema,
   bookingServiceSchema,
-  bookingExtraSchema,
   clientInfoSchema,
   bookingDepositSchema,
   type BookingFormValues,
   type BookingServiceValues,
-  type BookingExtraValues,
   type ItineraryStopInput,
   type ClientInfoValues,
   type BookingDepositValues,
@@ -107,7 +105,6 @@ export async function createBooking(
       p_total_price: totalPrice,
       p_deposit_amount: data.deposit_amount ?? undefined,
       p_payment_due_date: data.payment_due_date ?? undefined,
-      p_deliverable_keys: [],
       p_task_titles: taskTitles,
       p_task_template_ids: taskTemplateIds,
       p_task_sort_orders: taskSortOrders,
@@ -220,7 +217,6 @@ export async function createInquiry(
       p_start_time: firstStop?.start_time || undefined,
       p_notes: data.notes ?? undefined,
       p_total_price: 0,
-      p_deliverable_keys: [],
       p_task_titles: taskTitles,
       p_task_template_ids: taskTemplateIds,
       p_task_sort_orders: taskSortOrders,
@@ -493,65 +489,6 @@ export async function updateBookingCoreFields(
 }
 
 /**
- * Reassigns a booking to a different package template (uses the template's
- * current version). Re-seeds deliverable progress for the new version.
- */
-export async function updateBookingPackage(
-  bookingId: string,
-  packageTemplateId: string
-) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthenticated");
-
-  const { data: booking } = await supabase
-    .from("bookings")
-    .select("price_override, total_price")
-    .eq("id", bookingId)
-    .eq("photographer_id", user.id)
-    .single();
-
-  const { data: template, error: templateError } = await supabase
-    .from("package_templates")
-    .select("current_version_id, package_versions!fk_current_version(base_price)")
-    .eq("id", packageTemplateId)
-    .eq("photographer_id", user.id)
-    .single();
-
-  if (templateError || !template?.current_version_id) {
-    throw new Error("Package not found or has no version");
-  }
-
-  const newVersion = template.package_versions;
-  if (!newVersion) throw new Error("Package has no version");
-  const priceOverride = booking?.price_override ?? 0;
-  const newTotalPrice = newVersion.base_price + priceOverride;
-
-  const { error: rpcError } = await supabase.rpc("reassign_booking_package", {
-    p_booking_id: bookingId,
-    p_photographer_id: user.id,
-    p_new_package_version_id: template.current_version_id,
-    p_new_total_price: newTotalPrice,
-  });
-
-  if (rpcError) throw rpcError;
-
-  await supabase
-    .from("booking_deliverable_progress")
-    .delete()
-    .eq("booking_id", bookingId)
-    .eq("photographer_id", user.id);
-
-  // seedDeliverableProgress removed — deliverables now handled via booking_services
-
-  revalidatePath(`/bookings/${bookingId}`);
-
-  syncBookingToGoogle(bookingId, "update").catch((e) =>
-    console.error("[GoogleSync] updateBookingPackage:", e)
-  );
-}
-
-/**
  * Updates deposit amount and payment due date.
  */
 export async function updateBookingDeposit(
@@ -665,96 +602,6 @@ export async function deleteBooking(bookingId: string) {
   revalidatePath("/bookings");
   revalidatePath("/calendar");
   redirect("/bookings");
-}
-
-/**
- * Toggles the done state of a booking deliverable progress row.
- */
-export async function toggleBookingDeliverable(
-  progressId: string,
-  done: boolean,
-  bookingId: string
-) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthenticated");
-
-  const { error } = await supabase
-    .from("booking_deliverable_progress")
-    .update({ done })
-    .eq("id", progressId)
-    .eq("photographer_id", user.id);
-
-  if (error) throw error;
-
-  revalidatePath(`/bookings/${bookingId}`);
-}
-
-/**
- * Adds an extra to a booking. Price and name are snapshotted at the time of
- * adding — future changes do not affect this record.
- */
-export async function addBookingExtra(
-  bookingId: string,
-  values: BookingExtraValues
-) {
-  const parsed = bookingExtraSchema.safeParse(values);
-  if (!parsed.success) throw new Error("Invalid booking extra data");
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthenticated");
-
-  const { data: booking, error: bookingError } = await supabase
-    .from("bookings")
-    .select("id")
-    .eq("id", bookingId)
-    .eq("photographer_id", user.id)
-    .single();
-
-  if (bookingError || !booking) throw new Error("Booking not found");
-
-  const { error } = await supabase.from("booking_extras").insert({
-    booking_id: bookingId,
-    photographer_id: user.id,
-    extra_id: parsed.data.extra_id ?? null,
-    name_snapshot: parsed.data.name_snapshot,
-    price_snapshot: parsed.data.price_snapshot,
-    currency_snapshot: parsed.data.currency_snapshot,
-    quantity: parsed.data.quantity,
-  });
-
-  if (error) throw error;
-
-  revalidatePath(`/bookings/${bookingId}`);
-}
-
-/**
- * Removes an extra from a booking.
- */
-export async function removeBookingExtra(
-  bookingExtraId: string,
-  bookingId: string
-) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthenticated");
-
-  const { error } = await supabase
-    .from("booking_extras")
-    .delete()
-    .eq("id", bookingExtraId)
-    .eq("photographer_id", user.id);
-
-  if (error) throw error;
-
-  revalidatePath(`/bookings/${bookingId}`);
 }
 
 export async function updateBookingServices(

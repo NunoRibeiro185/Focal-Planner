@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { computeVat, computeClientExpensesTotal, computeExpenseSummary } from "@/lib/utils/expenses";
-import { computeGrandTotal } from "@/lib/utils/extras";
 import type { Expense } from "@/lib/types";
 
 // ─── computeVat ───────────────────────────────────────────────
@@ -89,46 +88,7 @@ describe("computeClientExpensesTotal", () => {
   });
 });
 
-// ─── computeGrandTotal with client expenses ───────────────────
-
-describe("computeGrandTotal with client expenses", () => {
-  it("remains backward compatible with no expenses argument", () => {
-    expect(computeGrandTotal(1000, [{ price_snapshot: 100, quantity: 2 }])).toBe(1200);
-  });
-
-  it("adds client-paid unreimbursed expenses to grand total", () => {
-    const extras = [{ price_snapshot: 100, quantity: 1 }];
-    const expenses = [
-      { paid_by: "client" as const, reimbursed: false, amount: 50 },
-    ];
-    expect(computeGrandTotal(1000, extras, expenses)).toBe(1150);
-  });
-
-  it("does not add photographer-paid expenses to grand total", () => {
-    const expenses = [
-      { paid_by: "photographer" as const, reimbursed: false, amount: 200 },
-    ];
-    expect(computeGrandTotal(1000, [], expenses)).toBe(1000);
-  });
-
-  it("does not add reimbursed client expenses to grand total", () => {
-    const expenses = [
-      { paid_by: "client" as const, reimbursed: true, amount: 100 },
-    ];
-    expect(computeGrandTotal(1000, [], expenses)).toBe(1000);
-  });
-
-  it("correctly combines extras and client expenses", () => {
-    const extras = [{ price_snapshot: 200, quantity: 2 }];
-    const expenses = [
-      { paid_by: "client" as const, reimbursed: false, amount: 80 },
-      { paid_by: "photographer" as const, reimbursed: false, amount: 500 },
-      { paid_by: "client" as const, reimbursed: true, amount: 120 },
-    ];
-    // 1000 + (200×2) + 80 = 1480
-    expect(computeGrandTotal(1000, extras, expenses)).toBe(1480);
-  });
-});
+// computeGrandTotal is covered in extras.test.ts.
 
 // ─── computeExpenseSummary ────────────────────────────────────
 
