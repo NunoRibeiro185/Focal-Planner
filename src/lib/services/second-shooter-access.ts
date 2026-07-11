@@ -20,7 +20,14 @@ const SCRYPT_KEYLEN = 64;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function getSessionSecret(): string {
-  return process.env.SECOND_SHOOTER_SESSION_SECRET ?? "dev-secret-change-in-production";
+  const secret = process.env.SECOND_SHOOTER_SESSION_SECRET;
+  if (secret) return secret;
+  // Fail closed in production: a predictable fallback secret would make
+  // session tokens forgeable by anyone who reads the source.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SECOND_SHOOTER_SESSION_SECRET is not set");
+  }
+  return "dev-secret-change-in-production";
 }
 
 // ─── Password hashing ─────────────────────────────────────────

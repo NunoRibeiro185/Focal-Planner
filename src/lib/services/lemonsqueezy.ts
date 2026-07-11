@@ -177,6 +177,8 @@ export function verifyWebhookSignature(
   signature: string,
   secret: string = getEnv("LEMONSQUEEZY_WEBHOOK_SECRET")
 ): boolean {
+  // An empty secret would make the HMAC forgeable — treat as unverifiable.
+  if (!secret) return false;
   const hmac = crypto.createHmac("sha256", secret);
   hmac.update(rawBody);
   const digest = hmac.digest("hex");

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import {
   hashPassword,
   verifyPassword,
@@ -31,6 +31,27 @@ describe("hashPassword / verifyPassword", () => {
   it("returns false for a malformed stored hash", async () => {
     expect(await verifyPassword("any", "notahash")).toBe(false);
     expect(await verifyPassword("any", "")).toBe(false);
+  });
+});
+
+// ── session secret fail-closed behaviour ──────────────────────────────────────
+
+describe("session secret fail-closed behaviour", () => {
+  it("throws in production when SECOND_SHOOTER_SESSION_SECRET is unset", () => {
+    vi.stubEnv("SECOND_SHOOTER_SESSION_SECRET", "");
+    vi.stubEnv("NODE_ENV", "production");
+    expect(() =>
+      createSessionToken("550e8400-e29b-41d4-a716-446655440000")
+    ).toThrow("SECOND_SHOOTER_SESSION_SECRET");
+    vi.unstubAllEnvs();
+  });
+
+  it("falls back to the dev secret outside production", () => {
+    vi.stubEnv("SECOND_SHOOTER_SESSION_SECRET", "");
+    vi.stubEnv("NODE_ENV", "development");
+    const token = createSessionToken("550e8400-e29b-41d4-a716-446655440000");
+    expect(verifySessionToken(token)).toBe("550e8400-e29b-41d4-a716-446655440000");
+    vi.unstubAllEnvs();
   });
 });
 

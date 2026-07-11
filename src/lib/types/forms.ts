@@ -152,13 +152,6 @@ export const bookingDateTimeSchema = z.object({
 
 export type BookingDateTimeValues = z.infer<typeof bookingDateTimeSchema>;
 
-export const bookingPricingSchema = z.object({
-  price_override: z.coerce.number().nullable(),
-  hours_override: z.coerce.number().positive().nullable(),
-});
-
-export type BookingPricingValues = z.infer<typeof bookingPricingSchema>;
-
 export const bookingDepositSchema = z.object({
   deposit_amount: z.coerce.number().min(0).nullable(),
   payment_due_date: z.string().nullable(),

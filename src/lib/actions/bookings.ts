@@ -9,7 +9,6 @@ import {
   bookingExtraSchema,
   clientInfoSchema,
   bookingDateTimeSchema,
-  bookingPricingSchema,
   bookingDepositSchema,
   type BookingFormValues,
   type BookingServiceValues,
@@ -17,7 +16,6 @@ import {
   type ItineraryStopInput,
   type ClientInfoValues,
   type BookingDateTimeValues,
-  type BookingPricingValues,
   type BookingDepositValues,
 } from "@/lib/types/forms";
 import { canTransition, isBackwardTransition, isForwardStepperTransition, isTerminalStatus } from "@/lib/utils/booking-status";
@@ -562,48 +560,6 @@ export async function updateBookingPackage(
   syncBookingToGoogle(bookingId, "update").catch((e) =>
     console.error("[GoogleSync] updateBookingPackage:", e)
   );
-}
-
-/**
- * Updates price and hours overrides, recalculating total_price from the
- * package base price + new price_override.
- */
-export async function updateBookingPricing(
-  bookingId: string,
-  values: BookingPricingValues
-) {
-  const parsed = bookingPricingSchema.safeParse(values);
-  if (!parsed.success) throw new Error("Invalid pricing data");
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthenticated");
-
-  // Fetch current base price to recalculate total
-  const { data: booking } = await supabase
-    .from("bookings")
-    .select("package_version_id, package_versions!bookings_package_version_id_fkey(base_price)")
-    .eq("id", bookingId)
-    .eq("photographer_id", user.id)
-    .single();
-
-  const basePrice = (booking as any)?.package_versions?.base_price ?? 0;
-  const priceOverride = parsed.data.price_override ?? 0;
-  const newTotalPrice = basePrice + priceOverride;
-
-  const { error } = await supabase
-    .from("bookings")
-    .update({
-      price_override: parsed.data.price_override,
-      hours_override: parsed.data.hours_override,
-      total_price: newTotalPrice,
-    })
-    .eq("id", bookingId)
-    .eq("photographer_id", user.id);
-
-  if (error) throw error;
-
-  revalidatePath(`/bookings/${bookingId}`);
 }
 
 /**

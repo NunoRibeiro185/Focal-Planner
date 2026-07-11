@@ -10,7 +10,9 @@ import type { Database } from "@/lib/types/database";
  * Never import this in client components or expose the key to the browser.
  */
 export function createServiceRoleClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // Prefer the in-container URL (host.docker.internal) when set; see server.ts.
+  const url =
+    process.env.SUPABASE_INTERNAL_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url) throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set");

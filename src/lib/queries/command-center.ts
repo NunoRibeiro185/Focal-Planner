@@ -211,12 +211,16 @@ export async function getActiveBookingsForTaskAssignment(): Promise<BookingOptio
 export async function getBookingEditingStages(
   bookingId: string
 ): Promise<BookingEditingStage[]> {
+  const user = await getUser();
+  if (!user) throw new Error("Unauthorized");
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("booking_editing_stages")
     .select("*")
     .eq("booking_id", bookingId)
+    .eq("photographer_id", user.id)
     .order("sort_order", { ascending: true });
 
   if (error) throw error;

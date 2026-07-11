@@ -5,7 +5,9 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    // Server-side (middleware) reaches Supabase via the internal URL inside a
+    // devcontainer; falls back to the public URL otherwise. See server.ts.
+    process.env.SUPABASE_INTERNAL_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -39,7 +41,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/api/webhooks/") ||
     pathname.startsWith("/inquiry/") ||
-    pathname.startsWith("/second-shooter/");
+    pathname.startsWith("/second-shooter/") ||
+    // Client deal room — token-gated in the page itself (see (public)/client)
+    pathname.startsWith("/client/");
 
   const devBypass = process.env.DEV_BYPASS_AUTH === "true";
 

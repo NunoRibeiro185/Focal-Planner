@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Focal
 
-## Getting Started
+Multi-tenant SaaS for wedding & portrait photographers — packages/pricing,
+bookings, scheduling, finances, inquiries, client collaboration, and
+post-production tracking. Next.js 16 (App Router) · Supabase · Tailwind v4 ·
+Vitest. See [`CLAUDE.md`](./CLAUDE.md) for architecture and `.impeccable.md` for
+design intent.
 
-First, run the development server:
+## Quick start — Dev Container (recommended)
+
+A fully self-contained environment: Node 22, the Supabase CLI, and a **local
+Supabase stack** seeded with demo data. It never touches the production
+database.
+
+**Prerequisites:** Docker Desktop running, and the
+[Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+in Cursor/VS Code.
+
+1. Open the project in Cursor → **Reopen in Container**.
+2. Wait for `postCreate` to finish — it installs deps, starts Supabase, applies
+   migrations + seed, and writes `.env.local` for you (first run pulls images,
+   so give it a few minutes).
+3. `npm run dev` → open **http://localhost:3000** (already "logged in" as the
+   seeded photographer via `DEV_BYPASS_AUTH`).
+
+| Service | URL |
+| --- | --- |
+| App | http://localhost:3000 |
+| Supabase Studio | http://localhost:54323 |
+| Inbucket (captured emails) | http://localhost:54324 |
+
+Reset the database back to the seed at any time: `npm run db:reset`.
+
+## How the local stack is wired
+
+- The browser reaches Supabase at `localhost:54321`; the in-container Next.js
+  server reaches it via `host.docker.internal:54321` (`SUPABASE_INTERNAL_URL`).
+- `DEV_BYPASS_AUTH=true` skips Google OAuth — `src/lib/supabase/server.ts`
+  resolves the seeded dev photographer and uses the service-role key locally so
+  RLS-scoped data is visible without a real session.
+- External services (Resend, LemonSqueezy, Google) are stubbed with dummy keys —
+  no real calls are made.
+- The container has **no production credentials**. Pushing migrations to the
+  remote project (`supabase db push`) stays a deliberate action you run outside
+  the container.
+
+## Common commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev          # Next.js dev server
+npm run verify       # typecheck + lint + test (the full gate)
+npm run db:reset     # re-apply migrations + seed to the local DB
+npm run db:start     # start the local Supabase stack
+npm run db:stop      # stop it
+npm run build        # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Running without the Dev Container
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can also run the local Supabase stack directly on your host:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+supabase start && supabase db reset
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Then create a `.env.local` (see `.devcontainer/postCreate.sh` for the exact
+keys; on the host both the browser and server use `http://localhost:54321`, so
+`SUPABASE_INTERNAL_URL` can be omitted) and run `npm run dev`.

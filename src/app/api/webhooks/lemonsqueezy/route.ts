@@ -12,7 +12,14 @@ const HANDLED_EVENTS = new Set([
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-signature") ?? "";
-  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+
+  // Fail closed: HMAC with an empty/missing secret is forgeable, which would
+  // let anyone mint themselves an active subscription.
+  if (!secret) {
+    console.error("LEMONSQUEEZY_WEBHOOK_SECRET is not set — rejecting webhook");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
 
   if (!verifyWebhookSignature(rawBody, signature, secret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });

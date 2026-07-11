@@ -67,6 +67,16 @@ describe("POST /api/webhooks/lemonsqueezy", () => {
     mockUpsert.mockClear();
   });
 
+  it("returns 500 and skips verification when the webhook secret is not configured", async () => {
+    vi.stubEnv("LEMONSQUEEZY_WEBHOOK_SECRET", "");
+    const body = makeSubscriptionPayload();
+    // Even a "correctly" signed request (HMAC with empty key) must be rejected
+    const emptyKeySig = crypto.createHmac("sha256", "").update(body).digest("hex");
+    const res = await POST(makeRequest(body, emptyKeySig) as never);
+    expect(res.status).toBe(500);
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
   it("returns 401 for invalid signature", async () => {
     const body = makeSubscriptionPayload();
     const res = await POST(makeRequest(body, "bad-signature") as never);

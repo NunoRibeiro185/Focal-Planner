@@ -1,0 +1,41 @@
+{
+  "name": "Focal",
+  // Pinned to bookworm: the docker-outside-of-docker feature's 'moby' packages
+  // aren't available on Debian trixie (the current default for the :22 tag).
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22-bookworm",
+  "features": {
+    // Share the host's Docker daemon so `supabase start` can spin up the
+    // Supabase containers as siblings on the host (docker-outside-of-docker).
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  // Only the Next.js dev server runs *inside* this container. The Supabase
+  // ports (54321 API, 54323 Studio, 54324 Inbucket) are published on the host
+  // by the sibling containers, so you reach them at localhost directly.
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Next.js app", "onAutoForward": "notify" }
+  },
+  // host.docker.internal lets the in-container server reach the host-published
+  // Supabase API. Usually added by docker-outside-of-docker, set explicitly to
+  // be safe.
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "Supabase.vscode-supabase-extension"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" },
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "remoteUser": "node"
+}
