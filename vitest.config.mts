@@ -11,6 +11,9 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     globals: true,
     include: ["src/__tests__/**/*.test.ts", "src/__tests__/**/*.test.tsx"],
+    // Integration tests need Docker + a running Postgres — run them via
+    // `npm run test:integration` (vitest.integration.config.mts), not here.
+    exclude: ["**/node_modules/**", "src/__tests__/integration/**"],
   },
   resolve: {
     alias: {

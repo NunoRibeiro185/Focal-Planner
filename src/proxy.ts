@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPublicPath } from "@/lib/utils/public-paths";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,21 +35,10 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Paths that never require authentication
-  const isPublicPath =
-    pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/auth/") ||
-    pathname.startsWith("/api/webhooks/") ||
-    pathname.startsWith("/inquiry/") ||
-    pathname.startsWith("/second-shooter/") ||
-    // Client deal room — token-gated in the page itself (see (public)/client)
-    pathname.startsWith("/client/");
-
   const devBypass = process.env.DEV_BYPASS_AUTH === "true";
 
   // Redirect unauthenticated users to login
-  if (!user && !isPublicPath && !devBypass) {
+  if (!user && !isPublicPath(pathname) && !devBypass) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
