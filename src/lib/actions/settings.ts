@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { settingsSchema, slugSchema, type SettingsValues } from "@/lib/types/forms";
+import type { Update } from "@/lib/types/database";
 
 export async function updateSettings(values: SettingsValues): Promise<{ success: boolean; error?: string }> {
   const parsed = settingsSchema.safeParse(values);
@@ -14,7 +15,7 @@ export async function updateSettings(values: SettingsValues): Promise<{ success:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
-  const update: Record<string, unknown> = {
+  const update: Update<"photographers"> = {
     full_name: parsed.data.full_name,
     default_currency: parsed.data.default_currency,
   };
