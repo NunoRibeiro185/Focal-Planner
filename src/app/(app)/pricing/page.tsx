@@ -35,7 +35,7 @@ export default function PricingPage() {
       <div className="text-center space-y-3">
         <h1 className="text-3xl font-bold">Simple, honest pricing</h1>
         <p className="text-muted-foreground max-w-lg mx-auto">
-          Start free. Upgrade when you're ready. Early subscribers lock in our launch price forever.
+          Start free. Upgrade when you’re ready. Early subscribers lock in our launch price forever.
         </p>
       </div>
 

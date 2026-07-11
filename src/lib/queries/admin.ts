@@ -16,39 +16,33 @@ export interface AdminPhotographer {
 export async function getAllPhotographers(): Promise<AdminPhotographer[]> {
   const supabase = createServiceRoleClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [{ data: photographers }, { data: subsRaw }] = await Promise.all([
     supabase
       .from("photographers")
       .select("id, email, full_name, created_at")
       .order("created_at", { ascending: false }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from("subscriptions") as any).select(
-      "photographer_id, status, plan, current_period_end, lemon_squeezy_subscription_id"
-    ),
+    supabase
+      .from("subscriptions")
+      .select("photographer_id, status, plan, current_period_end, lemon_squeezy_subscription_id"),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const subscriptions = (subsRaw ?? []) as any[];
+  const subscriptions = subsRaw ?? [];
 
-  const subMap = new Map<string, (typeof subscriptions)[number]>(
-    subscriptions.map((s) => [s.photographer_id as string, s])
-  );
+  const subMap = new Map(subscriptions.map((s) => [s.photographer_id, s]));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((photographers ?? []) as any[]).map((p) => {
-    const sub = subMap.get(p.id as string) ?? null;
+  return (photographers ?? []).map((p) => {
+    const sub = subMap.get(p.id) ?? null;
     return {
-      id: p.id as string,
-      email: p.email as string,
-      full_name: (p.full_name ?? null) as string | null,
-      created_at: p.created_at as string,
+      id: p.id,
+      email: p.email,
+      full_name: p.full_name,
+      created_at: p.created_at,
       subscription: sub
         ? {
-            status: sub.status as string,
-            plan: sub.plan as string,
-            current_period_end: sub.current_period_end as string,
-            admin_granted: (sub.lemon_squeezy_subscription_id as string).startsWith("admin_grant_"),
+            status: sub.status,
+            plan: sub.plan,
+            current_period_end: sub.current_period_end,
+            admin_granted: sub.lemon_squeezy_subscription_id.startsWith("admin_grant_"),
           }
         : null,
     };

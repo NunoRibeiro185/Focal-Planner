@@ -216,7 +216,6 @@ export function DynamicInquiryForm({ photographerUrl, formUrl, formDefinition, t
               register={register}
               setValue={setValue}
               watch={watch}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               error={errors[field.id as keyof FormValues]?.message as string | undefined}
             />
           ))}
@@ -246,7 +245,6 @@ export function DynamicInquiryForm({ photographerUrl, formUrl, formDefinition, t
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DynamicField({ field, packages, register, setValue, watch, error }: {
   field: InquiryFormField;
   packages: PublicFormDefinition["packages"];

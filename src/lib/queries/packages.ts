@@ -75,7 +75,7 @@ export async function getPackageTemplatesForBooking(): Promise<PackageTemplateFo
 
   if (error) throw error;
 
-  return (templates ?? []).map((t: any) => ({
+  return (templates ?? []).map((t) => ({
     ...t,
     current_version: t.current_version as PackageVersion | null,
     all_versions: ((t.all_versions ?? []) as PackageVersion[])
@@ -141,7 +141,7 @@ export async function getPackageTemplatesWithServices(): Promise<PackageTemplate
     .eq("archived", false)
     .order("created_at", { ascending: true });
 
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     ...row,
     base_price: row.current_version?.base_price ?? null,
     currency: row.current_version?.currency ?? null,

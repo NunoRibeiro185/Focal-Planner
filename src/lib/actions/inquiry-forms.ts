@@ -20,7 +20,18 @@ const fieldSchema = z.object({
   helper_text: z.string().nullable(),
   is_required: z.boolean(),
   sort_order: z.number().int(),
-  field_mapping: z.string().nullable(),
+  field_mapping: z
+    .enum([
+      "client_name_secondary",
+      "client_phone",
+      "event_date",
+      "venue_name",
+      "venue_address",
+      "location",
+      "notes",
+      "package_template_id",
+    ])
+    .nullable(),
   options: z.array(fieldOptionSchema),
 });
 

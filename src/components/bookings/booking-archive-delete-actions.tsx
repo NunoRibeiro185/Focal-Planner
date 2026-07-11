@@ -68,7 +68,7 @@ export function BookingArchiveDeleteActions({ bookingId, isArchived, clientName 
           <p className="text-xs text-muted-foreground mb-2.5 max-w-[200px] leading-relaxed">
             Permanently delete{" "}
             <span className="font-medium text-foreground">{clientName}</span>
-            's booking and all its data. This cannot be undone.
+            ’s booking and all its data. This cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-4">
             <button

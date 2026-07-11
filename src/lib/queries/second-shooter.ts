@@ -35,7 +35,7 @@ export async function getSecondShooterView(
   bookingId: string
 ): Promise<SecondShooterView | null> {
   // Cast to any: Supabase TypeScript generics don't handle partial selects well
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const bookingResult = await supabase
     .from("bookings")
@@ -135,7 +135,7 @@ export interface PendingSecondShooterInvite {
 export async function getPendingSecondShooterInvites(
   userId: string
 ): Promise<PendingSecondShooterInvite[]> {
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const { data } = await supabase
     .from("bookings")

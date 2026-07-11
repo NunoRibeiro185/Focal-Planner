@@ -70,6 +70,7 @@ export function FormEditor({ form, packageTemplates, photographerSlug, onClose }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const normalized = normalizeFormUrl(formUrl);
     if (!normalized || normalized === form?.form_url) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- debounced async availability check driven by the form URL
       setUrlStatus("idle");
       return;
     }

@@ -40,6 +40,7 @@ export function BookingPreviewPopover({
 
   // Sync local state when the event prop changes (e.g. after a save refreshes the cache)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional prop→state resync after the event prop changes
     setStatus(event.status);
     setDate(event.start);
     setStartTime(event.startTime ?? "");

@@ -182,7 +182,7 @@ export function ProposalView({
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">
-            You'll hear back as soon as they respond.
+            You’ll hear back as soon as they respond.
           </p>
         </div>
       )}

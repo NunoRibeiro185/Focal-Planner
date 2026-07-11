@@ -75,6 +75,7 @@ export function CommandCenterTasksPanel({
   const isEmpty = thisWeek.length === 0 && upcoming.length === 0;
   const [phrase, setPhrase] = useState(MOTIVATIONAL_PHRASES[0]);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- randomize after mount to avoid an SSR/client hydration mismatch
     setPhrase(MOTIVATIONAL_PHRASES[Math.floor(Math.random() * MOTIVATIONAL_PHRASES.length)]);
   }, []);
 

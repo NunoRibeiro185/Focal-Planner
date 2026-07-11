@@ -1,5 +1,6 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import type {
+  Booking,
   BookingWithVersion,
   BookingTask,
   BookingExtra,
@@ -7,13 +8,21 @@ import type {
   BookingItineraryStop,
   BookingEditingStage,
   PaymentLogEntry,
+  PackageVersion,
   Expense,
   BookingStatus,
 } from "@/lib/types";
 import { computeAmountPaid, computeBalance, isOverdue } from "@/lib/utils/currency";
 import { computeGrandTotal } from "@/lib/utils/extras";
 
-export interface BookingListItem extends BookingWithVersion {
+// The list queries select only a subset of package_version columns (the list UI
+// reads version_name/currency/hours). Detail views use BookingWithVersion (full
+// row) via getBookingById.
+export interface BookingListItem extends Booking {
+  package_version: Pick<
+    PackageVersion,
+    "id" | "version_name" | "hours_of_coverage" | "currency"
+  > | null;
   amount_paid: number;
   balance: number;
   overdue: boolean;
@@ -30,8 +39,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `id, client_name_primary, client_name_secondary, event_date, venue_name, status,
-       total_price, payment_due_date, is_archived, photographer_id, second_shooter_id,
+      `*,
        package_version:package_versions(
          id, version_name, hours_of_coverage, currency,
          template:package_templates!package_versions_package_template_id_fkey(id, name)
@@ -45,7 +53,7 @@ export async function getBookings(): Promise<BookingListItem[]> {
 
   if (error) throw error;
 
-  return (bookings ?? []).map((b: any) => {
+  return (bookings ?? []).map((b) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -71,8 +79,7 @@ export async function getArchivedBookings(): Promise<BookingListItem[]> {
   const { data: bookings, error } = await supabase
     .from("bookings")
     .select(
-      `id, client_name_primary, client_name_secondary, event_date, status,
-       total_price, payment_due_date, is_archived, photographer_id, second_shooter_id,
+      `*,
        package_version:package_versions(id, version_name, hours_of_coverage, currency),
        payment_log_entries(amount)`
     )
@@ -84,7 +91,7 @@ export async function getArchivedBookings(): Promise<BookingListItem[]> {
 
   const rows = bookings ?? [];
 
-  return rows.map((b: any) => {
+  return rows.map((b) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -124,7 +131,7 @@ export async function getAllBookingsByDateRange(
 
   if (error) throw error;
 
-  return (bookings ?? []).map((b: any) => {
+  return (bookings ?? []).map((b) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -133,46 +140,6 @@ export async function getAllBookingsByDateRange(
       ...b,
       package_version: b.package_version,
       package_name: b.package_version?.template?.name ?? null,
-      amount_paid: amountPaid,
-      balance,
-      overdue: isOverdue(b.payment_due_date, balance),
-      is_second_shooter: false,
-    };
-  });
-}
-
-export async function getBookingsByDateRange(
-  start: string,
-  end: string
-): Promise<BookingListItem[]> {
-  const user = await getUser();
-  if (!user) throw new Error("Unauthorized");
-
-  const supabase = await createClient();
-
-  const { data: bookings, error } = await supabase
-    .from("bookings")
-    .select(
-      `*,
-       package_version:package_versions(*),
-       payment_log_entries(amount)`
-    )
-    .eq("photographer_id", user.id)
-    .gte("event_date", start)
-    .lte("event_date", end)
-    .neq("status", "cancelled")
-    .order("event_date", { ascending: true });
-
-  if (error) throw error;
-
-  return (bookings ?? []).map((b: any) => {
-    const amountPaid = computeAmountPaid(
-      (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
-    );
-    const balance = computeBalance(b.total_price, amountPaid);
-    return {
-      ...b,
-      package_version: b.package_version,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
@@ -202,7 +169,7 @@ export async function getFutureBookings(): Promise<BookingListItem[]> {
 
   if (error) throw error;
 
-  return (bookings ?? []).map((b: any) => {
+  return (bookings ?? []).map((b) => {
     const amountPaid = computeAmountPaid(
       (b.payment_log_entries ?? []).map((e: { amount: number }) => e.amount)
     );
@@ -210,6 +177,7 @@ export async function getFutureBookings(): Promise<BookingListItem[]> {
     return {
       ...b,
       package_version: b.package_version,
+      package_name: null,
       amount_paid: amountPaid,
       balance,
       overdue: isOverdue(b.payment_due_date, balance),
@@ -307,6 +275,7 @@ export async function getBookingById(id: string) {
     .single();
 
   if (error) throw error;
+  if (!raw) throw new Error("Booking not found");
 
   const {
     booking_tasks: tasks,
@@ -317,7 +286,7 @@ export async function getBookingById(id: string) {
     booking_editing_stages: editingStages,
     expenses: bookingExpenses,
     ...bookingData
-  } = raw as any;
+  } = raw;
 
   const booking = bookingData as BookingWithVersion;
 
@@ -352,14 +321,14 @@ export async function getInquiryAnswers(bookingId: string) {
   if (!user) throw new Error("Unauthorized");
 
   const supabase = await createClient();
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("inquiry_answers")
     .select("*")
     .eq("booking_id", bookingId)
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as import("@/lib/types/database").InquiryAnswer[];
+  return data ?? [];
 }
 
 export async function getBookingsThisMonthCount(): Promise<number> {

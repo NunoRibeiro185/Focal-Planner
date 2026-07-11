@@ -168,8 +168,10 @@ function TrialNoSubState() {
   const [error, setError] = useState<string | null>(null);
 
   const launchEnd = format(LAUNCH_WINDOW.end, "d MMMM yyyy");
+  // eslint-disable-next-line react-hooks/purity -- display-only countdown; recomputing from the clock each render is intended
+  const now = Date.now();
   const daysLeft = Math.ceil(
-    (LAUNCH_WINDOW.end.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    (LAUNCH_WINDOW.end.getTime() - now) / (1000 * 60 * 60 * 24)
   );
 
   function handleCheckout() {
@@ -291,7 +293,7 @@ function TrialSubState({
         <ExpandPanel open={cancelOpen}>
           <div className="pt-4 pb-1 space-y-3">
             <p className="text-sm text-muted-foreground">
-              Your subscription will be cancelled. You'll still have trial
+              Your subscription will be cancelled. You’ll still have trial
               access until {launchEnd} regardless.
             </p>
             {error && <p className="text-xs text-destructive">{error}</p>}
@@ -493,7 +495,7 @@ function ProActiveState({
           <ExpandPanel open={switchOpen}>
             <div className="pt-4 pb-1 space-y-3">
               <p className="text-sm text-muted-foreground">
-                You'll be moved to{" "}
+                You’ll be moved to{" "}
                 {isMonthly ? "annual" : "monthly"} billing immediately.
                 Lemon Squeezy will handle any proration automatically.
               </p>
@@ -536,7 +538,7 @@ function ProActiveState({
             <div className="pt-4 pb-1 space-y-3">
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Before you go — you'll lose:
+                  Before you go — you’ll lose:
                 </p>
                 <ul className="mt-2 space-y-1.5">
                   {PRO_FEATURES.map((f) => (
@@ -652,7 +654,7 @@ function PastDueState() {
         <div className="mt-2 flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            Your last payment didn't go through. Check your email for a payment
+            Your last payment didn’t go through. Check your email for a payment
             update link from Lemon Squeezy, or contact{" "}
             <a
               href="mailto:support@focal.studio"

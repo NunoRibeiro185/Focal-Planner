@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -302,9 +302,8 @@ function SettingsForm({
     watch,
     setValue,
     formState: { errors },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<SecondShooterPanelValues>({
-    resolver: zodResolver(secondShooterPanelSchema) as any,
+    resolver: zodResolver(secondShooterPanelSchema) as Resolver<SecondShooterPanelValues>,
     defaultValues: {
       second_shooter_email: booking.second_shooter_email ?? null,
       second_shooter_fee: booking.second_shooter_fee ?? null,

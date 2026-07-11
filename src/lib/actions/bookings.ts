@@ -8,14 +8,12 @@ import {
   bookingServiceSchema,
   bookingExtraSchema,
   clientInfoSchema,
-  bookingDateTimeSchema,
   bookingDepositSchema,
   type BookingFormValues,
   type BookingServiceValues,
   type BookingExtraValues,
   type ItineraryStopInput,
   type ClientInfoValues,
-  type BookingDateTimeValues,
   type BookingDepositValues,
 } from "@/lib/types/forms";
 import { canTransition, isBackwardTransition, isForwardStepperTransition, isTerminalStatus } from "@/lib/utils/booking-status";
@@ -87,9 +85,9 @@ export async function createBooking(
     .eq("photographer_id", user.id)
     .order("sort_order", { ascending: true });
 
-  const taskTitles = (taskTemplates ?? []).map((t: any) => t.title);
-  const taskTemplateIds = (taskTemplates ?? []).map((t: any) => t.id);
-  const taskSortOrders = (taskTemplates ?? []).map((t: any) => t.sort_order);
+  const taskTitles = (taskTemplates ?? []).map((t) => t.title);
+  const taskTemplateIds = (taskTemplates ?? []).map((t) => t.id);
+  const taskSortOrders = (taskTemplates ?? []).map((t) => t.sort_order);
 
   const firstStop = itinerary[0];
 
@@ -97,22 +95,18 @@ export async function createBooking(
     "create_booking_atomic",
     {
       p_photographer_id: user.id,
-      p_package_version_id: null,
       p_client_name_primary: data.client_name_primary,
-      p_client_name_secondary: data.client_name_secondary ?? null,
-      p_client_email: data.client_email ?? null,
-      p_client_phone: data.client_phone ?? null,
-      p_venue_name: firstStop?.name ?? null,
-      p_venue_address: firstStop?.address ?? null,
+      p_client_name_secondary: data.client_name_secondary ?? undefined,
+      p_client_email: data.client_email ?? undefined,
+      p_client_phone: data.client_phone ?? undefined,
+      p_venue_name: firstStop?.name ?? undefined,
+      p_venue_address: firstStop?.address ?? undefined,
       p_event_date: data.event_date,
-      p_start_time: firstStop?.start_time || null,
-      p_duration_hours: null,
-      p_notes: data.notes ?? null,
-      p_price_override: null,
-      p_hours_override: null,
+      p_start_time: firstStop?.start_time || undefined,
+      p_notes: data.notes ?? undefined,
       p_total_price: totalPrice,
-      p_deposit_amount: data.deposit_amount ?? null,
-      p_payment_due_date: data.payment_due_date ?? null,
+      p_deposit_amount: data.deposit_amount ?? undefined,
+      p_payment_due_date: data.payment_due_date ?? undefined,
       p_deliverable_keys: [],
       p_task_titles: taskTitles,
       p_task_template_ids: taskTemplateIds,
@@ -126,7 +120,7 @@ export async function createBooking(
 
   const bid = bookingId as string;
 
-  const parallelOps: Promise<any>[] = [
+  const parallelOps: PromiseLike<unknown>[] = [
     replaceItineraryStops(supabase, bid, user.id, itinerary),
   ];
 
@@ -136,7 +130,7 @@ export async function createBooking(
         .from("bookings")
         .update({ lead_source: data.lead_source ?? null, location: data.location ?? null })
         .eq("id", bid)
-        .eq("photographer_id", user.id) as unknown as Promise<any>
+        .eq("photographer_id", user.id)
     );
   }
 
@@ -155,7 +149,7 @@ export async function createBooking(
           done: false,
           sort_order: i,
         }))
-      ) as unknown as Promise<any>
+      )
     );
   }
 
@@ -167,7 +161,7 @@ export async function createBooking(
         amount: data.deposit_amount,
         paid_date: new Date().toISOString().split("T")[0],
         note: "Deposit (logged at booking creation)",
-      }) as unknown as Promise<any>
+      })
     );
   }
 
@@ -206,9 +200,9 @@ export async function createInquiry(
     .eq("photographer_id", user.id)
     .order("sort_order", { ascending: true });
 
-  const taskTitles = (taskTemplates ?? []).map((t: any) => t.title);
-  const taskTemplateIds = (taskTemplates ?? []).map((t: any) => t.id);
-  const taskSortOrders = (taskTemplates ?? []).map((t: any) => t.sort_order);
+  const taskTitles = (taskTemplates ?? []).map((t) => t.title);
+  const taskTemplateIds = (taskTemplates ?? []).map((t) => t.id);
+  const taskSortOrders = (taskTemplates ?? []).map((t) => t.sort_order);
 
   const firstStop = itinerary[0];
 
@@ -216,22 +210,16 @@ export async function createInquiry(
     "create_booking_atomic",
     {
       p_photographer_id: user.id,
-      p_package_version_id: null,
       p_client_name_primary: data.client_name_primary,
-      p_client_name_secondary: data.client_name_secondary ?? null,
-      p_client_email: data.client_email ?? null,
-      p_client_phone: data.client_phone ?? null,
-      p_venue_name: firstStop?.name ?? null,
-      p_venue_address: firstStop?.address ?? null,
+      p_client_name_secondary: data.client_name_secondary ?? undefined,
+      p_client_email: data.client_email ?? undefined,
+      p_client_phone: data.client_phone ?? undefined,
+      p_venue_name: firstStop?.name ?? undefined,
+      p_venue_address: firstStop?.address ?? undefined,
       p_event_date: data.event_date,
-      p_start_time: firstStop?.start_time || null,
-      p_duration_hours: null,
-      p_notes: data.notes ?? null,
-      p_price_override: null,
-      p_hours_override: null,
+      p_start_time: firstStop?.start_time || undefined,
+      p_notes: data.notes ?? undefined,
       p_total_price: 0,
-      p_deposit_amount: null,
-      p_payment_due_date: null,
       p_deliverable_keys: [],
       p_task_titles: taskTitles,
       p_task_template_ids: taskTemplateIds,
@@ -534,7 +522,8 @@ export async function updateBookingPackage(
     throw new Error("Package not found or has no version");
   }
 
-  const newVersion = (template as any).package_versions;
+  const newVersion = template.package_versions;
+  if (!newVersion) throw new Error("Package has no version");
   const priceOverride = booking?.price_override ?? 0;
   const newTotalPrice = newVersion.base_price + priceOverride;
 

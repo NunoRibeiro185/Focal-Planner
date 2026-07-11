@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { cookies } from "next/headers";
 import {
   buildAuthUrl,
@@ -75,7 +76,10 @@ export async function syncBookingToGoogle(
   bookingId: string,
   op: "create" | "update" | "delete"
 ): Promise<void> {
-  try {
+  // Run after the response is sent so the mutation returns promptly and the
+  // sync isn't frozen when the serverless function suspends post-response.
+  after(async () => {
+   try {
     const supabase = await createClient();
     const {
       data: { user },
@@ -94,13 +98,7 @@ export async function syncBookingToGoogle(
 
     if (!booking) return;
 
-    const calEvent = bookingToCalendarEvent({
-      ...booking,
-      package_version: (booking as any).package_version,
-      amount_paid: 0,
-      balance: 0,
-      overdue: false,
-    });
+    const calEvent = bookingToCalendarEvent({ ...booking });
 
     if (op === "create") {
       const googleId = await pushEvent(
@@ -128,9 +126,10 @@ export async function syncBookingToGoogle(
         booking.google_event_id
       );
     }
-  } catch (e) {
+   } catch (e) {
     console.error("[GoogleSync] syncBookingToGoogle:", e);
-  }
+   }
+  });
 }
 
 /**

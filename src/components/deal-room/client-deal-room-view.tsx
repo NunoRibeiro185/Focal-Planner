@@ -167,7 +167,7 @@ export function ClientDealRoomView({
         ) : (
           <section className="mb-14">
             <p className="text-sm text-muted-foreground leading-relaxed max-w-[55ch]">
-              Your proposal is being put together. You'll receive an email as soon as it's ready to review.
+              Your proposal is being put together. You’ll receive an email as soon as it’s ready to review.
             </p>
           </section>
         )}

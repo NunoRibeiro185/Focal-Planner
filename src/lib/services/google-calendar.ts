@@ -129,8 +129,8 @@ export async function listCalendars(
     throw new Error(`listCalendars failed: ${body}`);
   }
 
-  const json = await res.json();
-  return (json.items ?? []).map((item: any) => ({
+  const json = (await res.json()) as { items?: { id: string; summary: string }[] };
+  return (json.items ?? []).map((item) => ({
     id: item.id,
     summary: item.summary,
   }));

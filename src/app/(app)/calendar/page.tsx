@@ -31,7 +31,7 @@ export default async function CalendarPage() {
         prefetchStart={prefetchStart}
         prefetchEnd={prefetchEnd}
         futureEvents={futureEvents}
-        packages={packages as any}
+        packages={packages}
         initialMonth={today}
       />
     </div>

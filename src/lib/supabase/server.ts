@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
+import type { Database } from "@/lib/types/database";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
@@ -62,7 +63,7 @@ export const createClient = cache(async () => {
     ? process.env.SUPABASE_SERVICE_ROLE_KEY!
     : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  const client = createServerClient(
+  const client = createServerClient<Database>(
     SERVER_SUPABASE_URL,
     supabaseKey,
     {

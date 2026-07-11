@@ -18,9 +18,9 @@ export function bookingToCalendarEvent(b: CalendarBookingItem): CalendarEvent {
     kind: "booking",
     id: b.id,
     title: b.client_name_primary,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+     
     start: b.event_date!,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+     
     end: b.event_date!,
     allDay: !b.start_time,
     color: BOOKING_STATUS_COLORS[b.status],

@@ -11,6 +11,7 @@ export function OnboardingHint() {
 
   useEffect(() => {
     const dismissed = localStorage.getItem(DISMISS_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is client-only, so visibility is resolved after mount
     if (!dismissed) setVisible(true);
   }, []);
 

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { after } from "next/server";
 import {
   hashPassword,
   verifyPassword,
@@ -144,7 +145,7 @@ export async function inviteSecondShooter(
 
   // Look up photographer by email using service-role (bypasses RLS on photographers)
   // Cast to any: Supabase TypeScript generics don't handle partial selects well
-  const serviceClient = createServiceRoleClient() as any;
+  const serviceClient = createServiceRoleClient();
   const { data: secondShooter } = await serviceClient
     .from("photographers")
     .select("id, full_name, email")
@@ -176,7 +177,7 @@ export async function inviteSecondShooter(
     if (error) throw error;
 
     // Fire-and-forget invite email
-    Promise.resolve().then(() =>
+    after(() =>
       sendSecondShooterInvite({
         toEmail: email,
         toName: secondShooter.full_name ?? email,
@@ -258,7 +259,7 @@ export async function acceptSecondShooterInvite(
   if (!user) return { success: false, error: "You must be signed in to accept this invite." };
 
   // Use service-role to read the booking (user may not have SELECT access yet)
-  const serviceClient = createServiceRoleClient() as any;
+  const serviceClient = createServiceRoleClient();
   const { data: booking, error: bookingError } = await serviceClient
     .from("bookings")
     .select("id, second_shooter_id, second_shooter_invite_token, second_shooter_invite_status")
@@ -278,7 +279,7 @@ export async function acceptSecondShooterInvite(
   if (booking.second_shooter_id !== user.id) return { success: false, error: "This invite was not sent to your account." };
   if (booking.second_shooter_invite_token !== inviteToken) return { success: false, error: "Invalid or expired invite link." };
 
-  const { error } = await (serviceClient as any)
+  const { error } = await serviceClient
     .from("bookings")
     .update({
       second_shooter_invite_status: "accepted",
@@ -304,7 +305,7 @@ export async function acceptPendingInviteInApp(
   if (!user) return { success: false, error: "Not signed in." };
 
   // Use service role to verify and update (second shooter can't UPDATE via RLS)
-  const serviceClient = createServiceRoleClient() as any;
+  const serviceClient = createServiceRoleClient();
   const { data: booking } = await serviceClient
     .from("bookings")
     .select("id, second_shooter_id, second_shooter_invite_status")
@@ -322,7 +323,7 @@ export async function acceptPendingInviteInApp(
   if (booking.second_shooter_invite_status === "accepted") return { success: true };
   if (booking.second_shooter_invite_status !== "pending") return { success: false, error: "No pending invite found." };
 
-  const { error } = await (serviceClient as any)
+  const { error } = await serviceClient
     .from("bookings")
     .update({
       second_shooter_invite_status: "accepted",
@@ -369,7 +370,7 @@ export async function verifySecondShooterAccess(
   bookingId: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
-  const serviceClient = createServiceRoleClient() as any;
+  const serviceClient = createServiceRoleClient();
 
   const { data: booking } = await serviceClient
     .from("bookings")

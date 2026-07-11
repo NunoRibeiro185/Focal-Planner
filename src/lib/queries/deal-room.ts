@@ -5,13 +5,13 @@ import type {
   DealRoomCounterOffer,
   DealRoomQuestionWithAnswer,
   ProposalLineItem,
+  ProposalStatus,
 } from "@/lib/types/deal-room"
 
 export async function getDealRoomData(
   bookingId: string
 ): Promise<DealRoomData | null> {
-  // Cast to any: Supabase TypeScript generics don't handle partial selects / new tables well
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   const [bookingRes, answersRes, proposalRes, questionsRes, itineraryRes] =
     await Promise.all([
@@ -24,7 +24,7 @@ export async function getDealRoomData(
         .single(),
 
       supabase
-        .from("booking_inquiry_answers")
+        .from("inquiry_answers")
         .select("question_text, answer_value, sort_order")
         .eq("booking_id", bookingId)
         .order("sort_order"),
@@ -63,7 +63,11 @@ export async function getDealRoomData(
   const currency = (photographerData?.default_currency as string | null) ?? "EUR"
 
   const proposal: DealRoomProposal | null = proposalRes.data
-    ? { ...proposalRes.data, line_items: proposalRes.data.line_items as ProposalLineItem[] }
+    ? {
+        ...proposalRes.data,
+        status: proposalRes.data.status as ProposalStatus,
+        line_items: proposalRes.data.line_items as unknown as ProposalLineItem[],
+      }
     : null
 
   let counterOffer: DealRoomCounterOffer | null = null
@@ -76,11 +80,11 @@ export async function getDealRoomData(
       .limit(1)
       .maybeSingle()
     if (data) {
-      counterOffer = { ...data, removed_item_names: data.removed_item_names as string[] }
+      counterOffer = { ...data, removed_item_names: data.removed_item_names as unknown as string[] }
     }
   }
 
-  const questions: DealRoomQuestionWithAnswer[] = (questionsRes.data ?? []).map((q: any) => ({
+  const questions: DealRoomQuestionWithAnswer[] = (questionsRes.data ?? []).map((q) => ({
     ...q,
     answer:
       Array.isArray(q.deal_room_answers) && q.deal_room_answers.length > 0
@@ -96,7 +100,7 @@ export async function getDealRoomData(
     proposal,
     counterOffer,
     questions,
-    itineraryStops: (itineraryRes.data ?? []).map((s: any) => ({
+    itineraryStops: (itineraryRes.data ?? []).map((s) => ({
       ...s,
       created_by: (s.created_by ?? "photographer") as "photographer" | "client",
     })),

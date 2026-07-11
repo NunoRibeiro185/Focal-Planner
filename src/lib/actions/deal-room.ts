@@ -4,6 +4,7 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/service-role"
+import { after } from "next/server"
 import { verifyClientToken } from "@/lib/services/deal-room-access"
 import { computeNextSortOrder } from "@/lib/utils/deal-room-qa"
 import {
@@ -16,6 +17,7 @@ import {
   sendChangeRequestEmail,
 } from "@/lib/services/deal-room-emails"
 import type { ProposalLineItem } from "@/lib/types/deal-room"
+import type { Json } from "@/lib/types/supabase"
 import { computeSubtotal, computeFinalPrice, type BuilderLineItem } from "@/lib/utils/booking-builder"
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
@@ -91,7 +93,7 @@ async function getOwnedBooking(bookingId: string) {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) throw new Error("Unauthorized")
 
-  const supabaseService = createServiceRoleClient() as any
+  const supabaseService = createServiceRoleClient()
   const { data: booking, error } = await supabaseService
     .from("bookings")
     .select("id, photographer_id, client_name_primary, client_email, client_token")
@@ -104,7 +106,7 @@ async function getOwnedBooking(bookingId: string) {
 }
 
 async function assertClientToken(bookingId: string, token: string) {
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
   const { data: booking, error } = await supabase
     .from("bookings")
     .select("id, client_name_primary, client_email, photographer_id, client_token")
@@ -129,7 +131,7 @@ async function getPhotographerEmail(photographerId: string): Promise<string | nu
 }
 
 async function getPhotographerName(photographerId: string): Promise<string> {
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
   const { data } = await supabase
     .from("photographers")
     .select("full_name")
@@ -148,7 +150,7 @@ export async function sendProposal(input: unknown) {
 
   const totalPrice = lineItems.reduce((sum, item) => sum + item.price, 0)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
   const { error } = await supabase.from("deal_room_proposals").insert({
     booking_id: bookingId,
     photographer_id: photographerId,
@@ -164,7 +166,7 @@ export async function sendProposal(input: unknown) {
 
   if (booking.client_email) {
     const photographerName = await getPhotographerName(photographerId)
-    Promise.resolve().then(() =>
+    after(() =>
       sendProposalEmail({
         clientEmail: booking.client_email!,
         clientName: booking.client_name_primary,
@@ -180,7 +182,7 @@ export async function addDealRoomQuestion(input: unknown) {
   const { bookingId, questionText } = addQuestionSchema.parse(input)
   const { photographerId } = await getOwnedBooking(bookingId)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   const { data: existing } = await supabase
     .from("deal_room_questions")
@@ -203,7 +205,7 @@ export async function deleteDealRoomQuestion(input: unknown) {
   const { questionId, bookingId } = deleteQuestionSchema.parse(input)
   await getOwnedBooking(bookingId)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
   const { error } = await supabase
     .from("deal_room_questions")
     .delete()
@@ -220,7 +222,7 @@ export async function acceptProposal(input: unknown) {
   const { bookingId, token, proposalId } = acceptProposalSchema.parse(input)
   const booking = await assertClientToken(bookingId, token)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   // Fetch proposal first so we can inspect line_items before updating
   const { data: proposalData, error: fetchError } = await supabase
@@ -239,7 +241,7 @@ export async function acceptProposal(input: unknown) {
   if (error) throw new Error("Failed to accept proposal")
 
   // If this is a change request (line items contain service metadata), apply them
-  const lineItems = proposalData.line_items as ProposalLineItem[]
+  const lineItems = proposalData.line_items as unknown as ProposalLineItem[]
   const isChangeRequest = lineItems?.some((item) => item.unit_price_snapshot !== undefined)
   if (isChangeRequest) {
     const discountItem = lineItems.find((item) => item._discount !== undefined)
@@ -253,7 +255,7 @@ export async function acceptProposal(input: unknown) {
 
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
-    Promise.resolve().then(() =>
+    after(() =>
       sendProposalAcceptedEmail({
         photographerEmail,
         clientName: booking.client_name_primary,
@@ -268,7 +270,7 @@ export async function submitCounterOffer(input: unknown) {
     counterOfferSchema.parse(input)
   const booking = await assertClientToken(bookingId, token)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   const { data: updatedProposal, error: proposalError } = await supabase
     .from("deal_room_proposals")
@@ -293,21 +295,25 @@ export async function submitCounterOffer(input: unknown) {
 
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
-    Promise.resolve().then(async () => {
-      const { data: photographer } = await supabase
-        .from("photographers")
-        .select("default_currency")
-        .eq("id", booking.photographer_id)
-        .single()
-      await sendCounterOfferEmail({
-        photographerEmail,
-        clientName: booking.client_name_primary,
-        bookingId,
-        removedItems: removedItemNames,
-        proposedTotal,
-        currency: photographer?.default_currency ?? "€",
-      })
-    }).catch(console.error)
+    after(async () => {
+      try {
+        const { data: photographer } = await supabase
+          .from("photographers")
+          .select("default_currency")
+          .eq("id", booking.photographer_id)
+          .single()
+        await sendCounterOfferEmail({
+          photographerEmail,
+          clientName: booking.client_name_primary,
+          bookingId,
+          removedItems: removedItemNames,
+          proposedTotal,
+          currency: photographer?.default_currency ?? "€",
+        })
+      } catch (e) {
+        console.error(e)
+      }
+    })
   }
 }
 
@@ -316,7 +322,7 @@ export async function addClientItineraryStop(input: unknown) {
     itineraryStopSchema.parse(input)
   const booking = await assertClientToken(bookingId, token)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   const { data: existing } = await supabase
     .from("booking_itinerary_stops")
@@ -345,7 +351,7 @@ export async function addClientItineraryStop(input: unknown) {
 
   const photographerEmail = await getPhotographerEmail(booking.photographer_id)
   if (photographerEmail) {
-    Promise.resolve().then(() =>
+    after(() =>
       sendItineraryUpdatedEmail({
         photographerEmail,
         clientName: booking.client_name_primary,
@@ -359,7 +365,7 @@ export async function saveClientAnswer(input: unknown) {
   const { bookingId, token, questionId, answerText } = saveAnswerSchema.parse(input)
   const booking = await assertClientToken(bookingId, token)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   const { data: question, error: questionError } = await supabase
     .from("deal_room_questions")
@@ -396,7 +402,7 @@ export async function saveClientAnswer(input: unknown) {
   if (isNewAnswer) {
     const photographerEmail = await getPhotographerEmail(booking.photographer_id)
     if (photographerEmail) {
-      Promise.resolve().then(() =>
+      after(() =>
         sendAnswersSubmittedEmail({
           photographerEmail,
           clientName: booking.client_name_primary,
@@ -409,7 +415,7 @@ export async function saveClientAnswer(input: unknown) {
 
 export async function acceptCounterOffer(bookingId: string) {
   await getOwnedBooking(bookingId)
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   // Fetch the current countered proposal and its counter offer to apply negotiated terms
   const { data: proposal, error: proposalFetchError } = await supabase
@@ -457,7 +463,7 @@ async function applyChangeRequest(
   discount: number,
   totalPrice: number
 ) {
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
 
   await supabase
     .from("booking_services")
@@ -512,12 +518,12 @@ export async function sendChangeRequest(input: unknown) {
   const subtotal = computeSubtotal(items as BuilderLineItem[])
   const totalPrice = computeFinalPrice(subtotal, discount)
 
-  const supabase = createServiceRoleClient() as any
+  const supabase = createServiceRoleClient()
   const { error } = await supabase.from("deal_room_proposals").insert({
     booking_id: bookingId,
     photographer_id: photographerId,
     package_name: packageName,
-    line_items: lineItems,
+    line_items: lineItems as unknown as Json,
     total_price: totalPrice,
     allow_renegotiation: false,
     status: "sent",
@@ -529,7 +535,7 @@ export async function sendChangeRequest(input: unknown) {
 
   if (booking.client_email) {
     const photographerName = await getPhotographerName(photographerId)
-    Promise.resolve().then(() =>
+    after(() =>
       sendChangeRequestEmail({
         clientEmail: booking.client_email!,
         clientName: booking.client_name_primary,

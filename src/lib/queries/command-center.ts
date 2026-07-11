@@ -49,10 +49,14 @@ export async function getNextWedding(): Promise<NextWeddingData | null> {
     .eq("done", false)
     .order("due_date", { ascending: true, nullsFirst: false });
 
-  const daysUntil = Math.ceil(
-    (new Date(booking.event_date).getTime() - new Date(today).getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
+  // event_date is non-null here (the query filters `gte event_date`), but the
+  // column is nullable in the schema — guard to keep the types honest.
+  const daysUntil = booking.event_date
+    ? Math.ceil(
+        (new Date(booking.event_date).getTime() - new Date(today).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+    : 0;
 
   return {
     booking: { ...booking, days_until: daysUntil } as Booking & { days_until: number },
@@ -76,7 +80,7 @@ export async function getEditingBench(): Promise<EditingBenchItem[]> {
   if (error) throw error;
   if (!bookings || bookings.length === 0) return [];
 
-  const bookingIds = bookings.map((b: any) => b.id);
+  const bookingIds = bookings.map((b) => b.id);
 
   const { data: allStages } = await supabase
     .from("booking_editing_stages")
@@ -84,9 +88,9 @@ export async function getEditingBench(): Promise<EditingBenchItem[]> {
     .in("booking_id", bookingIds)
     .order("sort_order", { ascending: true });
 
-  return bookings.map((booking: any) => {
+  return bookings.map((booking) => {
     const stages = (allStages ?? []).filter(
-      (s: any) => s.booking_id === booking.id
+      (s) => s.booking_id === booking.id
     ) as BookingEditingStage[];
     const completed = stages.filter((s) => s.completed_at !== null).length;
     const progress =
@@ -116,13 +120,15 @@ export async function getCommandCenterTasks(): Promise<{
 
   if (error) throw error;
 
-  const toTask = (t: any): CommandCenterTask => {
+  type TaskRow = NonNullable<typeof data>[number];
+  const toTask = (t: TaskRow): CommandCenterTask => {
     const parts = [
       t.booking?.client_name_primary,
       t.booking?.client_name_secondary,
     ].filter(Boolean);
+    const { booking: _booking, ...rest } = t;
     return {
-      ...t,
+      ...rest,
       booking_client: parts.length > 0 ? parts.join(" & ") : null,
     };
   };
@@ -193,7 +199,7 @@ export async function getActiveBookingsForTaskAssignment(): Promise<BookingOptio
 
   if (error) throw error;
 
-  return (data ?? []).map((b: any) => {
+  return (data ?? []).map((b) => {
     const names = [b.client_name_primary, b.client_name_secondary]
       .filter(Boolean)
       .join(" & ");

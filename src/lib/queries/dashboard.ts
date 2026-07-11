@@ -33,12 +33,14 @@ export async function getUpcomingBookings(limit = 5): Promise<UpcomingBooking[]>
 
   if (error) throw error;
 
-  return (data ?? []).map((b: any) => ({
+  return (data ?? []).map((b) => ({
     ...b,
-    days_until: Math.ceil(
-      (new Date(b.event_date).getTime() - new Date(today).getTime()) /
-        (1000 * 60 * 60 * 24)
-    ),
+    days_until: b.event_date
+      ? Math.ceil(
+          (new Date(b.event_date).getTime() - new Date(today).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      : 0,
   }));
 }
 
@@ -62,9 +64,9 @@ export async function getOverdueBookings(): Promise<OverdueBooking[]> {
   if (error) throw error;
 
   return (data ?? [])
-    .map((b: any) => {
+    .map((b) => {
       const amountPaid = computeAmountPaid(
-        (b.payment_log_entries ?? []).map((e: any) => e.amount)
+        (b.payment_log_entries ?? []).map((e) => e.amount)
       );
       const balance = computeBalance(b.total_price, amountPaid);
       return { ...b, balance };
@@ -94,7 +96,7 @@ export async function getSoonTasks(daysAhead = 7): Promise<SoonTask[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((t: any) => ({
+  return (data ?? []).map((t) => ({
     ...t,
     booking_client: [
       t.booking?.client_name_primary,

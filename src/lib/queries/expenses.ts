@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Expense } from "@/lib/types";
+import type { Expense, ExpenseCategory } from "@/lib/types";
 
 export interface ExpenseWithBooking extends Expense {
   booking_client_name: string | null;
@@ -8,7 +8,7 @@ export interface ExpenseWithBooking extends Expense {
 export interface ExpenseFilters {
   dateFrom?: string;
   dateTo?: string;
-  category?: string;
+  category?: ExpenseCategory;
   scope?: "general" | "booking";
   bookingId?: string;
 }
@@ -36,11 +36,13 @@ export async function getExpenses(
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => ({
-    ...row,
-    booking_client_name: row.booking?.client_name_primary ?? null,
-    booking: undefined,
-  }));
+  return (data ?? []).map((row) => {
+    const { booking, ...rest } = row;
+    return {
+      ...rest,
+      booking_client_name: booking?.client_name_primary ?? null,
+    };
+  });
 }
 
 export async function getBookingExpenses(bookingId: string): Promise<Expense[]> {
