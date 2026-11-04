@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > Living document. Consult it at the start of work and update it whenever architecture, conventions, or features change. PRDs live as GitHub issues (`gh issue list --state all`); implementation plans and specs live in `docs/superpowers/`.
 
+> **Rewrite in progress (2026-10-17):** Focal is being rebuilt as a fresh app, porting features one by one. Planning lives in `docs/rewrite/` (start with its `README.md`). Treat this codebase as reference: don't invest in new features here.
+>
+> **The rewrite happens in this repo (2026-11-04),** not in a new `focal-planner` repo (amends AD-10). Before the rewrite starts, the current Next.js app is tagged `legacy-nextjs`; the new app then replaces it on `main`, and the old code stays readable via that tag (`git worktree add ../focal-legacy legacy-nextjs`).
+>
+> **License: AGPL-3.0-only (2026-11-04).** The repo is public. Never commit secrets, real client data, or `.env*` files; seed data must be fictional.
+
 ## Product
 
 **Focal** — a multi-tenant SaaS for wedding & portrait photographers to run their business: packages/pricing, bookings, scheduling, finances, inquiries, client collaboration, and post-production tracking. Every photographer is a tenant; data is isolated per `photographer_id`. Design intent and brand/voice live in `.impeccable.md` (read it before building UI — warm OKLCH stone/amber palette, Playfair + Montserrat, editorial restraint).

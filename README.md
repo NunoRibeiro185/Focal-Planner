@@ -66,3 +66,15 @@ supabase start && supabase db reset
 Then create a `.env.local` (see `.devcontainer/postCreate.sh` for the exact
 keys; on the host both the browser and server use `http://localhost:54321`, so
 `SUPABASE_INTERNAL_URL` can be omitted) and run `npm run dev`.
+
+## License
+
+Copyright (C) 2026 Nuno Ribeiro.
+
+Focal is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License, version 3, as published by the
+Free Software Foundation. It is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY. See [`LICENSE`](./LICENSE) for the full text.
+
+If you run a modified version as a network service, the AGPL requires you to
+offer its users the corresponding source code.
